@@ -63,5 +63,12 @@ export default {
 
   // Room card
   "room.join": "войти",
+  "room.full": "комната заполнена",
   "room.noRooms": "комнат пока нет",
+
+  // AI features
+  "ai.suggestTopic": "предложить тему",
+  "ai.suggesting": "думаю...",
+  "ai.iceBreaker": "айсбрейкер от AI",
+  "ai.iceLoading": "придумываю вопрос...",
 } as const;

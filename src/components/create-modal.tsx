@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { useI18n } from "@/i18n";
 
+function SparkleIcon({ className }: { className?: string }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z" />
+    </svg>
+  );
+}
+
 export function CreateModal({
   onClose,
   onCreate,
@@ -12,7 +20,24 @@ export function CreateModal({
 }) {
   const [topic, setTopic] = useState("");
   const [max, setMax] = useState(4);
-  const { t } = useI18n();
+  const [suggesting, setSuggesting] = useState(false);
+  const { t, locale } = useI18n();
+
+  const suggestTopic = async () => {
+    setSuggesting(true);
+    try {
+      const res = await fetch("/api/ai/suggest-topic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lang: locale }),
+      });
+      const data = await res.json();
+      if (data.topic) setTopic(data.topic);
+    } catch {
+      // silently fail
+    }
+    setSuggesting(false);
+  };
 
   return (
     <div
@@ -33,7 +58,18 @@ export function CreateModal({
           className="px-6 pb-6 space-y-5"
         >
           <div>
-            <label className="text-zinc-500 text-xs font-medium block mb-2">{t("create.topicLabel")}</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-zinc-500 text-xs font-medium">{t("create.topicLabel")}</label>
+              <button
+                type="button"
+                onClick={suggestTopic}
+                disabled={suggesting}
+                className="flex items-center gap-1 text-[11px] font-medium text-violet-500 hover:text-violet-700 disabled:opacity-50 transition-colors"
+              >
+                <SparkleIcon className={suggesting ? "animate-spin" : ""} />
+                {suggesting ? t("ai.suggesting") : t("ai.suggestTopic")}
+              </button>
+            </div>
             <input
               placeholder={t("create.topicPlaceholder")}
               value={topic}

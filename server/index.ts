@@ -52,12 +52,69 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// Room card dimensions + padding for overlap check
+const ROOM_W = 260;
+const ROOM_H = 180;
+
+function overlaps(x: number, y: number, existingRooms: Room[]): boolean {
+  for (const r of existingRooms) {
+    if (
+      x < r.x + ROOM_W &&
+      x + ROOM_W > r.x &&
+      y < r.y + ROOM_H &&
+      y + ROOM_H > r.y
+    ) return true;
+  }
+  return false;
+}
+
+function findFreePosition(existingRooms: Room[]): { x: number; y: number } {
+  // Try random positions up to 50 times, then fall back to a grid slot
+  for (let i = 0; i < 50; i++) {
+    const x = 150 + Math.floor(Math.random() * 700);
+    const y = 100 + Math.floor(Math.random() * 400);
+    if (!overlaps(x, y, existingRooms)) return { x, y };
+  }
+  // Fallback: grid layout
+  const cols = 4;
+  for (let row = 0; row < 10; row++) {
+    for (let col = 0; col < cols; col++) {
+      const x = 150 + col * (ROOM_W + 30);
+      const y = 100 + row * (ROOM_H + 30);
+      if (!overlaps(x, y, existingRooms)) return { x, y };
+    }
+  }
+  return { x: 150 + Math.random() * 700, y: 100 + Math.random() * 400 };
+}
+
+// Find free position near a preferred coordinate (for user-placed rooms)
+function findFreeNear(preferX: number, preferY: number, existingRooms: Room[]): { x: number; y: number } {
+  if (!overlaps(preferX, preferY, existingRooms)) return { x: preferX, y: preferY };
+  // Spiral out in steps until a free spot is found
+  const step = ROOM_W + 20;
+  for (let radius = 1; radius <= 8; radius++) {
+    const candidates = [
+      { x: preferX + radius * step, y: preferY },
+      { x: preferX - radius * step, y: preferY },
+      { x: preferX, y: preferY + radius * step },
+      { x: preferX, y: preferY - radius * step },
+      { x: preferX + radius * step, y: preferY + radius * step },
+      { x: preferX - radius * step, y: preferY - radius * step },
+      { x: preferX + radius * step, y: preferY - radius * step },
+      { x: preferX - radius * step, y: preferY + radius * step },
+    ];
+    for (const c of candidates) {
+      if (!overlaps(c.x, c.y, existingRooms)) return c;
+    }
+  }
+  return { x: preferX, y: preferY };
+}
+
 function makeSeedRoom(): Room {
   const maxPeople = pickRandom([3, 4, 5, 6]);
   const topic = pickRandom(SEED_TOPICS);
   const host = pickRandom(FAKE_NAMES);
 
-  // Fill to max (full room)
   const usedNames = new Set<string>([host]);
   const people: { id: string; name: string }[] = [
     { id: `_seed_${crypto.randomUUID().slice(0, 8)}`, name: host },
@@ -69,6 +126,8 @@ function makeSeedRoom(): Room {
     people.push({ id: `_seed_${crypto.randomUUID().slice(0, 8)}`, name });
   }
 
+  const { x, y } = findFreePosition([...rooms.values()]);
+
   return {
     id: crypto.randomUUID(),
     hostId: people[0].id,
@@ -77,8 +136,8 @@ function makeSeedRoom(): Room {
     maxPeople,
     people,
     color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    x: 150 + Math.floor(Math.random() * 700),
-    y: 100 + Math.floor(Math.random() * 400),
+    x,
+    y,
     createdAt: Date.now() - Math.floor(Math.random() * 7200000),
   };
 }
@@ -207,8 +266,7 @@ wss.on("connection", (ws) => {
         maxPeople: Math.min(Math.max(Number(msg.max) || 4, 2), 8),
         people: [{ id: connId, name: user.name }],
         color: COLORS[colorIdx++ % COLORS.length],
-        x: Number(msg.x) || 0,
-        y: Number(msg.y) || 0,
+        ...findFreeNear(Number(msg.x) || 400, Number(msg.y) || 300, [...rooms.values()]),
         createdAt: Date.now(),
       };
       rooms.set(room.id, room);

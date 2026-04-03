@@ -50,12 +50,32 @@ export function InsideRoom({ party }: { party: PartyState }) {
   const room = party.currentRoom!;
   const voice = useVoice(party);
   const [chatInput, setChatInput] = useState("");
+  const [iceBreaker, setIceBreaker] = useState<string | null>(null);
+  const [iceLoading, setIceLoading] = useState(false);
+  const iceFetched = useRef(false);
   const chatEnd = useRef<HTMLDivElement>(null);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   useEffect(() => {
     voice.start();
     return () => voice.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch AI ice breaker once when entering room
+  useEffect(() => {
+    if (iceFetched.current) return;
+    iceFetched.current = true;
+    setIceLoading(true);
+    fetch("/api/ai/ice-breaker", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic: room.topic, lang: locale }),
+    })
+      .then((r) => r.json())
+      .then((d) => { if (d.question) setIceBreaker(d.question); })
+      .catch(() => {})
+      .finally(() => setIceLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -156,7 +176,16 @@ export function InsideRoom({ party }: { party: PartyState }) {
           {party.chatMessages.length === 0 && (
             <div className="text-center py-12">
               <p className="text-zinc-300 text-sm">{t("room.noMessages")}</p>
-              <p className="text-zinc-200 text-xs mt-1">{t("room.iceBreaker")}</p>
+              {iceLoading ? (
+                <p className="text-zinc-300 text-xs mt-2 animate-pulse">{t("ai.iceLoading")}</p>
+              ) : iceBreaker ? (
+                <div className="mt-3 mx-auto max-w-[280px] bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
+                  <p className="text-[10px] text-violet-400 font-medium mb-1">{t("ai.iceBreaker")}</p>
+                  <p className="text-violet-700 text-sm">{iceBreaker}</p>
+                </div>
+              ) : (
+                <p className="text-zinc-200 text-xs mt-1">{t("room.iceBreaker")}</p>
+              )}
             </div>
           )}
           {party.chatMessages.map((msg, i) => (

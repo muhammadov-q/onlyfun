@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PixelCanvas } from "@/components/pixel-canvas";
 import { useI18n } from "@/i18n";
 import { LangSwitcher } from "@/components/lang-switcher";
 
 export default function Home() {
   const [name, setName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("onlyfun-name");
+    if (stored) setName(stored);
+  }, []);
   const [input, setInput] = useState("");
   const { t } = useI18n();
 
@@ -30,7 +35,10 @@ export default function Home() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (input.trim().length >= 2) setName(input.trim());
+              if (input.trim().length >= 2) {
+                localStorage.setItem("onlyfun-name", input.trim());
+                setName(input.trim());
+              }
             }}
             className="space-y-3"
           >

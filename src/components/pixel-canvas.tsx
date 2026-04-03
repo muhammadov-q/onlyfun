@@ -385,6 +385,14 @@ export function PixelCanvas({ name }: { name: string }) {
             )}
           </button>
 
+          {/* Username */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-50 border border-zinc-100">
+            <div className="w-4 h-4 rounded-full bg-black flex items-center justify-center text-[9px] font-bold text-white uppercase">
+              {name[0]}
+            </div>
+            <span className="text-xs font-medium text-zinc-700">{name}</span>
+          </div>
+
           {/* Info */}
           <button
             onClick={() => setShowInfo(true)}
@@ -503,7 +511,7 @@ function RoomCard({ room, onJoin, t }: { room: Room; onJoin: () => void; t: Retu
       <button
         onClick={onJoin}
         disabled={full}
-        className="w-full bg-white rounded-2xl p-4 text-left border border-zinc-200/80 hover:border-zinc-300 hover:shadow-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-sm group relative overflow-hidden"
+        className="w-full bg-white rounded-2xl p-4 text-left border border-zinc-200/80 hover:border-zinc-300 hover:shadow-lg transition-all disabled:cursor-not-allowed shadow-sm group relative overflow-hidden"
       >
         <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ backgroundColor: room.color }} />
 
@@ -534,13 +542,17 @@ function RoomCard({ room, onJoin, t }: { room: Room; onJoin: () => void; t: Retu
           </div>
         </div>
 
-        {!full && (
-          <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-black/[0.03]">
+        <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-black/[0.03]">
+          {full ? (
+            <span className="bg-zinc-800 text-white text-xs px-4 py-1.5 rounded-full font-medium shadow-sm">
+              {t("room.full")}
+            </span>
+          ) : (
             <span className="bg-black text-white text-xs px-4 py-1.5 rounded-full font-medium shadow-sm">
               {t("room.join")}
             </span>
-          </div>
-        )}
+          )}
+        </div>
       </button>
     </div>
   );
