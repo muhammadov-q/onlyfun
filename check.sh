@@ -76,6 +76,7 @@ else
 fi
 
 print_step "Checking code formatting..."
+npm run format > /dev/null 2>&1
 if npm run format:check > /dev/null 2>&1; then
     print_success "Formatting correct"
 else
