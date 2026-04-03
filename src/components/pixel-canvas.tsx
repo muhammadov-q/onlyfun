@@ -345,7 +345,7 @@ export function PixelCanvas({ name }: { name: string }) {
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-zinc-50">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-200/60 shrink-0 z-10 bg-white/80 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-200/60 shrink-0 z-10 bg-white">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-bold text-black tracking-tight">onlyfun</h1>
           <div className="flex items-center gap-1.5">
@@ -541,7 +541,7 @@ export function PixelCanvas({ name }: { name: string }) {
 
       {showInfo && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowInfo(false);
           }}
