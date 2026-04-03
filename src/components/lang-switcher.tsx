@@ -32,7 +32,17 @@ export function LangSwitcher() {
       >
         <span>{current.flag}</span>
         <span className="text-zinc-500 font-medium">{current.code.toUpperCase()}</span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-zinc-400"
+        >
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
@@ -42,7 +52,10 @@ export function LangSwitcher() {
           {LANGS.map((lang) => (
             <button
               key={lang.code}
-              onClick={() => { setLocale(lang.code); setOpen(false); }}
+              onClick={() => {
+                setLocale(lang.code);
+                setOpen(false);
+              }}
               className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
                 locale === lang.code
                   ? "bg-zinc-50 text-black font-medium"

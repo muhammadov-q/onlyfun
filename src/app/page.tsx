@@ -27,7 +27,8 @@ export default function Home() {
           <div className="mb-10">
             <h1 className="text-5xl font-bold text-black mb-3 tracking-tight">onlyfun</h1>
             <p className="text-zinc-400 text-sm leading-relaxed">
-              {t("landing.tagline1")}<br />
+              {t("landing.tagline1")}
+              <br />
               {t("landing.tagline2")}
             </p>
           </div>
@@ -59,9 +60,7 @@ export default function Home() {
             </button>
           </form>
 
-          <p className="text-zinc-300 text-xs mt-8">
-            {t("landing.noAccount")}
-          </p>
+          <p className="text-zinc-300 text-xs mt-8">{t("landing.noAccount")}</p>
         </div>
       </div>
     );

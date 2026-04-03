@@ -6,6 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false next lint",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "pre-commit": "bash check.sh",
     "server:dev": "npx tsx server/index.ts",
     "server:build": "npx tsc server/index.ts --outDir dist --esModuleInterop --module commonjs --target es2020 --moduleResolution node --skipLibCheck",
     "server:start": "node dist/server/index.js"
@@ -23,7 +28,10 @@
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
     "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.2.3",
     "postcss": "^8",
+    "prettier": "^3.8.1",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.0",
     "typescript": "^5"

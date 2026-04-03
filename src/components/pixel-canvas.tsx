@@ -10,7 +10,17 @@ import type { Room } from "./use-party";
 
 function InfoIcon({ className }: { className?: string }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="16" x2="12" y2="12" />
       <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -20,7 +30,16 @@ function InfoIcon({ className }: { className?: string }) {
 
 function SpeakerIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
       <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
       <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
@@ -30,7 +49,16 @@ function SpeakerIcon() {
 
 function SpeakerOffIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
       <line x1="23" y1="9" x2="17" y2="15" />
       <line x1="17" y1="9" x2="23" y2="15" />
@@ -74,15 +102,34 @@ function useWeather() {
 
         let descKey = "weather.clear";
         let icon = isDay ? "☀️" : "🌙";
-        if (code <= 1) { descKey = "weather.clear"; icon = isDay ? "☀️" : "🌙"; }
-        else if (code <= 3) { descKey = "weather.cloudy"; icon = isDay ? "⛅" : "☁️"; }
-        else if (code <= 48) { descKey = "weather.foggy"; icon = "🌫️"; }
-        else if (code <= 57) { descKey = "weather.drizzle"; icon = "🌦️"; }
-        else if (code <= 67) { descKey = "weather.rain"; icon = "🌧️"; }
-        else if (code <= 77) { descKey = "weather.snow"; icon = "🌨️"; }
-        else if (code <= 82) { descKey = "weather.showers"; icon = "🌧️"; }
-        else if (code <= 86) { descKey = "weather.snow"; icon = "🌨️"; }
-        else { descKey = "weather.storm"; icon = "⛈️"; }
+        if (code <= 1) {
+          descKey = "weather.clear";
+          icon = isDay ? "☀️" : "🌙";
+        } else if (code <= 3) {
+          descKey = "weather.cloudy";
+          icon = isDay ? "⛅" : "☁️";
+        } else if (code <= 48) {
+          descKey = "weather.foggy";
+          icon = "🌫️";
+        } else if (code <= 57) {
+          descKey = "weather.drizzle";
+          icon = "🌦️";
+        } else if (code <= 67) {
+          descKey = "weather.rain";
+          icon = "🌧️";
+        } else if (code <= 77) {
+          descKey = "weather.snow";
+          icon = "🌨️";
+        } else if (code <= 82) {
+          descKey = "weather.showers";
+          icon = "🌧️";
+        } else if (code <= 86) {
+          descKey = "weather.snow";
+          icon = "🌨️";
+        } else {
+          descKey = "weather.storm";
+          icon = "⛈️";
+        }
 
         setWeather({
           temp: Math.round(c.temperature_2m),
@@ -275,15 +322,18 @@ export function PixelCanvas({ name }: { name: string }) {
     };
   }, []);
 
-  const onDoubleClick = useCallback((e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest("[data-room]")) return;
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setShowCreate({
-      x: Math.round((e.clientX - rect.left - pan.x) / zoom),
-      y: Math.round((e.clientY - rect.top - pan.y) / zoom),
-    });
-  }, [pan, zoom]);
+  const onDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if ((e.target as HTMLElement).closest("[data-room]")) return;
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setShowCreate({
+        x: Math.round((e.clientX - rect.left - pan.x) / zoom),
+        y: Math.round((e.clientY - rect.top - pan.y) / zoom),
+      });
+    },
+    [pan, zoom]
+  );
 
   if (party.currentRoom) {
     return <InsideRoom party={party} />;
@@ -300,7 +350,9 @@ export function PixelCanvas({ name }: { name: string }) {
           <h1 className="text-lg font-bold text-black tracking-tight">onlyfun</h1>
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-zinc-400 text-xs">{party.onlineCount} {t("nav.online")}</span>
+            <span className="text-zinc-400 text-xs">
+              {party.onlineCount} {t("nav.online")}
+            </span>
           </div>
         </div>
 
@@ -316,7 +368,9 @@ export function PixelCanvas({ name }: { name: string }) {
               >
                 <span className="text-sm">{weather.icon}</span>
                 <span className="text-xs text-black font-medium">{weather.temp}°</span>
-                <span className="text-xs text-zinc-400 hidden sm:inline">{tw(weather.descKey)}</span>
+                <span className="text-xs text-zinc-400 hidden sm:inline">
+                  {tw(weather.descKey)}
+                </span>
               </button>
 
               {showWeather && (
@@ -325,7 +379,9 @@ export function PixelCanvas({ name }: { name: string }) {
                     <div>
                       <div className="flex items-center gap-1.5">
                         <p className="text-xs text-zinc-400">Bishkek, KG</p>
-                        {bishkekTime && <p className="text-xs font-medium text-zinc-500">{bishkekTime}</p>}
+                        {bishkekTime && (
+                          <p className="text-xs font-medium text-zinc-500">{bishkekTime}</p>
+                        )}
                       </div>
                       <div className="flex items-baseline gap-1.5 mt-0.5">
                         <span className="text-3xl font-bold text-black">{weather.temp}°</span>
@@ -334,8 +390,12 @@ export function PixelCanvas({ name }: { name: string }) {
                       <p className="text-xs text-zinc-500 capitalize">{tw(weather.descKey)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-zinc-400">{t("weather.high")}: {weather.high}° {t("weather.low")}: {weather.low}°</p>
-                      <p className="text-xs text-zinc-400 mt-0.5">{t("weather.feelsLike")} {weather.feelsLike}°</p>
+                      <p className="text-xs text-zinc-400">
+                        {t("weather.high")}: {weather.high}° {t("weather.low")}: {weather.low}°
+                      </p>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        {t("weather.feelsLike")} {weather.feelsLike}°
+                      </p>
                     </div>
                   </div>
 
@@ -346,7 +406,12 @@ export function PixelCanvas({ name }: { name: string }) {
                     </div>
                     <div className="bg-zinc-50 rounded-xl p-2.5 text-center">
                       <p className="text-[10px] text-zinc-400 mb-0.5">{t("weather.wind")}</p>
-                      <p className="text-sm font-semibold text-black">{weather.windSpeed} <span className="text-[10px] font-normal text-zinc-400">km/h {weather.windDir}</span></p>
+                      <p className="text-sm font-semibold text-black">
+                        {weather.windSpeed}{" "}
+                        <span className="text-[10px] font-normal text-zinc-400">
+                          km/h {weather.windDir}
+                        </span>
+                      </p>
                     </div>
                     <div className="bg-zinc-50 rounded-xl p-2.5 text-center">
                       <p className="text-[10px] text-zinc-400 mb-0.5">{t("weather.uv")}</p>
@@ -449,12 +514,18 @@ export function PixelCanvas({ name }: { name: string }) {
           <button
             onClick={() => setZoom((z) => Math.min(3, z * 1.25))}
             className="w-8 h-8 rounded-lg bg-white border border-zinc-200 text-zinc-400 hover:text-black flex items-center justify-center shadow-sm text-sm"
-          >+</button>
-          <span className="text-zinc-400 text-[10px] w-10 text-center font-mono">{Math.round(zoom * 100)}%</span>
+          >
+            +
+          </button>
+          <span className="text-zinc-400 text-[10px] w-10 text-center font-mono">
+            {Math.round(zoom * 100)}%
+          </span>
           <button
             onClick={() => setZoom((z) => Math.max(0.15, z / 1.25))}
             className="w-8 h-8 rounded-lg bg-white border border-zinc-200 text-zinc-400 hover:text-black flex items-center justify-center shadow-sm text-sm"
-          >-</button>
+          >
+            -
+          </button>
         </div>
       </div>
 
@@ -471,7 +542,9 @@ export function PixelCanvas({ name }: { name: string }) {
       {showInfo && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowInfo(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowInfo(false);
+          }}
         >
           <div className="w-full max-w-sm mx-4 bg-white rounded-2xl border border-zinc-200 shadow-xl animate-in p-6">
             <h3 className="text-black text-base font-bold mb-4">{t("info.title")}</h3>
@@ -504,7 +577,15 @@ export function PixelCanvas({ name }: { name: string }) {
   );
 }
 
-function RoomCard({ room, onJoin, t }: { room: Room; onJoin: () => void; t: ReturnType<typeof useI18n>["t"] }) {
+function RoomCard({
+  room,
+  onJoin,
+  t,
+}: {
+  room: Room;
+  onJoin: () => void;
+  t: ReturnType<typeof useI18n>["t"];
+}) {
   const full = room.people.length >= room.maxPeople;
   return (
     <div data-room className="absolute" style={{ left: room.x, top: room.y, width: 240 }}>
@@ -513,13 +594,18 @@ function RoomCard({ room, onJoin, t }: { room: Room; onJoin: () => void; t: Retu
         disabled={full}
         className="w-full bg-white rounded-2xl p-4 text-left border border-zinc-200/80 hover:border-zinc-300 hover:shadow-lg transition-all disabled:cursor-not-allowed shadow-sm group relative overflow-hidden"
       >
-        <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ backgroundColor: room.color }} />
+        <div
+          className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
+          style={{ backgroundColor: room.color }}
+        />
 
         <div className="pt-1">
           <p className="text-black text-sm font-semibold leading-snug mb-1.5 line-clamp-2">
             {room.topic}
           </p>
-          <p className="text-zinc-400 text-xs mb-3">{t("room.by")} {room.hostName}</p>
+          <p className="text-zinc-400 text-xs mb-3">
+            {t("room.by")} {room.hostName}
+          </p>
 
           <div className="flex items-center justify-between">
             <div className="flex -space-x-1.5">
@@ -534,7 +620,9 @@ function RoomCard({ room, onJoin, t }: { room: Room; onJoin: () => void; t: Retu
               ))}
             </div>
             <div className="flex items-center gap-1.5">
-              <div className={`w-1.5 h-1.5 rounded-full ${full ? "bg-zinc-300" : "bg-emerald-400"}`} />
+              <div
+                className={`w-1.5 h-1.5 rounded-full ${full ? "bg-zinc-300" : "bg-emerald-400"}`}
+              />
               <span className="text-zinc-400 text-xs">
                 {room.people.length}/{room.maxPeople}
               </span>

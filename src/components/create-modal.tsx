@@ -5,7 +5,17 @@ import { useI18n } from "@/i18n";
 
 function SparkleIcon({ className }: { className?: string }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
       <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z" />
     </svg>
   );
@@ -42,7 +52,9 @@ export function CreateModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div className="w-full max-w-md mx-4 bg-white rounded-2xl border border-zinc-200 shadow-xl animate-in">
         <div className="p-6">
@@ -78,11 +90,15 @@ export function CreateModal({
               autoFocus
               className="w-full bg-zinc-50 text-black px-4 py-3.5 rounded-xl border border-zinc-200 focus:outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 placeholder-zinc-300 text-sm transition-all"
             />
-            <p className="text-zinc-300 text-[10px] mt-1.5 text-right font-mono">{topic.length}/80</p>
+            <p className="text-zinc-300 text-[10px] mt-1.5 text-right font-mono">
+              {topic.length}/80
+            </p>
           </div>
 
           <div>
-            <label className="text-zinc-500 text-xs font-medium block mb-2">{t("create.maxPeople")}</label>
+            <label className="text-zinc-500 text-xs font-medium block mb-2">
+              {t("create.maxPeople")}
+            </label>
             <div className="flex gap-2">
               {[2, 3, 4, 5, 6, 8].map((n) => (
                 <button

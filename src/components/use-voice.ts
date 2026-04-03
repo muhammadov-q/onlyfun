@@ -81,7 +81,11 @@ export function useVoice(party: PartyState) {
           setConnectedPeers((s) => new Set([...s, targetId]));
         }
         if (state === "disconnected" || state === "failed" || state === "closed") {
-          setConnectedPeers((s) => { const n = new Set(s); n.delete(targetId); return n; });
+          setConnectedPeers((s) => {
+            const n = new Set(s);
+            n.delete(targetId);
+            return n;
+          });
         }
       };
 
@@ -96,11 +100,22 @@ export function useVoice(party: PartyState) {
 
   const disconnect = useCallback((targetId: string) => {
     const pc = peers.current.get(targetId);
-    if (pc) { pc.close(); peers.current.delete(targetId); }
+    if (pc) {
+      pc.close();
+      peers.current.delete(targetId);
+    }
     const a = audios.current.get(targetId);
-    if (a) { a.pause(); a.srcObject = null; audios.current.delete(targetId); }
+    if (a) {
+      a.pause();
+      a.srcObject = null;
+      audios.current.delete(targetId);
+    }
     iceCandidateQueue.current.delete(targetId);
-    setConnectedPeers((s) => { const n = new Set(s); n.delete(targetId); return n; });
+    setConnectedPeers((s) => {
+      const n = new Set(s);
+      n.delete(targetId);
+      return n;
+    });
   }, []);
 
   // Process queued ICE candidates
@@ -109,7 +124,9 @@ export function useVoice(party: PartyState) {
     const queue = iceCandidateQueue.current.get(targetId);
     if (!pc || !queue) return;
     for (const c of queue) {
-      try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch {}
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(c));
+      } catch {}
     }
     iceCandidateQueue.current.set(targetId, []);
   }, []);
@@ -119,7 +136,11 @@ export function useVoice(party: PartyState) {
   // WebRTC signaling
   useEffect(() => {
     onSignal.current = async (from: string, signal: unknown) => {
-      const s = signal as { type: string; sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
+      const s = signal as {
+        type: string;
+        sdp?: RTCSessionDescriptionInit;
+        candidate?: RTCIceCandidateInit;
+      };
 
       if (s.type === "offer") {
         // Someone is calling us
@@ -143,7 +164,9 @@ export function useVoice(party: PartyState) {
       if (s.type === "candidate") {
         const pc = peers.current.get(from);
         if (pc && pc.remoteDescription) {
-          try { await pc.addIceCandidate(new RTCIceCandidate(s.candidate!)); } catch {}
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(s.candidate!));
+          } catch {}
         } else {
           // Queue it — remote description not set yet
           const queue = iceCandidateQueue.current.get(from) ?? [];
@@ -153,7 +176,9 @@ export function useVoice(party: PartyState) {
       }
     };
 
-    return () => { onSignal.current = undefined; };
+    return () => {
+      onSignal.current = undefined;
+    };
   }, [connect, sendSignal, flushCandidates, onSignal]);
 
   // When a peer joins our pixel
@@ -164,13 +189,17 @@ export function useVoice(party: PartyState) {
         connect(id, true);
       }
     };
-    return () => { onPeerJoin.current = undefined; };
+    return () => {
+      onPeerJoin.current = undefined;
+    };
   }, [connect, onPeerJoin]);
 
   // When a peer leaves
   useEffect(() => {
     onPeerLeave.current = (id: string) => disconnect(id);
-    return () => { onPeerLeave.current = undefined; };
+    return () => {
+      onPeerLeave.current = undefined;
+    };
   }, [disconnect, onPeerLeave]);
 
   // When a peer announces mic-ready
@@ -185,7 +214,9 @@ export function useVoice(party: PartyState) {
         sendMicReady();
       }
     };
-    return () => { onMicReady.current = undefined; };
+    return () => {
+      onMicReady.current = undefined;
+    };
   }, [connect, sendMicReady, onMicReady]);
 
   // Start mic and announce ready on mount
@@ -208,7 +239,9 @@ export function useVoice(party: PartyState) {
   const toggleMute = useCallback(() => {
     if (!stream.current) return;
     const next = !muted;
-    stream.current.getAudioTracks().forEach((t) => { t.enabled = !next; });
+    stream.current.getAudioTracks().forEach((t) => {
+      t.enabled = !next;
+    });
     setMuted(next);
   }, [muted]);
 

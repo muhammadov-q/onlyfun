@@ -97,10 +97,7 @@ export function useParty(name: string) {
     [send]
   );
 
-  const joinRoom = useCallback(
-    (roomId: string) => send({ type: "join-room", roomId }),
-    [send]
-  );
+  const joinRoom = useCallback((roomId: string) => send({ type: "join-room", roomId }), [send]);
 
   const leaveRoom = useCallback(() => send({ type: "leave" }), [send]);
 
@@ -111,10 +108,7 @@ export function useParty(name: string) {
 
   const sendMicReady = useCallback(() => send({ type: "mic-ready" }), [send]);
 
-  const sendChat = useCallback(
-    (text: string) => send({ type: "chat", text }),
-    [send]
-  );
+  const sendChat = useCallback((text: string) => send({ type: "chat", text }), [send]);
 
   const currentRoom = rooms.find((r) => r.id === currentRoomId) ?? null;
 

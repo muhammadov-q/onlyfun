@@ -15,17 +15,52 @@ type Room = {
 };
 
 const COLORS = [
-  "#6366f1", "#8b5cf6", "#a855f7", "#ec4899",
-  "#f43f5e", "#ef4444", "#f97316", "#eab308",
-  "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6",
+  "#6366f1",
+  "#8b5cf6",
+  "#a855f7",
+  "#ec4899",
+  "#f43f5e",
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#14b8a6",
+  "#06b6d4",
+  "#3b82f6",
 ];
 
 // Fake names pool for seed rooms
 const FAKE_NAMES = [
-  "Aida", "Timur", "Mila", "daniyar", "alex", "Нурай", "Bekzat", "Камила",
-  "Arsen", "max", "Zarina", "Эрмек", "Aliya", "Sasha", "Айдана", "Ruslan",
-  "Dina", "Azamat", "Nika", "Askar", "Лера", "Марат", "Анара", "Damir",
-  "Elina", "Talgat", "Asel", "Beka", "Kira", "Sultan",
+  "Aida",
+  "Timur",
+  "Mila",
+  "daniyar",
+  "alex",
+  "Нурай",
+  "Bekzat",
+  "Камила",
+  "Arsen",
+  "max",
+  "Zarina",
+  "Эрмек",
+  "Aliya",
+  "Sasha",
+  "Айдана",
+  "Ruslan",
+  "Dina",
+  "Azamat",
+  "Nika",
+  "Askar",
+  "Лера",
+  "Марат",
+  "Анара",
+  "Damir",
+  "Elina",
+  "Talgat",
+  "Asel",
+  "Beka",
+  "Kira",
+  "Sultan",
 ];
 
 const SEED_TOPICS = [
@@ -58,12 +93,7 @@ const ROOM_H = 180;
 
 function overlaps(x: number, y: number, existingRooms: Room[]): boolean {
   for (const r of existingRooms) {
-    if (
-      x < r.x + ROOM_W &&
-      x + ROOM_W > r.x &&
-      y < r.y + ROOM_H &&
-      y + ROOM_H > r.y
-    ) return true;
+    if (x < r.x + ROOM_W && x + ROOM_W > r.x && y < r.y + ROOM_H && y + ROOM_H > r.y) return true;
   }
   return false;
 }
@@ -88,7 +118,11 @@ function findFreePosition(existingRooms: Room[]): { x: number; y: number } {
 }
 
 // Find free position near a preferred coordinate (for user-placed rooms)
-function findFreeNear(preferX: number, preferY: number, existingRooms: Room[]): { x: number; y: number } {
+function findFreeNear(
+  preferX: number,
+  preferY: number,
+  existingRooms: Room[]
+): { x: number; y: number } {
   if (!overlaps(preferX, preferY, existingRooms)) return { x: preferX, y: preferY };
   // Spiral out in steps until a free spot is found
   const step = ROOM_W + 20;

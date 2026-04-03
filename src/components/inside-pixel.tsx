@@ -7,7 +7,17 @@ import { useI18n } from "@/i18n";
 
 function MicIcon({ size = 16, className }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
       <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
       <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
       <line x1="12" y1="19" x2="12" y2="23" />
@@ -18,7 +28,17 @@ function MicIcon({ size = 16, className }: { size?: number; className?: string }
 
 function MicOffIcon({ size = 16, className }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
       <line x1="1" y1="1" x2="23" y2="23" />
       <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
       <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .41-.04.81-.1 1.2" />
@@ -30,7 +50,16 @@ function MicOffIcon({ size = 16, className }: { size?: number; className?: strin
 
 function ArrowLeftIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <line x1="19" y1="12" x2="5" y2="12" />
       <polyline points="12 19 5 12 12 5" />
     </svg>
@@ -39,7 +68,16 @@ function ArrowLeftIcon() {
 
 function SendIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <line x1="22" y1="2" x2="11" y2="13" />
       <polygon points="22 2 15 22 11 13 2 9 22 2" />
     </svg>
@@ -73,7 +111,9 @@ export function InsideRoom({ party }: { party: PartyState }) {
       body: JSON.stringify({ topic: room.topic, lang: locale }),
     })
       .then((r) => r.json())
-      .then((d) => { if (d.question) setIceBreaker(d.question); })
+      .then((d) => {
+        if (d.question) setIceBreaker(d.question);
+      })
       .catch(() => {})
       .finally(() => setIceLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,7 +137,10 @@ export function InsideRoom({ party }: { party: PartyState }) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 shrink-0 bg-white">
         <button
-          onClick={() => { voice.stop(); party.leaveRoom(); }}
+          onClick={() => {
+            voice.stop();
+            party.leaveRoom();
+          }}
           className="text-zinc-400 hover:text-black flex items-center gap-1.5 transition-colors text-sm"
         >
           <ArrowLeftIcon /> {t("room.leave")}
@@ -111,7 +154,15 @@ export function InsideRoom({ party }: { party: PartyState }) {
                 : "bg-emerald-50 text-emerald-600 border border-emerald-100"
             }`}
           >
-            {voice.muted ? <><MicOffIcon size={12} /> {t("room.muted")}</> : <><MicIcon size={12} /> {t("room.live")}</>}
+            {voice.muted ? (
+              <>
+                <MicOffIcon size={12} /> {t("room.muted")}
+              </>
+            ) : (
+              <>
+                <MicIcon size={12} /> {t("room.live")}
+              </>
+            )}
           </button>
           <span className="text-zinc-300 text-xs font-mono">
             {room.people.length}/{room.maxPeople}
@@ -123,7 +174,9 @@ export function InsideRoom({ party }: { party: PartyState }) {
       <div className="px-5 py-4 border-b border-zinc-100 shrink-0">
         <div className="flex items-center gap-2 mb-1.5">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: room.color }} />
-          <span className="text-zinc-400 text-xs">{t("room.by")} {room.hostName}</span>
+          <span className="text-zinc-400 text-xs">
+            {t("room.by")} {room.hostName}
+          </span>
         </div>
         <h2 className="text-lg font-bold text-black leading-snug">{room.topic}</h2>
       </div>
@@ -153,10 +206,13 @@ export function InsideRoom({ party }: { party: PartyState }) {
                 ) : (
                   <MicOffIcon size={12} className="text-zinc-300" />
                 )}
-                <span className={`text-sm ${
-                  isMe ? "font-medium text-black" : isLive ? "text-emerald-700" : "text-zinc-400"
-                }`}>
-                  {p.name}{isMe ? ` ${t("room.you")}` : ""}
+                <span
+                  className={`text-sm ${
+                    isMe ? "font-medium text-black" : isLive ? "text-emerald-700" : "text-zinc-400"
+                  }`}
+                >
+                  {p.name}
+                  {isMe ? ` ${t("room.you")}` : ""}
                 </span>
               </div>
             );
@@ -180,7 +236,9 @@ export function InsideRoom({ party }: { party: PartyState }) {
                 <p className="text-zinc-300 text-xs mt-2 animate-pulse">{t("ai.iceLoading")}</p>
               ) : iceBreaker ? (
                 <div className="mt-3 mx-auto max-w-[280px] bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
-                  <p className="text-[10px] text-violet-400 font-medium mb-1">{t("ai.iceBreaker")}</p>
+                  <p className="text-[10px] text-violet-400 font-medium mb-1">
+                    {t("ai.iceBreaker")}
+                  </p>
                   <p className="text-violet-700 text-sm">{iceBreaker}</p>
                 </div>
               ) : (
@@ -190,7 +248,9 @@ export function InsideRoom({ party }: { party: PartyState }) {
           )}
           {party.chatMessages.map((msg, i) => (
             <div key={i} className="text-sm py-0.5">
-              <span className={`font-medium ${msg.from === party.myId ? "text-black" : "text-zinc-500"}`}>
+              <span
+                className={`font-medium ${msg.from === party.myId ? "text-black" : "text-zinc-500"}`}
+              >
                 {msg.name}
               </span>
               <span className="text-zinc-600 ml-2">{msg.text}</span>
