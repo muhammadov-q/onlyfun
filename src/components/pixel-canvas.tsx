@@ -559,210 +559,210 @@ export function PixelCanvas({ name }: { name: string }) {
           liveBadgeText={t("live.badge")}
         />
 
-      {/* Map */}
-      <div className="relative flex-1 overflow-hidden flex flex-col">
-        <CityMap
-          rooms={party.rooms}
-          onJoin={party.joinRoom}
-          t={t}
-          placing={placing}
-          setPlacing={setPlacing}
-          onPlace={(lat, lng) => setShowCreate({ lat, lng })}
-          showPanel={showPanel}
-          setShowPanel={setShowPanel}
-          onPreview={preview.startPreview}
-          previewingRoomId={preview.previewingRoomId}
-        />
+        {/* Map */}
+        <div className="relative flex-1 overflow-hidden flex flex-col">
+          <CityMap
+            rooms={party.rooms}
+            onJoin={party.joinRoom}
+            t={t}
+            placing={placing}
+            setPlacing={setPlacing}
+            onPlace={(lat, lng) => setShowCreate({ lat, lng })}
+            showPanel={showPanel}
+            setShowPanel={setShowPanel}
+            onPreview={preview.startPreview}
+            previewingRoomId={preview.previewingRoomId}
+          />
 
-        {/* Preview listening indicator */}
-        {preview.previewingRoomId && (
-          <div
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full animate-in"
-            style={{
-              position: "absolute",
-              bottom: "max(90px, env(safe-area-inset-bottom, 0px) + 80px)",
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 500,
-              pointerEvents: "none",
-              background: "rgba(0,0,0,0.9)",
-              border: "1px solid rgba(255,255,255,0.12)",
-            }}
-          >
-            <div className="flex items-end gap-[2px]" style={{ height: 12 }}>
-              {[0, 1, 2, 3].map((i) => (
-                <span
-                  key={i}
-                  className="music-bar"
-                  style={{ width: 2, backgroundColor: "#22c55e", animationDelay: `${i * 0.15}s` }}
-                />
-              ))}
-            </div>
-            <span className="text-white/80 text-xs font-medium">
-              {t("room.previewListening")} {preview.previewCountdown}s
-            </span>
-          </div>
-        )}
-
-        {/* Cooldown toast */}
-        {preview.cooldownMsg && (
-          <div
-            className="animate-in"
-            style={{
-              position: "absolute",
-              top: 16,
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 500,
-              pointerEvents: "none",
-              background: "rgba(0,0,0,0.92)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 20,
-              padding: "8px 16px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span className="text-white/60 text-xs font-medium">
-              {t("room.previewCooldown")} {preview.cooldownMsg}
-            </span>
-          </div>
-        )}
-
-        {/* Ban toast */}
-        {banToast && (
-          <div
-            className="animate-in"
-            style={{
-              position: "absolute",
-              top: 16,
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 500,
-              pointerEvents: "none",
-              background: "rgba(239,68,68,0.95)",
-              borderRadius: 20,
-              padding: "8px 16px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span className="text-white text-xs font-medium">{banToast}</span>
-          </div>
-        )}
-
-        {/* Admin warning overlay */}
-        {warnOverlay && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 9999,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          {/* Preview listening indicator */}
+          {preview.previewingRoomId && (
             <div
-              style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)" }}
-              onClick={() => setWarnOverlay(null)}
-            />
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full animate-in"
+              style={{
+                position: "absolute",
+                bottom: "max(90px, env(safe-area-inset-bottom, 0px) + 80px)",
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 500,
+                pointerEvents: "none",
+                background: "rgba(0,0,0,0.9)",
+                border: "1px solid rgba(255,255,255,0.12)",
+              }}
+            >
+              <div className="flex items-end gap-[2px]" style={{ height: 12 }}>
+                {[0, 1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    className="music-bar"
+                    style={{ width: 2, backgroundColor: "#22c55e", animationDelay: `${i * 0.15}s` }}
+                  />
+                ))}
+              </div>
+              <span className="text-white/80 text-xs font-medium">
+                {t("room.previewListening")} {preview.previewCountdown}s
+              </span>
+            </div>
+          )}
+
+          {/* Cooldown toast */}
+          {preview.cooldownMsg && (
             <div
               className="animate-in"
               style={{
-                position: "relative",
-                background: "#000",
-                border: "1px solid rgba(234,179,8,0.3)",
+                position: "absolute",
+                top: 16,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 500,
+                pointerEvents: "none",
+                background: "rgba(0,0,0,0.92)",
+                border: "1px solid rgba(255,255,255,0.12)",
                 borderRadius: 20,
-                padding: "32px 28px",
-                maxWidth: 360,
-                width: "90%",
-                textAlign: "center",
+                padding: "8px 16px",
+                whiteSpace: "nowrap",
               }}
             >
-              <div style={{ fontSize: 32, marginBottom: 12 }}>{"\u26A0\uFE0F"}</div>
-              <p style={{ color: "#eab308", fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
-                Warning
-              </p>
-              <p
-                style={{
-                  color: "rgba(255,255,255,0.7)",
-                  fontSize: 14,
-                  lineHeight: 1.5,
-                  marginBottom: 20,
-                }}
-              >
-                {warnOverlay}
-              </p>
-              <button
+              <span className="text-white/60 text-xs font-medium">
+                {t("room.previewCooldown")} {preview.cooldownMsg}
+              </span>
+            </div>
+          )}
+
+          {/* Ban toast */}
+          {banToast && (
+            <div
+              className="animate-in"
+              style={{
+                position: "absolute",
+                top: 16,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 500,
+                pointerEvents: "none",
+                background: "rgba(239,68,68,0.95)",
+                borderRadius: 20,
+                padding: "8px 16px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span className="text-white text-xs font-medium">{banToast}</span>
+            </div>
+          )}
+
+          {/* Admin warning overlay */}
+          {warnOverlay && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 9999,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)" }}
                 onClick={() => setWarnOverlay(null)}
+              />
+              <div
+                className="animate-in"
                 style={{
-                  background: "#eab308",
-                  color: "#000",
-                  fontWeight: 600,
-                  fontSize: 14,
-                  padding: "10px 32px",
-                  borderRadius: 12,
-                  border: "none",
-                  cursor: "pointer",
+                  position: "relative",
+                  background: "#000",
+                  border: "1px solid rgba(234,179,8,0.3)",
+                  borderRadius: 20,
+                  padding: "32px 28px",
+                  maxWidth: 360,
+                  width: "90%",
+                  textAlign: "center",
                 }}
               >
-                I understand
-              </button>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>{"\u26A0\uFE0F"}</div>
+                <p style={{ color: "#eab308", fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
+                  Warning
+                </p>
+                <p
+                  style={{
+                    color: "rgba(255,255,255,0.7)",
+                    fontSize: 14,
+                    lineHeight: 1.5,
+                    marginBottom: 20,
+                  }}
+                >
+                  {warnOverlay}
+                </p>
+                <button
+                  onClick={() => setWarnOverlay(null)}
+                  style={{
+                    background: "#eab308",
+                    color: "#000",
+                    fontWeight: 600,
+                    fontSize: 14,
+                    padding: "10px 32px",
+                    borderRadius: 12,
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  I understand
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Admin block overlay */}
-        {blockOverlay && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 99999,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "rgba(0,0,0,0.95)",
-            }}
-          >
+          {/* Admin block overlay */}
+          {blockOverlay && (
             <div
-              className="animate-in"
               style={{
-                background: "#000",
-                border: "1px solid rgba(239,68,68,0.3)",
-                borderRadius: 20,
-                padding: "32px 28px",
-                maxWidth: 360,
-                width: "90%",
-                textAlign: "center",
+                position: "fixed",
+                inset: 0,
+                zIndex: 99999,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(0,0,0,0.95)",
               }}
             >
-              <div style={{ fontSize: 32, marginBottom: 12 }}>{"\u{1F6AB}"}</div>
-              <p style={{ color: "#ef4444", fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
-                You are blocked
-              </p>
-              <p
+              <div
+                className="animate-in"
                 style={{
-                  color: "rgba(255,255,255,0.7)",
-                  fontSize: 14,
-                  lineHeight: 1.5,
-                  marginBottom: 4,
+                  background: "#000",
+                  border: "1px solid rgba(239,68,68,0.3)",
+                  borderRadius: 20,
+                  padding: "32px 28px",
+                  maxWidth: 360,
+                  width: "90%",
+                  textAlign: "center",
                 }}
               >
-                {blockOverlay.message}
-              </p>
-              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>
-                Come back after {blockOverlay.minutes} minutes
-              </p>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>{"\u{1F6AB}"}</div>
+                <p style={{ color: "#ef4444", fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
+                  You are blocked
+                </p>
+                <p
+                  style={{
+                    color: "rgba(255,255,255,0.7)",
+                    fontSize: 14,
+                    lineHeight: 1.5,
+                    marginBottom: 4,
+                  }}
+                >
+                  {blockOverlay.message}
+                </p>
+                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>
+                  Come back after {blockOverlay.minutes} minutes
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Live Bishkek cam — embed overlay (mobile only, desktop uses side panel) */}
-        {!placing && liveCamOpen && (
-          <div
-            className="absolute z-[400] transition-all duration-300 sm:hidden"
-            style={{ top: 12, left: 12 }}
-          >
+          {/* Live Bishkek cam — embed overlay (mobile only, desktop uses side panel) */}
+          {!placing && liveCamOpen && (
+            <div
+              className="absolute z-[400] transition-all duration-300 sm:hidden"
+              style={{ top: 12, left: 12 }}
+            >
               <div className="relative rounded-2xl overflow-hidden border border-white/15 bg-black">
                 <iframe
                   src="https://www.youtube.com/embed/GQRnp3GLx1U?autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&loop=1&disablekb=1&fs=0&rel=0&showinfo=0&iv_load_policy=3"
@@ -797,15 +797,12 @@ export function PixelCanvas({ name }: { name: string }) {
                   </svg>
                 </button>
               </div>
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Live cam toggle button — mobile only (desktop uses sidebar) */}
-        {!placing && !liveCamOpen && (
-          <div
-            className="absolute z-[400] sm:hidden"
-            style={{ top: 12, left: 12 }}
-          >
+          {/* Live cam toggle button — mobile only (desktop uses sidebar) */}
+          {!placing && !liveCamOpen && (
+            <div className="absolute z-[400] sm:hidden" style={{ top: 12, left: 12 }}>
               <button
                 onClick={() => {
                   localStorage.removeItem("onlyfun-livecam");
@@ -830,38 +827,39 @@ export function PixelCanvas({ name }: { name: string }) {
                 </svg>
                 <span className="text-[11px] font-medium">{t("live.button")}</span>
               </button>
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* + FAB — hidden while placing */}
-        {!placing && (
-          <button
-            onClick={() => setPlacing(true)}
-            style={{
-              touchAction: "manipulation",
-              position: "absolute",
-              bottom: "max(24px, env(safe-area-inset-bottom, 0px) + 16px)",
-              right: 20,
-              zIndex: 500,
-            }}
-            className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center shadow-2xl active:scale-95 transition-transform"
-          >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
+          {/* + FAB — hidden while placing */}
+          {!placing && (
+            <button
+              onClick={() => setPlacing(true)}
+              style={{
+                touchAction: "manipulation",
+                position: "absolute",
+                bottom: "max(24px, env(safe-area-inset-bottom, 0px) + 16px)",
+                right: 20,
+                zIndex: 500,
+              }}
+              className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center shadow-2xl active:scale-95 transition-transform"
             >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          </button>
-        )}
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
-      </div>{/* end sidebar + map wrapper */}
+      {/* end sidebar + map wrapper */}
 
       {showCreate && (
         <CreateModal

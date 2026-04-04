@@ -81,9 +81,7 @@ export function DesktopSidebar({
             </svg>
             <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
           </span>
-          <span className="text-xs font-semibold uppercase tracking-wider">
-            {liveBadgeText}
-          </span>
+          <span className="text-xs font-semibold uppercase tracking-wider">{liveBadgeText}</span>
         </button>
 
         {liveCamOpen && (
