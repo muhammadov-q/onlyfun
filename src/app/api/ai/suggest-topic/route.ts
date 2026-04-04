@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const { lang } = await req.json();
     const isRu = lang === "ru";
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = isRu
       ? "Придумай одну короткую, весёлую и интересную тему для голосовой комнаты в приложении для общения. Тема должна быть неформальной, на разговорном русском. Максимум 60 символов. Верни ТОЛЬКО текст темы, без кавычек и пояснений."

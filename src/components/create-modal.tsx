@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useI18n } from "@/i18n";
+import { ROOM_MODES } from "@/config/roomModes";
+import type { RoomModeId } from "@/types/room";
 
 function SparkleIcon({ className }: { className?: string }) {
   return (
@@ -26,11 +28,12 @@ export function CreateModal({
   onCreate,
 }: {
   onClose: () => void;
-  onCreate: (topic: string, max: number) => void;
+  onCreate: (topic: string, max: number, mode: RoomModeId) => void;
 }) {
   const [topic, setTopic] = useState("");
   const [max, setMax] = useState(4);
   const [suggesting, setSuggesting] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<RoomModeId>("chill");
   const { t, locale } = useI18n();
 
   const suggestTopic = async () => {
@@ -56,14 +59,13 @@ export function CreateModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      {/* Mobile: bottom drawer. Desktop: centered card */}
-      <div className="w-full sm:max-w-md sm:mx-4 bg-black sm:rounded-2xl rounded-t-3xl border-t border-x border-white/10 sm:border shadow-2xl slide-up overflow-hidden">
+      <div className="w-full sm:max-w-md sm:mx-4 bg-black sm:rounded-2xl rounded-t-3xl border-t border-x border-white/10 sm:border shadow-2xl slide-up overflow-hidden max-h-[92dvh] flex flex-col">
         {/* Drag handle (mobile only) */}
-        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
           <div className="w-10 h-1 rounded-full bg-white/20" />
         </div>
 
-        <div className="px-5 pt-4 sm:pt-6 pb-2">
+        <div className="px-5 pt-4 sm:pt-6 pb-2 shrink-0">
           <h2 className="text-white text-lg font-bold tracking-tight">{t("create.title")}</h2>
           <p className="text-white/40 text-sm mt-1">{t("create.subtitle")}</p>
         </div>
@@ -71,11 +73,12 @@ export function CreateModal({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (topic.trim().length >= 2) onCreate(topic.trim(), max);
+            if (topic.trim().length >= 2) onCreate(topic.trim(), max, selectedMode);
           }}
-          className="px-5 pt-2 space-y-5"
+          className="px-5 pt-2 space-y-4 overflow-y-auto flex-1"
           style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
         >
+          {/* Topic input */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-white/50 text-xs font-medium">{t("create.topicLabel")}</label>
@@ -83,7 +86,6 @@ export function CreateModal({
                 type="button"
                 onClick={suggestTopic}
                 disabled={suggesting}
-                // touch-action: manipulation prevents iOS 300ms double-tap delay
                 style={{ touchAction: "manipulation" }}
                 className="flex items-center gap-1 text-[11px] font-medium text-white/50 hover:text-white active:text-white/70 disabled:opacity-30 transition-colors"
               >
@@ -91,12 +93,6 @@ export function CreateModal({
                 {suggesting ? t("ai.suggesting") : t("ai.suggestTopic")}
               </button>
             </div>
-            {/*
-              font-size must be ≥ 16px on mobile to prevent iOS Safari from
-              auto-zooming the viewport when the input is focused.
-              We use text-base (16px) always — it looks fine on mobile and
-              the input is large enough to read comfortably.
-            */}
             <input
               placeholder={t("create.topicPlaceholder")}
               value={topic}
@@ -111,6 +107,39 @@ export function CreateModal({
             </p>
           </div>
 
+          {/* Mode selector */}
+          <div>
+            <label className="text-white/50 text-xs font-medium block mb-2">
+              {t("create.modeLabel")}
+            </label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {ROOM_MODES.map((mode) => {
+                const isSelected = selectedMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setSelectedMode(mode.id)}
+                    style={{ touchAction: "manipulation" }}
+                    className={`flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl text-center transition-all ${
+                      isSelected
+                        ? "bg-white/15 border border-white/30"
+                        : "bg-white/5 border border-white/8 active:bg-white/10"
+                    }`}
+                  >
+                    <span className="text-base leading-none">{mode.emoji}</span>
+                    <span
+                      className={`text-[10px] font-medium leading-tight ${isSelected ? "text-white" : "text-white/40"}`}
+                    >
+                      {locale === "ru" ? mode.labelRu : mode.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Max people */}
           <div>
             <label className="text-white/50 text-xs font-medium block mb-2">
               {t("create.maxPeople")}
@@ -121,7 +150,6 @@ export function CreateModal({
                   key={n}
                   type="button"
                   onClick={() => setMax(n)}
-                  // Prevents double-tap zoom on iOS without needing a 300ms delay
                   style={{ touchAction: "manipulation" }}
                   className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${
                     max === n
@@ -135,6 +163,7 @@ export function CreateModal({
             </div>
           </div>
 
+          {/* Actions */}
           <div className="flex gap-3 pb-1">
             <button
               type="button"

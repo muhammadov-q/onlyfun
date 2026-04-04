@@ -346,7 +346,7 @@ export function PixelCanvas({ name }: { name: string }) {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <p className="text-xs text-white/40">Bishkek, KG</p>
+                        <p className="text-xs text-white/40">{t("weather.location")}</p>
                         {bishkekTime && (
                           <p className="text-xs font-medium text-white/50">{bishkekTime}</p>
                         )}
@@ -376,7 +376,7 @@ export function PixelCanvas({ name }: { name: string }) {
                       <p className="text-sm font-semibold text-white">
                         {weather.windSpeed}{" "}
                         <span className="text-[10px] font-normal text-white/40">
-                          km/h {weather.windDir}
+                          {t("weather.kmh")} {weather.windDir}
                         </span>
                       </p>
                     </div>
@@ -582,8 +582,8 @@ export function PixelCanvas({ name }: { name: string }) {
       {showCreate && (
         <CreateModal
           onClose={() => setShowCreate(null)}
-          onCreate={(topic, max) => {
-            party.createRoom(topic, max, showCreate.lat, showCreate.lng);
+          onCreate={(topic, max, mode) => {
+            party.createRoom(topic, max, showCreate.lat, showCreate.lng, mode);
             setShowCreate(null);
           }}
         />

@@ -159,3 +159,22 @@ body {
 .sound-bar-5 {
   animation-delay: 0s;
 }
+
+/* ---- AI ice-breaker liquid glow ---- */
+
+@keyframes ice-breaker-liquid {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.ice-breaker-glow {
+  animation: ice-breaker-liquid 4s ease infinite;
+  background-size: 200% 200% !important;
+}

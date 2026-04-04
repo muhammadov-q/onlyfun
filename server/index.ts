@@ -1,11 +1,25 @@
 import { WebSocketServer, WebSocket } from "ws";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+
+// Load .env.local if it exists (Next.js doesn't share env with the WS server)
+const envPath = path.resolve(__dirname, "../.env.local");
+if (fs.existsSync(envPath)) {
+  for (const line of fs.readFileSync(envPath, "utf-8").split("\n")) {
+    const match = line.match(/^\s*([\w.-]+)\s*=\s*"?(.*?)"?\s*$/);
+    if (match && !process.env[match[1]]) {
+      process.env[match[1]] = match[2];
+    }
+  }
+}
 
 type Room = {
   id: string;
   hostId: string;
   hostName: string;
   topic: string;
+  mode: string;
   maxPeople: number;
   people: { id: string; name: string }[];
   color: string;
@@ -13,6 +27,8 @@ type Room = {
   lng: number;
   createdAt: number;
   banned: Map<string, number>; // name -> ban expiry timestamp
+  iceBreakers: string[];
+  currentQuestion: number;
 };
 
 const COLORS = [
@@ -166,6 +182,16 @@ function makeSeedRoom(): Room {
     hostId: people[0].id,
     hostName: host,
     topic,
+    mode: pickRandom([
+      "debate",
+      "chill",
+      "confessions",
+      "business",
+      "funny",
+      "advice",
+      "deep",
+      "night",
+    ]),
     maxPeople,
     people,
     color: COLORS[Math.floor(Math.random() * COLORS.length)],
@@ -173,6 +199,8 @@ function makeSeedRoom(): Room {
     lng,
     createdAt: Date.now() - Math.floor(Math.random() * 7200000),
     banned: new Map(),
+    iceBreakers: [],
+    currentQuestion: 0,
   };
 }
 
@@ -219,6 +247,185 @@ function broadcastAll(msg: object) {
 
 function serializeRooms() {
   return [...rooms.values()].map(({ banned, ...rest }) => rest);
+}
+
+// --- Ice breaker generation via Gemini API ---
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+const MODE_TONES: Record<string, string> = {
+  debate: "opinionated, controversial, argumentative — push people to pick a side",
+  chill: "easy, relaxed, light — no pressure, just vibes",
+  confessions: "personal, honest, vulnerable but safe — invite people to share real stuff",
+  business: "practical, money-oriented, career-focused, idea-driven",
+  funny: "playful, absurd, humorous — make people laugh or say something ridiculous",
+  advice: "helpful, supportive, thoughtful — seek wisdom or share experience",
+  deep: "philosophical, emotional, meaningful — make people really think",
+  night: "late-night, random, slightly chaotic — anything goes, unfiltered energy",
+};
+
+const FALLBACK_TEMPLATES: Record<string, string[]> = {
+  debate: [
+    "What's the most overrated thing about {topic}?",
+    "Hot take: unpopular opinion on {topic}?",
+    "Is {topic} overhyped or underrated?",
+    "What's the biggest myth about {topic}?",
+    "If you could change one thing about {topic}?",
+    "Are people too obsessed with {topic}?",
+    "What side are you on with {topic}?",
+    "Worst advice about {topic}?",
+    "Is {topic} better now than 5 years ago?",
+    "What do most people get wrong about {topic}?",
+  ],
+  chill: [
+    "What got you into {topic}?",
+    "Favorite thing about {topic}?",
+    "Anyone here new to {topic}?",
+    "Chill story about {topic}?",
+    "If {topic} was a vibe, what would it be?",
+    "Easiest way to get into {topic}?",
+    "What reminds you of {topic}?",
+    "How does {topic} make you feel?",
+    "What song goes with {topic}?",
+    "Describe {topic} in one word?",
+  ],
+  confessions: [
+    "What about {topic} have you never told anyone?",
+    "Ever been embarrassed because of {topic}?",
+    "Guilty pleasure related to {topic}?",
+    "When did {topic} surprise you emotionally?",
+    "Secret opinion about {topic}?",
+    "Has {topic} ever changed your mind?",
+    "Biggest mistake with {topic}?",
+    "Most personal thing about {topic} for you?",
+    "Did {topic} ever make you cry?",
+    "What do you wish you knew earlier about {topic}?",
+  ],
+  business: [
+    "How can someone make money from {topic}?",
+    "Next big opportunity in {topic}?",
+    "Who's killing it in {topic}?",
+    "Business idea around {topic}?",
+    "Would you invest in {topic}?",
+    "Most valuable skill in {topic}?",
+    "How did {topic} affect your career?",
+    "What's the ROI of {topic}?",
+    "Biggest risk in {topic}?",
+    "Where is {topic} headed in 5 years?",
+  ],
+  funny: [
+    "If {topic} was a person, who would it be?",
+    "Dumbest thing about {topic}?",
+    "Rate {topic}: pizza or taco scale?",
+    "If {topic} had a dating profile?",
+    "What animal is {topic}?",
+    "Explain {topic} like you're drunk",
+    "Funniest fail in {topic}?",
+    "If {topic} was a meme, which one?",
+    "{topic}'s theme song would be?",
+    "Roast {topic} in one sentence",
+  ],
+  advice: [
+    "Best advice about {topic} you got?",
+    "What should beginners know about {topic}?",
+    "Mistake to avoid in {topic}?",
+    "How to deal with hard parts of {topic}?",
+    "Who taught you most about {topic}?",
+    "Best resource for {topic}?",
+    "What would you tell younger you about {topic}?",
+    "What changed everything for you in {topic}?",
+    "How to stay motivated with {topic}?",
+    "Underrated advice about {topic}?",
+  ],
+  deep: [
+    "Why does {topic} matter to you?",
+    "How has {topic} shaped who you are?",
+    "What does {topic} say about human nature?",
+    "If {topic} disappeared, what changes?",
+    "Deeper meaning behind {topic}?",
+    "How does {topic} connect to life's meaning?",
+    "What emotion does {topic} bring up?",
+    "World without {topic} — what's different?",
+    "Is {topic} a symptom of something bigger?",
+    "What truth about {topic} scares people?",
+  ],
+  night: [
+    "Late night — wildest take on {topic}?",
+    "3am thought: is {topic} even real?",
+    "Weirdest connection between {topic} and your life?",
+    "Conspiracy theory about {topic} — go!",
+    "Drunk-text {topic}: what do you say?",
+    "Most unhinged thing about {topic}?",
+    "Anyone else overthink {topic} at night?",
+    "What would aliens think about {topic}?",
+    "{topic} in a parallel universe?",
+    "If {topic} was a late-night snack?",
+  ],
+};
+
+function getFallbackQuestions(topic: string, mode: string): string[] {
+  const templates = FALLBACK_TEMPLATES[mode] || FALLBACK_TEMPLATES["chill"];
+  return templates.map((t) => t.replace(/\{topic\}/g, topic));
+}
+
+async function generateIceBreakersForRoom(roomId: string) {
+  const room = rooms.get(roomId);
+  if (!room || !GEMINI_API_KEY) {
+    // No API key — use fallback
+    if (room) {
+      room.iceBreakers = getFallbackQuestions(room.topic, room.mode);
+      sendToRoom(roomId, {
+        type: "ice-breakers",
+        roomId,
+        questions: room.iceBreakers,
+      });
+    }
+    return;
+  }
+
+  const tone = MODE_TONES[room.mode] || MODE_TONES["chill"];
+  const prompt = `You are an ice-breaker question generator for an anonymous voice chat room.
+
+Room topic: "${room.topic}"
+Mode tone: ${tone}
+
+Rules:
+- Generate exactly 10 ice-breaker questions
+- Every question MUST be directly related to the topic "${room.topic}"
+- No duplicates, no generic filler
+- Natural, conversational, suitable for adults in anonymous voice room
+- Max 100 characters per question
+
+Return ONLY valid JSON: {"questions":["q1","q2","q3","q4","q5","q6","q7","q8","q9","q10"]}`;
+
+  try {
+    const res = await fetch(GEMINI_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    });
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON");
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(parsed.questions) || parsed.questions.length !== 10)
+      throw new Error("Bad structure");
+
+    room.iceBreakers = parsed.questions;
+  } catch (err) {
+    console.error("Gemini ice-breaker generation failed, using fallback:", err);
+    room.iceBreakers = getFallbackQuestions(room.topic, room.mode);
+  }
+
+  // Room may have been deleted while waiting for API
+  if (rooms.has(roomId)) {
+    sendToRoom(roomId, {
+      type: "ice-breakers",
+      roomId,
+      questions: room.iceBreakers,
+    });
+  }
 }
 
 function sendRooms() {
@@ -295,6 +502,7 @@ const PORT = parseInt(process.env.PORT || "1999", 10);
 const wss = new WebSocketServer({ port: PORT });
 
 console.log(`WebSocket server running on port ${PORT}`);
+console.log(`Gemini API key: ${GEMINI_API_KEY ? "loaded" : "MISSING"}`);
 
 wss.on("connection", (ws) => {
   const connId = crypto.randomUUID();
@@ -329,6 +537,7 @@ wss.on("connection", (ws) => {
         hostId: connId,
         hostName: user.name,
         topic: String(msg.topic).slice(0, 80),
+        mode: String(msg.mode || "chill"),
         maxPeople: Math.min(Math.max(Number(msg.max) || 4, 2), 8),
         people: [{ id: connId, name: user.name }],
         color: COLORS[colorIdx++ % COLORS.length],
@@ -336,12 +545,17 @@ wss.on("connection", (ws) => {
         lng,
         createdAt: Date.now(),
         banned: new Map(),
+        iceBreakers: [],
+        currentQuestion: 0,
       };
       rooms.set(room.id, room);
       user.roomId = room.id;
 
       ws.send(JSON.stringify({ type: "joined", roomId: room.id }));
       sendRooms();
+
+      // Generate ice breakers in background
+      generateIceBreakersForRoom(room.id);
     }
 
     if (msg.type === "join-room") {
@@ -373,6 +587,24 @@ wss.on("connection", (ws) => {
           peerUser.ws.send(JSON.stringify({ type: "peer-join", id: connId, name: user.name }));
         }
         ws.send(JSON.stringify({ type: "peer-join", id: p.id, name: p.name }));
+      }
+
+      // Send existing ice breakers to the new joiner
+      if (room.iceBreakers.length > 0) {
+        ws.send(
+          JSON.stringify({
+            type: "ice-breakers",
+            roomId: room.id,
+            questions: room.iceBreakers,
+          })
+        );
+        ws.send(
+          JSON.stringify({
+            type: "question-index",
+            roomId: room.id,
+            index: room.currentQuestion,
+          })
+        );
       }
 
       sendRooms();
@@ -430,6 +662,28 @@ wss.on("connection", (ws) => {
       if (target.ws.readyState === WebSocket.OPEN) {
         target.ws.send(JSON.stringify({ type: "force-muted" }));
       }
+    }
+
+    if (msg.type === "next-question") {
+      const user = users.get(connId);
+      if (!user?.roomId) return;
+      const room = rooms.get(user.roomId);
+      if (!room || room.hostId !== connId) return; // only host
+      if (room.iceBreakers.length === 0) return;
+      room.currentQuestion = (room.currentQuestion + 1) % room.iceBreakers.length;
+      sendToRoom(user.roomId, {
+        type: "question-index",
+        roomId: room.id,
+        index: room.currentQuestion,
+      });
+      // Also send to host
+      ws.send(
+        JSON.stringify({
+          type: "question-index",
+          roomId: room.id,
+          index: room.currentQuestion,
+        })
+      );
     }
 
     if (msg.type === "chat") {

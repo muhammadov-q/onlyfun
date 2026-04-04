@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const { topic, lang } = await req.json();
     const isRu = lang === "ru";
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = isRu
       ? `Придумай один короткий, весёлый вопрос-айсбрейкер для голосовой комнаты с темой: "${topic}". Вопрос должен быть на разговорном русском, дружелюбный и провоцирующий обсуждение. Максимум 80 символов. Верни ТОЛЬКО вопрос, без кавычек и пояснений.`

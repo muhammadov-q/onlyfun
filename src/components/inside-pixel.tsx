@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PartyState } from "./use-party";
 import { useVoice } from "./use-voice";
 import { useI18n } from "@/i18n";
+import { ROOM_MODES_MAP } from "@/config/roomModes";
 
 // ─── Sound effects ────────────────────────────────────────────────────────────
 
@@ -157,6 +158,7 @@ function MarbleParticipants({
   muted,
   onSelect,
   selectedId,
+  youLabel,
 }: {
   people: { id: string; name: string }[];
   myId: string | null;
@@ -165,6 +167,7 @@ function MarbleParticipants({
   muted: boolean;
   onSelect?: (id: string) => void;
   selectedId?: string | null;
+  youLabel: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const posRef = useRef<Map<string, PhysPos>>(new Map());
@@ -453,7 +456,7 @@ function MarbleParticipants({
               {p.name}
               {isMe && (
                 <span className="block text-white/25" style={{ fontSize: 9 }}>
-                  you
+                  {youLabel}
                 </span>
               )}
             </div>
@@ -464,12 +467,145 @@ function MarbleParticipants({
   );
 }
 
+// ─── Ice Breaker Flashcard ───────────────────────────────────────────────────
+
+/** Parse *bold* and **bold** markdown into React elements */
+function renderBold(text: string) {
+  const parts = text.split(/(\*{1,2}[^*]+\*{1,2})/g);
+  return parts.map((part, i) => {
+    const match = part.match(/^\*{1,2}([^*]+)\*{1,2}$/);
+    if (match)
+      return (
+        <strong key={i} className="text-white font-bold">
+          {match[1]}
+        </strong>
+      );
+    return part;
+  });
+}
+
+function IceBreakerCard({
+  questions,
+  currentIndex,
+  isHost,
+  onNext,
+  t,
+}: {
+  questions: string[];
+  currentIndex: number;
+  isHost: boolean;
+  onNext: () => void;
+  t: ReturnType<typeof useI18n>["t"];
+}) {
+  const [animating, setAnimating] = useState(false);
+  const prevIndex = useRef(currentIndex);
+
+  useEffect(() => {
+    if (prevIndex.current !== currentIndex) {
+      setAnimating(true);
+      const timer = setTimeout(() => setAnimating(false), 300);
+      prevIndex.current = currentIndex;
+      return () => clearTimeout(timer);
+    }
+  }, [currentIndex]);
+
+  if (questions.length === 0) return null;
+
+  const question = questions[currentIndex] ?? questions[0];
+
+  return (
+    <div className="absolute top-3 left-3 right-3 z-20 pointer-events-auto">
+      {/* Liquid gradient border */}
+      <div
+        className="rounded-2xl p-[1px] animate-in ice-breaker-glow"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(168,85,247,0.5), rgba(59,130,246,0.3), rgba(168,85,247,0.5))",
+          backgroundSize: "200% 200%",
+        }}
+      >
+        <div
+          className="rounded-2xl px-4 py-3"
+          style={{
+            background: "rgba(16,16,20,0.92)",
+            backdropFilter: "blur(24px) saturate(1.8)",
+            WebkitBackdropFilter: "blur(24px) saturate(1.8)",
+          }}
+        >
+          {/* Header: AI badge + counter */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <div
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded-md"
+                style={{
+                  background: "rgba(168,85,247,0.2)",
+                  border: "1px solid rgba(168,85,247,0.3)",
+                }}
+              >
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="rgb(168,85,247)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z" />
+                </svg>
+                <span className="text-[9px] font-semibold" style={{ color: "rgb(168,85,247)" }}>
+                  AI
+                </span>
+              </div>
+              <span className="text-white/20 text-[10px] font-mono">
+                {currentIndex + 1}/{questions.length}
+              </span>
+            </div>
+
+            {isHost && (
+              <button
+                onClick={onNext}
+                style={{ touchAction: "manipulation" }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-white/40 hover:text-white/70 active:text-white active:bg-white/10 transition-colors"
+              >
+                <span>{t("room.nextQuestion")}</span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {/* Question text */}
+          <p
+            className={`text-white/90 text-[13px] leading-relaxed font-medium transition-all duration-300 ${
+              animating ? "opacity-0 translate-y-1" : "opacity-100 translate-y-0"
+            }`}
+          >
+            {renderBold(question)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── InsideRoom ───────────────────────────────────────────────────────────────
 
 export function InsideRoom({ party }: { party: PartyState }) {
   const room = party.currentRoom!;
   const voice = useVoice(party);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const isHost = party.myId === room.hostId;
@@ -531,6 +667,14 @@ export function InsideRoom({ party }: { party: PartyState }) {
             <span className="text-white/30 text-[10px] truncate">
               {t("room.by")} {room.hostName}
             </span>
+            {room.mode && ROOM_MODES_MAP[room.mode] && (
+              <span className="text-white/25 text-[10px]">
+                {ROOM_MODES_MAP[room.mode].emoji}{" "}
+                {locale === "ru"
+                  ? ROOM_MODES_MAP[room.mode].labelRu
+                  : ROOM_MODES_MAP[room.mode].label}
+              </span>
+            )}
           </div>
           <p className="text-white text-sm font-semibold truncate leading-tight">{room.topic}</p>
         </div>
@@ -553,7 +697,69 @@ export function InsideRoom({ party }: { party: PartyState }) {
           muted={voice.muted}
           onSelect={isHost ? (id) => setSelectedPeer(id === selectedPeer ? null : id) : undefined}
           selectedId={selectedPeer}
+          youLabel={t("room.you")}
         />
+
+        {/* Ice breaker flashcard */}
+        {room.iceBreakers && room.iceBreakers.length > 0 ? (
+          <IceBreakerCard
+            questions={room.iceBreakers}
+            currentIndex={room.currentQuestion ?? 0}
+            isHost={isHost}
+            onNext={() => party.nextQuestion()}
+            t={t}
+          />
+        ) : (
+          <div className="absolute top-3 left-3 right-3 z-20">
+            <div
+              className="rounded-2xl p-[1px] animate-in ice-breaker-glow"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(168,85,247,0.5), rgba(59,130,246,0.3), rgba(168,85,247,0.5))",
+                backgroundSize: "200% 200%",
+              }}
+            >
+              <div
+                className="rounded-2xl px-4 py-3"
+                style={{
+                  background: "rgba(16,16,20,0.92)",
+                  backdropFilter: "blur(24px) saturate(1.8)",
+                  WebkitBackdropFilter: "blur(24px) saturate(1.8)",
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-md shrink-0"
+                    style={{
+                      background: "rgba(168,85,247,0.2)",
+                      border: "1px solid rgba(168,85,247,0.3)",
+                    }}
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="rgb(168,85,247)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z" />
+                    </svg>
+                    <span className="text-[9px] font-semibold" style={{ color: "rgb(168,85,247)" }}>
+                      AI
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3.5 h-3.5 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+                    <span className="text-white/40 text-[12px]">{t("ai.iceLoading")}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Mic warning */}
         {!voice.micActive && (
@@ -589,25 +795,25 @@ export function InsideRoom({ party }: { party: PartyState }) {
                 <button
                   onClick={() => {
                     party.mutePeer(selectedPeer);
-                    setToast(`${peer.name} muted`);
+                    setToast(`${peer.name} ${t("room.peerMuted")}`);
                     setSelectedPeer(null);
                   }}
                   style={{ touchAction: "manipulation" }}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 text-white/70 text-xs font-medium active:bg-white/20 transition-colors"
                 >
                   <MicOffIcon size={12} />
-                  Mute
+                  {t("room.muteAction")}
                 </button>
                 <button
                   onClick={() => {
                     party.kickPeer(selectedPeer);
-                    setToast(`${peer.name} kicked`);
+                    setToast(`${peer.name} ${t("room.peerKicked")}`);
                     setSelectedPeer(null);
                   }}
                   style={{ touchAction: "manipulation" }}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/20 text-red-400 text-xs font-medium active:bg-red-500/30 transition-colors"
                 >
-                  Kick
+                  {t("room.kickAction")}
                 </button>
                 <button
                   onClick={() => setSelectedPeer(null)}
@@ -634,12 +840,12 @@ export function InsideRoom({ party }: { party: PartyState }) {
 
       {/* ── Controls ── iOS liquid pill ── */}
       <div
-        className="shrink-0 flex flex-col items-center gap-3"
+        className="absolute bottom-0 left-0 right-0 flex flex-col items-center gap-3 z-30 pointer-events-none"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)", paddingTop: "12px" }}
       >
         {/* Pill container */}
         <div
-          className="flex items-center gap-1 px-2"
+          className="flex items-center gap-1 px-2 pointer-events-auto"
           style={{
             height: 72,
             borderRadius: 22,
@@ -700,7 +906,9 @@ export function InsideRoom({ party }: { party: PartyState }) {
                 </span>
               </>
             ) : (
-              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>quiet</span>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>
+                {t("room.quiet")}
+              </span>
             )}
           </div>
 

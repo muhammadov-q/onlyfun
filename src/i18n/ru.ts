@@ -54,6 +54,7 @@ export default {
   "create.topicLabel": "тема",
   "create.topicPlaceholder": "напр. кто-нибудь смотрит новый сезон...",
   "create.maxPeople": "макс. людей",
+  "create.modeLabel": "режим комнаты",
   "create.cancel": "отмена",
   "create.submit": "создать",
 
@@ -67,6 +68,12 @@ export default {
   "room.noMessages": "сообщений пока нет",
   "room.iceBreaker": "напиши что-нибудь первым",
   "room.inputPlaceholder": "введи сообщение...",
+  "room.nextQuestion": "дальше",
+  "room.quiet": "тихо",
+  "room.muteAction": "Мут",
+  "room.kickAction": "Кик",
+  "room.peerMuted": "замьючен",
+  "room.peerKicked": "кикнут",
 
   // Room card
   "room.join": "войти",
@@ -81,6 +88,17 @@ export default {
   "room.youWereKicked": "тебя кикнули из комнаты",
   "room.youWereMuted": "хост выключил тебе микрофон",
   "room.banned": "тебе запрещён вход в эту комнату",
+  "room.count": "комнат",
+
+  // Map / placing
+  "map.placingInstruction": "Передвинь карту, чтобы разместить пин",
+  "map.cancel": "Отмена",
+  "map.placeHere": "Разместить тут",
+  "map.outsideBishkek": "Перемести пин в пределы Бишкека",
+
+  // Weather
+  "weather.location": "Бишкек, КГ",
+  "weather.kmh": "км/ч",
 
   // AI features
   "ai.suggestTopic": "предложить тему",

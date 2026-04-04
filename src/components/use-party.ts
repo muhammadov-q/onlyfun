@@ -7,12 +7,15 @@ export type Room = {
   hostId: string;
   hostName: string;
   topic: string;
+  mode: string;
   maxPeople: number;
   people: { id: string; name: string }[];
   color: string;
   lat: number;
   lng: number;
   createdAt: number;
+  iceBreakers: string[];
+  currentQuestion: number;
 };
 
 export type ChatMsg = { from: string; name: string; text: string };
@@ -73,6 +76,21 @@ export function useParty(name: string) {
           setChatMessages([]);
         }
 
+        if (msg.type === "ice-breakers") {
+          setRooms((prev) =>
+            prev.map((r) =>
+              r.id === msg.roomId ? { ...r, iceBreakers: msg.questions as string[] } : r
+            )
+          );
+        }
+        if (msg.type === "question-index") {
+          setRooms((prev) =>
+            prev.map((r) =>
+              r.id === msg.roomId ? { ...r, currentQuestion: msg.index as number } : r
+            )
+          );
+        }
+
         if (msg.type === "signal") onSignal.current?.(msg.from, msg.signal);
         if (msg.type === "peer-join") onPeerJoin.current?.(msg.id, msg.name);
         if (msg.type === "peer-leave") onPeerLeave.current?.(msg.id);
@@ -103,11 +121,13 @@ export function useParty(name: string) {
   }, []);
 
   const createRoom = useCallback(
-    (topic: string, max: number, lat: number, lng: number) => {
-      send({ type: "create", topic, max, lat, lng });
+    (topic: string, max: number, lat: number, lng: number, mode: string) => {
+      send({ type: "create", topic, max, lat, lng, mode });
     },
     [send]
   );
+
+  const nextQuestion = useCallback(() => send({ type: "next-question" }), [send]);
 
   const joinRoom = useCallback((roomId: string) => send({ type: "join-room", roomId }), [send]);
 
@@ -137,6 +157,7 @@ export function useParty(name: string) {
     onlineCount,
     chatMessages,
     createRoom,
+    nextQuestion,
     joinRoom,
     leaveRoom,
     sendSignal,

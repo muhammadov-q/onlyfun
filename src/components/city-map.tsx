@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Room } from "./use-party";
 import type { useI18n } from "@/i18n";
+import { ROOM_MODES_MAP } from "@/config/roomModes";
 
 // Evaluated at module level so Next.js statically inlines the value at build time
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY!;
@@ -56,58 +57,65 @@ function RoomCard({
   t: ReturnType<typeof useI18n>["t"];
 }) {
   const full = room.people.length >= room.maxPeople;
+  const mode = room.mode ? ROOM_MODES_MAP[room.mode] : null;
   return (
     <div
-      className="w-full rounded-2xl text-left relative"
+      className="w-full text-left relative"
       style={{
         background: "#fff",
-        border: "1px solid rgba(0,0,0,0.08)",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08)",
+        borderRadius: "18px 18px 18px 4px",
+        boxShadow: `4px 4px 0 ${room.color}30`,
         padding: 10,
+        borderLeft: `3px solid ${room.color}`,
       }}
     >
-      {/* Color accent bar */}
-      <div
-        className="absolute top-0 left-3 right-3 h-[2px] rounded-b-full"
-        style={{ backgroundColor: room.color }}
-      />
-
-      {/* Topic */}
-      <p className="text-zinc-900 text-[11px] font-semibold leading-snug mb-2 mt-0.5 line-clamp-2">
-        {room.topic}
-      </p>
-
-      {/* People + count row */}
-      <div className="flex items-center justify-between mb-2.5">
-        <div className="flex -space-x-1.5">
-          {room.people.slice(0, 5).map((p) => (
-            <div
-              key={p.id}
-              className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold uppercase"
-              style={{
-                backgroundColor: room.color + "20",
-                color: room.color,
-                border: "1.5px solid #fff",
-              }}
-            >
-              {p.name[0]}
-            </div>
-          ))}
-          {room.people.length > 5 && (
-            <div
-              className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-medium text-zinc-400"
-              style={{ backgroundColor: "#f4f4f5", border: "1.5px solid #fff" }}
-            >
-              +{room.people.length - 5}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-50">
+      {/* Mode pill + count — top row */}
+      <div className="flex items-center justify-between mb-1.5">
+        {mode ? (
+          <div
+            className="flex items-center gap-1 px-1.5 py-[2px] rounded-full"
+            style={{ backgroundColor: room.color + "12" }}
+          >
+            <span className="text-[10px] leading-none">{mode.emoji}</span>
+            <span className="text-[9px] font-semibold" style={{ color: room.color }}>
+              {mode.label}
+            </span>
+          </div>
+        ) : (
+          <div />
+        )}
+        <div className="flex items-center gap-1">
           <div className={`w-1.5 h-1.5 rounded-full ${full ? "bg-zinc-300" : "bg-emerald-400"}`} />
           <span className="text-zinc-400 text-[9px] font-mono tabular-nums">
             {room.people.length}/{room.maxPeople}
           </span>
         </div>
+      </div>
+
+      {/* Topic */}
+      <p className="text-zinc-900 text-[12px] font-bold leading-snug mb-2 line-clamp-2">
+        {room.topic}
+      </p>
+
+      {/* People as name pills */}
+      <div className="flex flex-wrap gap-1 mb-2.5">
+        {room.people.slice(0, 4).map((p) => (
+          <span
+            key={p.id}
+            className="text-[8px] font-semibold px-1.5 py-[1px] rounded-full"
+            style={{
+              backgroundColor: room.color + "14",
+              color: room.color,
+            }}
+          >
+            {p.name}
+          </span>
+        ))}
+        {room.people.length > 4 && (
+          <span className="text-[8px] font-medium text-zinc-400 px-1.5 py-[1px]">
+            +{room.people.length - 4}
+          </span>
+        )}
       </div>
 
       {/* Action buttons */}
@@ -118,22 +126,23 @@ function RoomCard({
               e.stopPropagation();
               onPreview();
             }}
-            className="flex items-center justify-center gap-1 h-8 px-3 rounded-xl text-[10px] font-semibold transition-all active:scale-95"
+            className="flex items-center justify-center gap-1 h-7 px-2.5 text-[10px] font-semibold transition-all active:scale-95"
             style={{
               touchAction: "manipulation",
-              backgroundColor: isPreviewing ? room.color + "12" : "#f4f4f5",
+              borderRadius: "10px 10px 10px 3px",
+              backgroundColor: isPreviewing ? room.color + "15" : "#f4f4f5",
               color: isPreviewing ? room.color : "#71717a",
-              border: isPreviewing ? `1px solid ${room.color}35` : "1px solid transparent",
+              border: isPreviewing ? `1px solid ${room.color}40` : "1px solid transparent",
             }}
           >
             {isPreviewing ? (
               <>
-                <span style={{ fontSize: 11 }}>👂</span>
+                <span style={{ fontSize: 10 }}>{"\u{1F442}"}</span>
                 {t("room.listening")}
               </>
             ) : (
               <>
-                <span style={{ fontSize: 11 }}>🕵️</span>
+                <span style={{ fontSize: 10 }}>{"\u{1F575}\uFE0F"}</span>
                 {t("room.listen")}
               </>
             )}
@@ -145,43 +154,16 @@ function RoomCard({
             onJoin();
           }}
           disabled={full}
-          className="flex-1 h-8 rounded-xl text-[10px] font-semibold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex-1 h-7 text-[10px] font-bold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
           style={{
             touchAction: "manipulation",
-            backgroundColor: full ? "#e4e4e7" : "#000",
+            borderRadius: "10px 10px 10px 3px",
+            backgroundColor: full ? "#e4e4e7" : room.color,
             color: full ? "#a1a1aa" : "#fff",
           }}
         >
           {full ? t("room.full") : t("room.join")}
         </button>
-      </div>
-
-      {/* Tail — attached to card bottom */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: -6,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: 12,
-          height: 6,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            width: 10,
-            height: 10,
-            backgroundColor: "#fff",
-            border: "1px solid rgba(0,0,0,0.08)",
-            transform: "rotate(45deg)",
-            position: "absolute",
-            top: -6,
-            left: "50%",
-            marginLeft: -5,
-            boxShadow: "2px 2px 4px rgba(0,0,0,0.06)",
-          }}
-        />
       </div>
     </div>
   );
@@ -399,7 +381,7 @@ export function CityMap({
             }}
             className="flex items-center gap-2 px-4 py-2.5 bg-black/90 text-white rounded-full shadow-xl text-sm font-medium border border-white/15"
           >
-            <span>Move the map to position the pin</span>
+            <span>{t("map.placingInstruction")}</span>
           </div>
 
           {/* Fixed center pin — stays still, map moves under it */}
@@ -457,7 +439,7 @@ export function CityMap({
               style={{ touchAction: "manipulation" }}
               className="flex-1 py-3.5 rounded-2xl text-sm font-medium bg-white/10 text-white border border-white/15 active:bg-white/20 backdrop-blur-sm"
             >
-              Cancel
+              {t("map.cancel")}
             </button>
             <button
               onClick={() => {
@@ -479,7 +461,7 @@ export function CityMap({
               style={{ touchAction: "manipulation" }}
               className="flex-1 py-3.5 rounded-2xl text-sm font-semibold bg-white text-black active:bg-zinc-100"
             >
-              Place here
+              {t("map.placeHere")}
             </button>
           </div>
 
@@ -497,7 +479,7 @@ export function CityMap({
               }}
               className="px-4 py-2 bg-red-500 text-white rounded-full shadow-xl text-sm font-medium"
             >
-              Move the pin inside Bishkek
+              {t("map.outsideBishkek")}
             </div>
           )}
         </>
@@ -529,7 +511,9 @@ export function CityMap({
 
             {/* Header */}
             <div className="px-4 pt-3 pb-2 border-b border-white/10 shrink-0 flex items-center justify-between">
-              <p className="text-white text-sm font-semibold">{rooms.length} rooms</p>
+              <p className="text-white text-sm font-semibold">
+                {rooms.length} {t("room.count")}
+              </p>
               <button
                 onClick={() => {
                   setShowPanel(false);
@@ -635,6 +619,11 @@ export function CityMap({
                         style={{ backgroundColor: room.color }}
                       />
                       <div className="flex-1 min-w-0">
+                        {room.mode && ROOM_MODES_MAP[room.mode] && (
+                          <span className="text-white/30 text-[9px]">
+                            {ROOM_MODES_MAP[room.mode].emoji} {ROOM_MODES_MAP[room.mode].label}
+                          </span>
+                        )}
                         <p className="text-white text-xs font-medium leading-snug truncate">
                           {search ? highlightMatch(room.topic, search) : room.topic}
                         </p>
@@ -672,7 +661,6 @@ export function CityMap({
               if (bishkekRing && !pointInPolygon(room.lat, room.lng, bishkekRing)) return null;
               const isActive = hoveredId === room.id;
               const isPreviewing = previewingRoomId === room.id;
-              const full = room.people.length >= room.maxPeople;
               return (
                 <div
                   key={room.id}
@@ -680,14 +668,14 @@ export function CityMap({
                   data-lng={room.lng}
                   style={{
                     position: "absolute",
-                    transform: showCards ? "translate(-50%, -100%)" : "translate(-50%, -50%)",
+                    transform: showCards ? "translate(-8px, -100%)" : "translate(-50%, -50%)",
                     zIndex: isActive ? 20 : 10,
                   }}
                   onMouseEnter={() => setHoveredId(room.id)}
                   onMouseLeave={() => setHoveredId(null)}
                 >
                   {showCards ? (
-                    <div style={{ width: 170, paddingBottom: 6 }}>
+                    <div style={{ width: 170 }}>
                       <RoomCard
                         room={room}
                         onJoin={() => onJoin(room.id)}
@@ -702,20 +690,24 @@ export function CityMap({
                         <div
                           style={{
                             position: "absolute",
-                            bottom: 18,
+                            bottom: 10,
                             left: "50%",
-                            transform: "translateX(-50%)",
+                            transform: "translateX(-8px)",
                             width: 170,
+                            paddingBottom: 6,
                             zIndex: 20,
+                            pointerEvents: "none",
                           }}
                         >
-                          <RoomCard
-                            room={room}
-                            onJoin={() => onJoin(room.id)}
-                            onPreview={() => onPreview?.(room.id)}
-                            isPreviewing={previewingRoomId === room.id}
-                            t={t}
-                          />
+                          <div style={{ pointerEvents: "auto" }}>
+                            <RoomCard
+                              room={room}
+                              onJoin={() => onJoin(room.id)}
+                              onPreview={() => onPreview?.(room.id)}
+                              isPreviewing={previewingRoomId === room.id}
+                              t={t}
+                            />
+                          </div>
                         </div>
                       )}
                       {/* Larger touch target wrapping the dot */}

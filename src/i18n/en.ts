@@ -53,6 +53,7 @@ export default {
   "create.topicLabel": "topic",
   "create.topicPlaceholder": "e.g. anyone watching the new season of...",
   "create.maxPeople": "max people",
+  "create.modeLabel": "room mode",
   "create.cancel": "cancel",
   "create.submit": "create room",
 
@@ -66,6 +67,12 @@ export default {
   "room.noMessages": "no messages yet",
   "room.iceBreaker": "say something to break the ice",
   "room.inputPlaceholder": "type a message...",
+  "room.nextQuestion": "next",
+  "room.quiet": "quiet",
+  "room.muteAction": "Mute",
+  "room.kickAction": "Kick",
+  "room.peerMuted": "muted",
+  "room.peerKicked": "kicked",
 
   // Room card
   "room.join": "join",
@@ -80,6 +87,17 @@ export default {
   "room.youWereKicked": "you were kicked from the room",
   "room.youWereMuted": "the host muted you",
   "room.banned": "you're banned from this room",
+  "room.count": "rooms",
+
+  // Map / placing
+  "map.placingInstruction": "Move the map to position the pin",
+  "map.cancel": "Cancel",
+  "map.placeHere": "Place here",
+  "map.outsideBishkek": "Move the pin inside Bishkek",
+
+  // Weather
+  "weather.location": "Bishkek, KG",
+  "weather.kmh": "km/h",
 
   // AI features
   "ai.suggestTopic": "suggest topic",
