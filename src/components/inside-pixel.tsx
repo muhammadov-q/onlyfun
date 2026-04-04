@@ -260,7 +260,11 @@ export function InsideRoom({ party }: { party: PartyState }) {
         </div>
 
         {/* Chat input */}
-        <form onSubmit={onChat} className="px-4 py-3 border-t border-white/10 shrink-0" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+        <form
+          onSubmit={onChat}
+          className="px-4 py-3 border-t border-white/10 shrink-0"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        >
           <div className="flex gap-2">
             <input
               className="flex-1 bg-white/5 text-white text-sm px-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-white/25 focus:ring-2 focus:ring-white/5 placeholder-white/20 transition-all"

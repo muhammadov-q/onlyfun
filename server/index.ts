@@ -30,10 +30,36 @@ const COLORS = [
 ];
 
 const FAKE_NAMES = [
-  "Aida", "Timur", "Mila", "daniyar", "alex", "Нурай", "Bekzat", "Камила",
-  "Arsen", "max", "Zarina", "Эрмек", "Aliya", "Sasha", "Айдана", "Ruslan",
-  "Dina", "Azamat", "Nika", "Askar", "Лера", "Марат", "Анара", "Damir",
-  "Elina", "Talgat", "Asel", "Beka", "Kira", "Sultan",
+  "Aida",
+  "Timur",
+  "Mila",
+  "daniyar",
+  "alex",
+  "Нурай",
+  "Bekzat",
+  "Камила",
+  "Arsen",
+  "max",
+  "Zarina",
+  "Эрмек",
+  "Aliya",
+  "Sasha",
+  "Айдана",
+  "Ruslan",
+  "Dina",
+  "Azamat",
+  "Nika",
+  "Askar",
+  "Лера",
+  "Марат",
+  "Анара",
+  "Damir",
+  "Elina",
+  "Talgat",
+  "Asel",
+  "Beka",
+  "Kira",
+  "Sultan",
 ];
 
 const SEED_TOPICS = [
@@ -57,8 +83,10 @@ const SEED_TOPICS = [
 const SEED_ONLINE_OFFSET = 17;
 
 // Bishkek bounds
-const LAT_MIN = 42.83, LAT_MAX = 42.92;
-const LNG_MIN = 74.50, LNG_MAX = 74.70;
+const LAT_MIN = 42.83,
+  LAT_MAX = 42.92;
+const LNG_MIN = 74.5,
+  LNG_MAX = 74.7;
 
 // Minimum distance between rooms (degrees) — ~300m apart
 const MIN_DIST = 0.003;
@@ -87,7 +115,11 @@ function findFreePosition(existingRooms: Room[]): { lat: number; lng: number } {
   return randomLatLng();
 }
 
-function findFreeNear(lat: number, lng: number, existingRooms: Room[]): { lat: number; lng: number } {
+function findFreeNear(
+  lat: number,
+  lng: number,
+  existingRooms: Room[]
+): { lat: number; lng: number } {
   if (!tooClose(lat, lng, existingRooms)) return { lat, lng };
   for (let radius = 1; radius <= 8; radius++) {
     const d = MIN_DIST * radius;

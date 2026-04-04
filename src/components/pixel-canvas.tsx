@@ -8,7 +8,6 @@ import { useI18n } from "@/i18n";
 import { LangSwitcher } from "./lang-switcher";
 import { CityMap } from "./city-map";
 
-
 function InfoIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -261,8 +260,21 @@ export function PixelCanvas({ name }: { name: string }) {
                 : "bg-white/5 text-white/70 border-white/10 hover:border-white/20 hover:text-white"
             }`}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span className="hidden sm:inline">{placing ? t("nav.placing") : t("nav.createRoom")}</span>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span className="hidden sm:inline">
+              {placing ? t("nav.placing") : t("nav.createRoom")}
+            </span>
           </button>
 
           {/* All rooms */}
@@ -274,11 +286,25 @@ export function PixelCanvas({ name }: { name: string }) {
                 : "bg-white/5 text-white/70 border-white/10 hover:border-white/20 hover:text-white"
             }`}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
             </svg>
             <span className="hidden sm:inline">{t("nav.allRooms")}</span>
-            <span className="bg-white/15 text-white/80 text-[9px] font-bold px-1 py-0.5 rounded-full">{party.rooms.length}</span>
+            <span className="bg-white/15 text-white/80 text-[9px] font-bold px-1 py-0.5 rounded-full">
+              {party.rooms.length}
+            </span>
           </button>
 
           {/* Weather */}
@@ -290,7 +316,9 @@ export function PixelCanvas({ name }: { name: string }) {
               >
                 <span className="text-sm leading-none">{weather.icon}</span>
                 <span className="text-xs text-white font-medium">{weather.temp}°</span>
-                <span className="text-xs text-white/40 hidden sm:inline">{tw(weather.descKey)}</span>
+                <span className="text-xs text-white/40 hidden sm:inline">
+                  {tw(weather.descKey)}
+                </span>
               </button>
 
               {showWeather && (
@@ -327,7 +355,9 @@ export function PixelCanvas({ name }: { name: string }) {
                       <p className="text-[10px] text-white/40 mb-0.5">{t("weather.wind")}</p>
                       <p className="text-sm font-semibold text-white">
                         {weather.windSpeed}{" "}
-                        <span className="text-[10px] font-normal text-white/40">km/h {weather.windDir}</span>
+                        <span className="text-[10px] font-normal text-white/40">
+                          km/h {weather.windDir}
+                        </span>
                       </p>
                     </div>
                     <div className="bg-white/5 rounded-xl p-2.5 text-center">
@@ -372,7 +402,9 @@ export function PixelCanvas({ name }: { name: string }) {
             <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center text-[9px] font-bold text-black uppercase shrink-0">
               {name[0]}
             </div>
-            <span className="text-xs font-medium text-white/70 hidden sm:inline max-w-[80px] truncate">{name}</span>
+            <span className="text-xs font-medium text-white/70 hidden sm:inline max-w-[80px] truncate">
+              {name}
+            </span>
           </div>
 
           {/* Info */}
@@ -410,13 +442,18 @@ export function PixelCanvas({ name }: { name: string }) {
       {showInfo && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowInfo(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowInfo(false);
+          }}
         >
           <div className="w-full sm:max-w-sm sm:mx-4 bg-zinc-950 rounded-t-3xl sm:rounded-2xl border-0 sm:border border-white/10 shadow-2xl slide-up sm:animate-in overflow-hidden">
             <div className="flex justify-center pt-3 pb-1 sm:hidden">
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
-            <div className="px-5 pt-4 sm:pt-6 pb-5" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
+            <div
+              className="px-5 pt-4 sm:pt-6 pb-5"
+              style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
+            >
               <h3 className="text-white text-base font-bold mb-4">{t("info.title")}</h3>
               <div className="space-y-3.5">
                 {[
@@ -449,4 +486,3 @@ export function PixelCanvas({ name }: { name: string }) {
 }
 
 // ---------------------------------------------------------------------------
-
