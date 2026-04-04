@@ -31,7 +31,9 @@ function highlightMatch(text: string, query: string) {
   return (
     <>
       {text.slice(0, idx)}
-      <span className="text-white bg-white/20 rounded-sm px-0.5">{text.slice(idx, idx + query.length)}</span>
+      <span className="text-white bg-white/20 rounded-sm px-0.5">
+        {text.slice(idx, idx + query.length)}
+      </span>
       {text.slice(idx + query.length)}
     </>
   );
@@ -507,7 +509,10 @@ export function CityMap({
           <div
             className="fixed inset-0 bg-black/40 sm:hidden"
             style={{ zIndex: 599 }}
-            onClick={() => { setShowPanel(false); setSearch(""); }}
+            onClick={() => {
+              setShowPanel(false);
+              setSearch("");
+            }}
           />
           <div
             className={`fixed sm:absolute left-0 right-0 sm:left-auto sm:right-4 sm:w-[300px] sm:max-h-[calc(100%-32px)] sm:bottom-4 bg-zinc-950 border border-white/10 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out ${
@@ -526,7 +531,10 @@ export function CityMap({
             <div className="px-4 pt-3 pb-2 border-b border-white/10 shrink-0 flex items-center justify-between">
               <p className="text-white text-sm font-semibold">{rooms.length} rooms</p>
               <button
-                onClick={() => { setShowPanel(false); setSearch(""); }}
+                onClick={() => {
+                  setShowPanel(false);
+                  setSearch("");
+                }}
                 className="text-white/40 hover:text-white transition-colors p-1"
               >
                 <svg
@@ -628,9 +636,7 @@ export function CityMap({
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-xs font-medium leading-snug truncate">
-                          {search
-                            ? highlightMatch(room.topic, search)
-                            : room.topic}
+                          {search ? highlightMatch(room.topic, search) : room.topic}
                         </p>
                         <div className="flex items-center gap-1.5 mt-1">
                           <div

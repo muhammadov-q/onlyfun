@@ -395,8 +395,18 @@ export function useVoice(party: PartyState) {
     stream.current?.getAudioTracks().forEach((t) => {
       t.enabled = !next;
     });
-
   }, [muted]);
 
-  return { start, stop, toggleMute, muted, micActive, connectedPeers, isSpeaking, speakingPeers, wasForceMuted, clearForceMuted: () => setWasForceMuted(false) };
+  return {
+    start,
+    stop,
+    toggleMute,
+    muted,
+    micActive,
+    connectedPeers,
+    isSpeaking,
+    speakingPeers,
+    wasForceMuted,
+    clearForceMuted: () => setWasForceMuted(false),
+  };
 }

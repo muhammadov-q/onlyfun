@@ -571,55 +571,65 @@ export function InsideRoom({ party }: { party: PartyState }) {
         )}
 
         {/* Host admin actions */}
-        {isHost && selectedPeer && (() => {
-          const peer = room.people.find((p) => p.id === selectedPeer);
-          if (!peer) return null;
-          return (
-            <div
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-2 rounded-2xl animate-in"
-              style={{
-                background: "rgba(28,28,30,0.92)",
-                backdropFilter: "blur(20px)",
-                border: "1px solid rgba(255,255,255,0.1)",
-              }}
-            >
-              <span className="text-white/60 text-xs font-medium px-1">{peer.name}</span>
-              <button
-                onClick={() => {
-                  party.mutePeer(selectedPeer);
-                  setToast(`${peer.name} muted`);
-                  setSelectedPeer(null);
+        {isHost &&
+          selectedPeer &&
+          (() => {
+            const peer = room.people.find((p) => p.id === selectedPeer);
+            if (!peer) return null;
+            return (
+              <div
+                className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-2 rounded-2xl animate-in"
+                style={{
+                  background: "rgba(28,28,30,0.92)",
+                  backdropFilter: "blur(20px)",
+                  border: "1px solid rgba(255,255,255,0.1)",
                 }}
-                style={{ touchAction: "manipulation" }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 text-white/70 text-xs font-medium active:bg-white/20 transition-colors"
               >
-                <MicOffIcon size={12} />
-                Mute
-              </button>
-              <button
-                onClick={() => {
-                  party.kickPeer(selectedPeer);
-                  setToast(`${peer.name} kicked`);
-                  setSelectedPeer(null);
-                }}
-                style={{ touchAction: "manipulation" }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/20 text-red-400 text-xs font-medium active:bg-red-500/30 transition-colors"
-              >
-                Kick
-              </button>
-              <button
-                onClick={() => setSelectedPeer(null)}
-                style={{ touchAction: "manipulation" }}
-                className="px-2 py-2 text-white/30 active:text-white/60"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-          );
-        })()}
+                <span className="text-white/60 text-xs font-medium px-1">{peer.name}</span>
+                <button
+                  onClick={() => {
+                    party.mutePeer(selectedPeer);
+                    setToast(`${peer.name} muted`);
+                    setSelectedPeer(null);
+                  }}
+                  style={{ touchAction: "manipulation" }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 text-white/70 text-xs font-medium active:bg-white/20 transition-colors"
+                >
+                  <MicOffIcon size={12} />
+                  Mute
+                </button>
+                <button
+                  onClick={() => {
+                    party.kickPeer(selectedPeer);
+                    setToast(`${peer.name} kicked`);
+                    setSelectedPeer(null);
+                  }}
+                  style={{ touchAction: "manipulation" }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/20 text-red-400 text-xs font-medium active:bg-red-500/30 transition-colors"
+                >
+                  Kick
+                </button>
+                <button
+                  onClick={() => setSelectedPeer(null)}
+                  style={{ touchAction: "manipulation" }}
+                  className="px-2 py-2 text-white/30 active:text-white/60"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            );
+          })()}
       </div>
 
       {/* ── Controls ── iOS liquid pill ── */}

@@ -235,7 +235,9 @@ export function PixelCanvas({ name }: { name: string }) {
     party.onBanned.current = (mins: number) => {
       setBanToast(`${t("room.banned")} (${mins}m)`);
     };
-    return () => { party.onBanned.current = undefined; };
+    return () => {
+      party.onBanned.current = undefined;
+    };
   }, [party.onBanned, t]);
 
   useEffect(() => {
