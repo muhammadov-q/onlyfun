@@ -5,6 +5,9 @@ import { createPortal } from "react-dom";
 import type { Room } from "./use-party";
 import type { useI18n } from "@/i18n";
 
+// Evaluated at module level so Next.js statically inlines the value at build time
+const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY!;
+
 const BISHKEK_BOUNDS = {
   north: 42.94,
   south: 42.82,
@@ -141,7 +144,7 @@ export function CityMap({
       const { setOptions, importLibrary } = await import("@googlemaps/js-api-loader");
       if (!mounted || !containerRef.current) return;
 
-      setOptions({ key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY!, v: "weekly" });
+      setOptions({ key: MAPS_KEY, v: "weekly" });
       await importLibrary("maps");
       if (!mounted || !containerRef.current) return;
 
