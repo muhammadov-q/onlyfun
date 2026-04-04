@@ -55,8 +55,27 @@ export function useVoice(party: PartyState) {
   const getMic = useCallback(async () => {
     if (stream.current) return stream.current;
     try {
+      // Prefer headset/earbuds mic if connected
+      let audioConstraints: MediaTrackConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      };
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const mics = devices.filter((d) => d.kind === "audioinput" && d.deviceId);
+        const headset = mics.find(
+          (d) =>
+            d.label.toLowerCase().includes("headset") ||
+            d.label.toLowerCase().includes("airpod") ||
+            d.label.toLowerCase().includes("earbud") ||
+            d.label.toLowerCase().includes("hands-free") ||
+            d.deviceId === "communications"
+        );
+        if (headset) audioConstraints.deviceId = { ideal: headset.deviceId };
+      } catch {}
       stream.current = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: audioConstraints,
       });
       setMicActive(true);
 

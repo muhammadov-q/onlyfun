@@ -260,14 +260,27 @@ function leaveRoom(userId: string) {
 
   room.people = room.people.filter((p) => p.id !== userId);
 
-  for (const p of room.people) {
-    const u = users.get(p.id);
-    if (u && u.ws.readyState === WebSocket.OPEN) {
-      u.ws.send(JSON.stringify({ type: "peer-leave", id: userId }));
+  // If the host left, close the room and kick everyone
+  if (room.hostId === userId) {
+    for (const p of room.people) {
+      const u = users.get(p.id);
+      if (u && u.ws.readyState === WebSocket.OPEN) {
+        u.ws.send(JSON.stringify({ type: "peer-leave", id: userId }));
+        u.ws.send(JSON.stringify({ type: "room-closed" }));
+        u.roomId = null;
+      }
     }
+    rooms.delete(room.id);
+  } else {
+    for (const p of room.people) {
+      const u = users.get(p.id);
+      if (u && u.ws.readyState === WebSocket.OPEN) {
+        u.ws.send(JSON.stringify({ type: "peer-leave", id: userId }));
+      }
+    }
+    if (room.people.length === 0) rooms.delete(room.id);
   }
 
-  if (room.people.length === 0) rooms.delete(room.id);
   user.roomId = null;
 }
 

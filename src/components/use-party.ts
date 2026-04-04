@@ -65,7 +65,7 @@ export function useParty(name: string) {
         if (msg.type === "sync") setRooms(msg.rooms);
         if (msg.type === "rooms") setRooms(msg.rooms);
         if (msg.type === "joined") setCurrentRoomId(msg.roomId);
-        if (msg.type === "left") {
+        if (msg.type === "left" || msg.type === "room-closed") {
           setCurrentRoomId(null);
           setChatMessages([]);
         }
