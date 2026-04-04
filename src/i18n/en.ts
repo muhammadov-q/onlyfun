@@ -34,18 +34,18 @@ export default {
   // How it works
   "info.title": "how it works",
   "info.create.title": "create a room",
-  "info.create.desc": "double-click the canvas to place a room",
+  "info.create.desc": 'tap "create room", then click anywhere on the map to place it',
   "info.join.title": "join a room",
-  "info.join.desc": "click any room card to jump in",
+  "info.join.desc": 'tap a dot on the map or find one in "all rooms"',
   "info.talk.title": "talk",
   "info.talk.desc": "voice auto-connects — unmute and speak",
-  "info.move.title": "move around",
-  "info.move.desc": "drag to pan, scroll or pinch to zoom",
+  "info.move.title": "explore the map",
+  "info.move.desc": "drag to pan, scroll or pinch to zoom — rooms only inside Bishkek",
   "info.gotIt": "got it",
 
   // Welcome
   "welcome.title": "welcome to onlyfun",
-  "welcome.desc": "double-click anywhere to create a room",
+  "welcome.desc": 'tap "create room" to place one on the map',
 
   // Create modal
   "create.title": "create a room",

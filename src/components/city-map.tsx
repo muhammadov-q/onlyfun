@@ -141,7 +141,8 @@ export function CityMap({
     let mounted = true;
 
     const loadMaps = (): Promise<void> => {
-      if (window.google?.maps) return Promise.resolve();
+      // Check for Map constructor specifically — google.maps can exist without classes loaded
+      if (window.google?.maps?.Map) return Promise.resolve();
       const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
       if (existing)
         return new Promise((resolve) => {
@@ -149,7 +150,7 @@ export function CityMap({
         });
       return new Promise((resolve, reject) => {
         const script = document.createElement("script");
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&v=weekly&libraries=maps&loading=async`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&v=weekly&libraries=maps`;
         script.async = true;
         script.onload = () => resolve();
         script.onerror = reject;
