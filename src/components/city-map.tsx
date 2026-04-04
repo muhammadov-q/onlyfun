@@ -233,6 +233,7 @@ export function CityMap({
   const [overlayEl, setOverlayEl] = useState<HTMLDivElement | null>(null);
   const [showCards, setShowCards] = useState(false);
   const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -543,6 +544,7 @@ export function CityMap({
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
                 <input
+                  ref={searchRef}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t("room.searchPlaceholder")}
@@ -579,6 +581,7 @@ export function CityMap({
                   return (
                     <button
                       key={room.id}
+                      onTouchStart={() => searchRef.current?.blur()}
                       onClick={() => {
                         const map = mapRef.current;
                         if (map) {

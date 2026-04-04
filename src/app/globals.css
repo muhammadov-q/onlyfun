@@ -13,7 +13,9 @@ body {
   color: #111;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow: hidden;
-  height: 100vh;
+  height: 100dvh;
+  height: 100vh; /* fallback for older browsers */
+  height: 100dvh;
   -webkit-user-select: none;
   user-select: none;
   -webkit-font-smoothing: antialiased;
