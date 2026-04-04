@@ -3,6 +3,17 @@
 import { useRef, useCallback, useState, useEffect } from "react";
 import type { PartyState } from "./use-party";
 
+async function routeToOutputDevice(audio: HTMLAudioElement) {
+  if (typeof audio.setSinkId !== "function") return;
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const outputs = devices.filter((d) => d.kind === "audiooutput");
+    const comm = outputs.find((d) => d.deviceId === "communications");
+    const target = comm || outputs.find((d) => d.deviceId === "default");
+    if (target) await audio.setSinkId(target.deviceId);
+  } catch {}
+}
+
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }],
 };
@@ -98,6 +109,7 @@ export function usePreview(party: PartyState) {
         if (!audio) {
           audio = new Audio();
           audio.autoplay = true;
+          routeToOutputDevice(audio);
           audios.current.set(targetId, audio);
         }
         audio.srcObject = e.streams[0];

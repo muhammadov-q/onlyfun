@@ -3,6 +3,19 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import type { PartyState } from "./use-party";
 
+// Route audio to the default communication device (earbuds/headphones if connected)
+async function routeToOutputDevice(audio: HTMLAudioElement) {
+  if (typeof audio.setSinkId !== "function") return;
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const outputs = devices.filter((d) => d.kind === "audiooutput");
+    // Prefer the communications device, fall back to default
+    const comm = outputs.find((d) => d.deviceId === "communications");
+    const target = comm || outputs.find((d) => d.deviceId === "default");
+    if (target) await audio.setSinkId(target.deviceId);
+  } catch {}
+}
+
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
@@ -126,6 +139,7 @@ export function useVoice(party: PartyState) {
         if (!audio) {
           audio = new Audio();
           audio.autoplay = true;
+          routeToOutputDevice(audio);
           audios.current.set(targetId, audio);
         }
         audio.srcObject = e.streams[0];
