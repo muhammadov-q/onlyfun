@@ -51,13 +51,13 @@ export function CreateModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       {/* Mobile: bottom drawer. Desktop: centered card */}
-      <div className="w-full sm:max-w-md sm:mx-4 bg-zinc-950 sm:bg-zinc-950 rounded-t-3xl sm:rounded-2xl border-0 sm:border border-white/10 shadow-2xl slide-up sm:animate-in overflow-hidden">
+      <div className="w-full sm:max-w-md sm:mx-4 bg-black sm:rounded-2xl rounded-t-3xl border-t border-x border-white/10 sm:border shadow-2xl slide-up overflow-hidden">
         {/* Drag handle (mobile only) */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
           <div className="w-10 h-1 rounded-full bg-white/20" />
@@ -73,7 +73,7 @@ export function CreateModal({
             e.preventDefault();
             if (topic.trim().length >= 2) onCreate(topic.trim(), max);
           }}
-          className="px-5 pb-6 sm:pb-6 space-y-5 pt-2"
+          className="px-5 pt-2 space-y-5"
           style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
         >
           <div>
@@ -83,19 +83,28 @@ export function CreateModal({
                 type="button"
                 onClick={suggestTopic}
                 disabled={suggesting}
-                className="flex items-center gap-1 text-[11px] font-medium text-violet-400 hover:text-violet-300 disabled:opacity-50 transition-colors"
+                // touch-action: manipulation prevents iOS 300ms double-tap delay
+                style={{ touchAction: "manipulation" }}
+                className="flex items-center gap-1 text-[11px] font-medium text-white/50 hover:text-white active:text-white/70 disabled:opacity-30 transition-colors"
               >
                 <SparkleIcon className={suggesting ? "animate-spin" : ""} />
                 {suggesting ? t("ai.suggesting") : t("ai.suggestTopic")}
               </button>
             </div>
+            {/*
+              font-size must be ≥ 16px on mobile to prevent iOS Safari from
+              auto-zooming the viewport when the input is focused.
+              We use text-base (16px) always — it looks fine on mobile and
+              the input is large enough to read comfortably.
+            */}
             <input
               placeholder={t("create.topicPlaceholder")}
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               maxLength={80}
               autoFocus
-              className="w-full bg-white/5 text-white px-4 py-3.5 rounded-xl border border-white/10 focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/5 placeholder-white/20 text-sm transition-all"
+              style={{ fontSize: "16px" }}
+              className="w-full bg-white/5 text-white px-4 py-3.5 rounded-xl border border-white/10 focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/5 placeholder-white/20 transition-all"
             />
             <p className="text-white/20 text-[10px] mt-1.5 text-right font-mono">
               {topic.length}/80
@@ -112,10 +121,12 @@ export function CreateModal({
                   key={n}
                   type="button"
                   onClick={() => setMax(n)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  // Prevents double-tap zoom on iOS without needing a 300ms delay
+                  style={{ touchAction: "manipulation" }}
+                  className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${
                     max === n
-                      ? "bg-white text-black shadow-sm"
-                      : "bg-white/5 text-white/40 border border-white/10 hover:text-white hover:border-white/20"
+                      ? "bg-white text-black border border-white"
+                      : "bg-white/5 text-white/40 border border-white/10 active:bg-white/10"
                   }`}
                 >
                   {n}
@@ -124,18 +135,20 @@ export function CreateModal({
             </div>
           </div>
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex gap-3 pb-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3.5 rounded-xl text-sm bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 transition-all"
+              style={{ touchAction: "manipulation" }}
+              className="flex-1 py-4 rounded-xl text-sm bg-white/5 text-white/50 border border-white/10 active:bg-white/10 transition-all"
             >
               {t("create.cancel")}
             </button>
             <button
               type="submit"
               disabled={topic.trim().length < 2}
-              className="flex-1 py-3.5 rounded-xl text-sm font-semibold bg-white text-black disabled:opacity-20 hover:bg-zinc-100 transition-all shadow-sm"
+              style={{ touchAction: "manipulation" }}
+              className="flex-1 py-4 rounded-xl text-sm font-semibold bg-white text-black disabled:opacity-20 active:bg-zinc-100 transition-all"
             >
               {t("create.submit")}
             </button>

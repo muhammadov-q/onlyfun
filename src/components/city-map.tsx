@@ -87,10 +87,10 @@ function RoomCard({
 type Props = {
   rooms: Room[];
   onJoin: (id: string) => void;
-  onDblClick: (lat: number, lng: number) => void;
   t: ReturnType<typeof useI18n>["t"];
   placing: boolean;
   setPlacing: (v: boolean) => void;
+  onPlace: (lat: number, lng: number) => void;
   showPanel: boolean;
   setShowPanel: (v: boolean | ((prev: boolean) => boolean)) => void;
 };
@@ -98,50 +98,51 @@ type Props = {
 export function CityMap({
   rooms,
   onJoin,
-  onDblClick,
   t,
   placing,
   setPlacing,
+  onPlace,
   showPanel,
   setShowPanel,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const onDblClickRef = useRef(onDblClick);
+  const placingRef = useRef(placing);
+  const bishkekRingRef = useRef<[number, number][] | null>(null);
+  const onPlaceRef = useRef(onPlace);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const placingRef = useRef(false);
   const [bishkekRing, setBishkekRing] = useState<[number, number][] | null>(null);
   const [outOfBounds, setOutOfBounds] = useState(false);
+
+  useEffect(() => {
+    placingRef.current = placing;
+  }, [placing]);
+  useEffect(() => {
+    onPlaceRef.current = onPlace;
+  }, [onPlace]);
+  useEffect(() => {
+    bishkekRingRef.current = bishkekRing;
+  }, [bishkekRing]);
+
+  // Escape key cancels placing mode
+  useEffect(() => {
+    if (!placing) return;
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPlacing(false);
+    };
+    window.addEventListener("keydown", h, { capture: true });
+    return () => window.removeEventListener("keydown", h, { capture: true });
+  }, [placing, setPlacing]);
   // Portal target: the OverlayView's pane container
   const [overlayEl, setOverlayEl] = useState<HTMLDivElement | null>(null);
   const [showCards, setShowCards] = useState(false);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    onDblClickRef.current = onDblClick;
-  }, [onDblClick]);
-  useEffect(() => {
-    placingRef.current = placing;
-  }, [placing]);
-  useEffect(() => {
-    if (!placing) return;
-    const h = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        setPlacing(false);
-      }
-    };
-    window.addEventListener("keydown", h, { capture: true });
-    return () => window.removeEventListener("keydown", h, { capture: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placing]);
-
-  useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     let mounted = true;
 
     const loadMaps = (): Promise<void> => {
-      // Check for Map constructor specifically — google.maps can exist without classes loaded
       if (window.google?.maps?.Map) return Promise.resolve();
       const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
       if (existing)
@@ -169,10 +170,7 @@ export function CityMap({
         maxZoom: 18,
         gestureHandling: "greedy",
         disableDoubleClickZoom: true,
-        zoomControl: false,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
+        disableDefaultUI: true,
         clickableIcons: false,
         colorScheme: "DARK",
         styles: [{ featureType: "transit", elementType: "all", stylers: [{ visibility: "off" }] }],
@@ -268,99 +266,129 @@ export function CityMap({
 
   return (
     <div
-      style={{
-        position: "relative",
-        flex: 1,
-        overflow: "hidden",
-        cursor: placing ? "crosshair" : "default",
-      }}
+      style={{ position: "relative", flex: 1, overflow: "hidden" }}
       onContextMenu={(e) => e.preventDefault()}
     >
       <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
 
-      {/* Placement capture layer */}
+      {/* ── Placing mode: fixed center pin, user drags the map ── */}
       {placing && (
-        <div
-          style={{ position: "absolute", inset: 0, zIndex: 450, cursor: "crosshair" }}
-          onClick={(e) => {
-            const map = mapRef.current;
-            const container = containerRef.current;
-            if (!map || !container) return;
-            const proj = map.getProjection();
-            const bounds = map.getBounds();
-            if (!proj || !bounds) return;
-            const rect = container.getBoundingClientRect();
-            const px = e.clientX - rect.left;
-            const py = e.clientY - rect.top;
-            const scale = Math.pow(2, map.getZoom() ?? 14);
-            const nw = proj.fromLatLngToPoint(
-              new google.maps.LatLng(bounds.getNorthEast().lat(), bounds.getSouthWest().lng())
-            );
-            if (!nw) return;
-            const latLng = proj.fromPointToLatLng(
-              new google.maps.Point(px / scale + nw.x, py / scale + nw.y)
-            );
-            if (!latLng) return;
-            const lat = latLng.lat(),
-              lng = latLng.lng();
-            if (bishkekRing && !pointInPolygon(lat, lng, bishkekRing)) {
-              setOutOfBounds(true);
-              setTimeout(() => setOutOfBounds(false), 2000);
-              return;
-            }
-            setPlacing(false);
-            onDblClickRef.current(lat, lng);
-          }}
-        />
-      )}
-
-      {outOfBounds && (
-        <div
-          style={{
-            position: "absolute",
-            top: 16,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 700,
-            pointerEvents: "none",
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-full shadow-xl text-sm font-medium animate-in"
-        >
-          Place rooms inside Bishkek only
-        </div>
-      )}
-
-      {placing && (
-        <div
-          style={{
-            position: "absolute",
-            top: 16,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 600,
-          }}
-          className="flex items-center gap-2 pl-4 pr-2 py-2 bg-black text-white rounded-full shadow-xl text-sm font-medium animate-in border border-white/10"
-        >
-          <span>📍</span>
-          <span>Click to place your room</span>
-          <button
-            onClick={() => setPlacing(false)}
-            className="ml-1 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0"
+        <>
+          {/* Instruction banner */}
+          <div
+            style={{
+              position: "absolute",
+              top: 16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 600,
+              pointerEvents: "none",
+              whiteSpace: "nowrap",
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-black/90 text-white rounded-full shadow-xl text-sm font-medium border border-white/15"
           >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
+            <span>Move the map to position the pin</span>
+          </div>
+
+          {/* Fixed center pin — stays still, map moves under it */}
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -100%)",
+              zIndex: 600,
+              pointerEvents: "none",
+            }}
+          >
+            {/* Pin shadow */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: -4,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: 12,
+                height: 4,
+                borderRadius: "50%",
+                background: "rgba(0,0,0,0.25)",
+                filter: "blur(2px)",
+              }}
+            />
+            {/* Pin icon */}
+            <svg width="36" height="44" viewBox="0 0 36 44" fill="none">
+              <path
+                d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 26 18 26s18-12.5 18-26C36 8.06 27.94 0 18 0z"
+                fill="white"
+              />
+              <circle cx="18" cy="18" r="7" fill="black" />
             </svg>
-          </button>
-        </div>
+          </div>
+
+          {/* Bottom actions — thumb-reachable */}
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              zIndex: 600,
+              bottom: 0,
+              display: "flex",
+              gap: 12,
+              padding: "12px 20px",
+              paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px) + 12px)",
+              background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)",
+            }}
+          >
+            <button
+              onClick={() => setPlacing(false)}
+              style={{ touchAction: "manipulation" }}
+              className="flex-1 py-3.5 rounded-2xl text-sm font-medium bg-white/10 text-white border border-white/15 active:bg-white/20 backdrop-blur-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                const map = mapRef.current;
+                if (!map) return;
+                const center = map.getCenter();
+                if (!center) return;
+                const lat = center.lat(),
+                  lng = center.lng();
+                const ring = bishkekRingRef.current;
+                if (ring && !pointInPolygon(lat, lng, ring)) {
+                  setOutOfBounds(true);
+                  setTimeout(() => setOutOfBounds(false), 2000);
+                  return;
+                }
+                setPlacing(false);
+                onPlaceRef.current(lat, lng);
+              }}
+              style={{ touchAction: "manipulation" }}
+              className="flex-1 py-3.5 rounded-2xl text-sm font-semibold bg-white text-black active:bg-zinc-100"
+            >
+              Place here
+            </button>
+          </div>
+
+          {/* Out-of-bounds toast */}
+          {outOfBounds && (
+            <div
+              style={{
+                position: "absolute",
+                top: 64,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 700,
+                pointerEvents: "none",
+                whiteSpace: "nowrap",
+              }}
+              className="px-4 py-2 bg-red-500 text-white rounded-full shadow-xl text-sm font-medium"
+            >
+              Move the pin inside Bishkek
+            </div>
+          )}
+        </>
       )}
 
       {/* Rooms panel — bottom sheet on mobile, side panel on desktop */}

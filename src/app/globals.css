@@ -87,3 +87,59 @@ body {
 .gps-pulse-2 {
   animation-delay: 1s;
 }
+
+/* ---- Speaking / voice animations ---- */
+
+@keyframes speak-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.65;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+.speak-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: speak-ring 1.5s ease-out infinite;
+  pointer-events: none;
+}
+.speak-ring-2 {
+  animation-delay: 0.5s;
+}
+.speak-ring-3 {
+  animation-delay: 1s;
+}
+
+@keyframes sound-bar {
+  0%,
+  100% {
+    transform: scaleY(0.2);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.sound-bar {
+  width: 3px;
+  border-radius: 2px;
+  transform-origin: bottom center;
+  animation: sound-bar 0.75s ease-in-out infinite;
+}
+.sound-bar-2 {
+  animation-delay: 0.15s;
+}
+.sound-bar-3 {
+  animation-delay: 0.3s;
+}
+.sound-bar-4 {
+  animation-delay: 0.15s;
+}
+.sound-bar-5 {
+  animation-delay: 0s;
+}

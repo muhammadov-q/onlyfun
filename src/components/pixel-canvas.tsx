@@ -202,10 +202,10 @@ export function PixelCanvas({ name }: { name: string }) {
   const { t } = useI18n();
   const party = useParty(name);
   const [showCreate, setShowCreate] = useState<{ lat: number; lng: number } | null>(null);
+  const [placing, setPlacing] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showWeather, setShowWeather] = useState(false);
   const [showMore, setShowMore] = useState(false);
-  const [placing, setPlacing] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const weather = useWeather();
   const bishkekTime = useBishkekTime();
@@ -223,10 +223,6 @@ export function PixelCanvas({ name }: { name: string }) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showWeather]);
-
-  const onDblClick = useCallback((lat: number, lng: number) => {
-    setShowCreate({ lat, lng });
-  }, []);
 
   if (party.currentRoom) {
     return <InsideRoom party={party} />;
@@ -254,32 +250,6 @@ export function PixelCanvas({ name }: { name: string }) {
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Create room */}
-          <button
-            onClick={() => setPlacing(true)}
-            className={`flex items-center gap-1.5 h-8 px-2 sm:px-2.5 rounded-lg text-xs font-medium border transition-all ${
-              placing
-                ? "bg-white/10 text-white border-white/20"
-                : "bg-white/5 text-white/70 border-white/10 hover:border-white/20 hover:text-white"
-            }`}
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span className="hidden sm:inline">
-              {placing ? t("nav.placing") : t("nav.createRoom")}
-            </span>
-          </button>
-
           {/* All rooms */}
           <button
             onClick={() => setShowPanel((v) => !v)}
@@ -439,16 +409,46 @@ export function PixelCanvas({ name }: { name: string }) {
       </div>
 
       {/* Map */}
-      <CityMap
-        rooms={party.rooms}
-        onJoin={party.joinRoom}
-        onDblClick={onDblClick}
-        t={t}
-        placing={placing}
-        setPlacing={setPlacing}
-        showPanel={showPanel}
-        setShowPanel={setShowPanel}
-      />
+      <div className="relative flex-1 overflow-hidden flex flex-col">
+        <CityMap
+          rooms={party.rooms}
+          onJoin={party.joinRoom}
+          t={t}
+          placing={placing}
+          setPlacing={setPlacing}
+          onPlace={(lat, lng) => setShowCreate({ lat, lng })}
+          showPanel={showPanel}
+          setShowPanel={setShowPanel}
+        />
+
+        {/* + FAB — hidden while placing */}
+        {!placing && (
+          <button
+            onClick={() => setPlacing(true)}
+            style={{
+              touchAction: "manipulation",
+              position: "absolute",
+              bottom: "max(24px, env(safe-area-inset-bottom, 0px) + 16px)",
+              right: 20,
+              zIndex: 500,
+            }}
+            className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center shadow-2xl active:scale-95 transition-transform"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       {showCreate && (
         <CreateModal

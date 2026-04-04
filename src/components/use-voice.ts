@@ -16,6 +16,8 @@ export function useVoice(party: PartyState) {
   const [muted, setMuted] = useState(false);
   const [micActive, setMicActive] = useState(false);
   const [connectedPeers, setConnectedPeers] = useState<Set<string>>(new Set());
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingPeers, setSpeakingPeers] = useState<Set<string>>(new Set());
 
   const stream = useRef<MediaStream | null>(null);
   const peers = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -23,6 +25,18 @@ export function useVoice(party: PartyState) {
   const iceCandidateQueue = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const myIdRef = useRef(myId);
   myIdRef.current = myId;
+
+  // Speaking detection
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const localAnalyser = useRef<{ node: AnalyserNode; buf: Uint8Array<ArrayBuffer> } | null>(null);
+  const peerAnalysers = useRef<Map<string, { node: AnalyserNode; buf: Uint8Array<ArrayBuffer> }>>(
+    new Map()
+  );
+  const rafId = useRef<number>(0);
+  const mutedRef = useRef(false);
+  useEffect(() => {
+    mutedRef.current = muted;
+  }, [muted]);
 
   // Get microphone
   const getMic = useCallback(async () => {
@@ -32,6 +46,49 @@ export function useVoice(party: PartyState) {
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       setMicActive(true);
+
+      // Set up audio-level polling for speaking detection
+      try {
+        const ctx = new AudioContext();
+        await ctx.resume();
+        audioCtxRef.current = ctx;
+
+        const node = ctx.createAnalyser();
+        node.fftSize = 256;
+        const buf = new Uint8Array(node.frequencyBinCount) as Uint8Array<ArrayBuffer>;
+        localAnalyser.current = { node, buf };
+        ctx.createMediaStreamSource(stream.current).connect(node);
+
+        const poll = () => {
+          // Local speaking
+          if (localAnalyser.current && !mutedRef.current) {
+            localAnalyser.current.node.getByteFrequencyData(localAnalyser.current.buf);
+            const len = localAnalyser.current.buf.length;
+            let sum = 0;
+            for (let i = 0; i < len; i++) sum += localAnalyser.current.buf[i];
+            setIsSpeaking(sum / len > 12);
+          } else {
+            setIsSpeaking(false);
+          }
+
+          // Remote peers speaking
+          const speakers = new Set<string>();
+          for (const [id, a] of peerAnalysers.current) {
+            a.node.getByteFrequencyData(a.buf);
+            const len = a.buf.length;
+            let sum = 0;
+            for (let i = 0; i < len; i++) sum += a.buf[i];
+            if (sum / len > 8) speakers.add(id);
+          }
+          setSpeakingPeers(speakers);
+
+          rafId.current = requestAnimationFrame(poll);
+        };
+        rafId.current = requestAnimationFrame(poll);
+      } catch {
+        // Speaking detection unavailable — silently skip
+      }
+
       return stream.current;
     } catch (err) {
       console.error("Mic denied:", err);
@@ -63,7 +120,7 @@ export function useVoice(party: PartyState) {
         }
       };
 
-      // When we receive remote audio, play it
+      // When we receive remote audio, play it + hook up speaking analyser
       pc.ontrack = (e) => {
         let audio = audios.current.get(targetId);
         if (!audio) {
@@ -73,6 +130,18 @@ export function useVoice(party: PartyState) {
         }
         audio.srcObject = e.streams[0];
         audio.play().catch(() => {});
+
+        // Connect remote stream to an analyser for speaking detection
+        const ctx = audioCtxRef.current;
+        if (ctx && e.streams[0]) {
+          try {
+            const node = ctx.createAnalyser();
+            node.fftSize = 256;
+            const buf = new Uint8Array(node.frequencyBinCount) as Uint8Array<ArrayBuffer>;
+            ctx.createMediaStreamSource(e.streams[0]).connect(node);
+            peerAnalysers.current.set(targetId, { node, buf });
+          } catch {}
+        }
       };
 
       pc.oniceconnectionstatechange = () => {
@@ -111,6 +180,7 @@ export function useVoice(party: PartyState) {
       audios.current.delete(targetId);
     }
     iceCandidateQueue.current.delete(targetId);
+    peerAnalysers.current.delete(targetId);
     setConnectedPeers((s) => {
       const n = new Set(s);
       n.delete(targetId);
@@ -143,7 +213,6 @@ export function useVoice(party: PartyState) {
       };
 
       if (s.type === "offer") {
-        // Someone is calling us
         await connect(from, false);
         const pc = peers.current.get(from);
         if (!pc || !s.sdp) return;
@@ -168,7 +237,6 @@ export function useVoice(party: PartyState) {
             await pc.addIceCandidate(new RTCIceCandidate(s.candidate!));
           } catch {}
         } else {
-          // Queue it — remote description not set yet
           const queue = iceCandidateQueue.current.get(from) ?? [];
           queue.push(s.candidate!);
           iceCandidateQueue.current.set(from, queue);
@@ -181,10 +249,9 @@ export function useVoice(party: PartyState) {
     };
   }, [connect, sendSignal, flushCandidates, onSignal]);
 
-  // When a peer joins our pixel
+  // When a peer joins our room
   useEffect(() => {
     onPeerJoin.current = (id: string) => {
-      // Lower ID initiates the call
       if (stream.current && myIdRef.current && myIdRef.current < id) {
         connect(id, true);
       }
@@ -206,11 +273,10 @@ export function useVoice(party: PartyState) {
   useEffect(() => {
     onMicReady.current = (from: string) => {
       if (!stream.current || !myIdRef.current) return;
-      if (peers.current.has(from)) return; // already connected
+      if (peers.current.has(from)) return;
       if (myIdRef.current < from) {
         connect(from, true);
       } else {
-        // Tell them we're ready too, so they initiate
         sendMicReady();
       }
     };
@@ -219,7 +285,7 @@ export function useVoice(party: PartyState) {
     };
   }, [connect, sendMicReady, onMicReady]);
 
-  // Start mic and announce ready on mount
+  // Start mic and announce ready
   const start = useCallback(async () => {
     const mic = await getMic();
     if (mic) sendMicReady();
@@ -227,23 +293,52 @@ export function useVoice(party: PartyState) {
 
   // Stop everything
   const stop = useCallback(() => {
+    cancelAnimationFrame(rafId.current);
     for (const [id] of peers.current) disconnect(id);
     if (stream.current) {
       stream.current.getTracks().forEach((t) => t.stop());
       stream.current = null;
     }
+    audioCtxRef.current?.close().catch(() => {});
+    audioCtxRef.current = null;
+    localAnalyser.current = null;
+    peerAnalysers.current.clear();
     setMicActive(false);
     setConnectedPeers(new Set());
+    setIsSpeaking(false);
+    setSpeakingPeers(new Set());
   }, [disconnect]);
 
   const toggleMute = useCallback(() => {
-    if (!stream.current) return;
     const next = !muted;
-    stream.current.getAudioTracks().forEach((t) => {
+    setMuted(next);
+
+    // Stop / resume outgoing audio on every sender
+    for (const [, pc] of peers.current) {
+      for (const sender of pc.getSenders()) {
+        if (sender.track?.kind === "audio" || sender.track === null) {
+          if (next) {
+            // Muting: replace with null so we send nothing (stronger than enabled=false)
+            sender.replaceTrack(null).catch(() => {});
+          } else {
+            // Unmuting: put the real track back
+            const audioTrack = stream.current?.getAudioTracks()[0];
+            if (audioTrack) sender.replaceTrack(audioTrack).catch(() => {});
+          }
+        }
+      }
+    }
+
+    // Also disable the track itself as a fallback (no-peer-yet case)
+    stream.current?.getAudioTracks().forEach((t) => {
       t.enabled = !next;
     });
-    setMuted(next);
+
+    // Mute / unmute incoming audio from all peers
+    audios.current.forEach((audio) => {
+      audio.muted = next;
+    });
   }, [muted]);
 
-  return { start, stop, toggleMute, muted, micActive, connectedPeers };
+  return { start, stop, toggleMute, muted, micActive, connectedPeers, isSpeaking, speakingPeers };
 }
