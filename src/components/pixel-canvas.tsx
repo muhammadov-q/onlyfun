@@ -742,18 +742,16 @@ export function PixelCanvas({ name }: { name: string }) {
 
       {showInfo && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
+          className="fixed inset-0 z-[500] flex items-start sm:items-center justify-center bg-black/60"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowInfo(false);
           }}
         >
-          <div className="w-full sm:max-w-sm sm:mx-4 bg-zinc-950 rounded-t-3xl sm:rounded-2xl border-0 sm:border border-white/10 shadow-2xl slide-up sm:animate-in overflow-hidden">
-            <div className="flex justify-center pt-3 pb-1 sm:hidden">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
-            </div>
+          <div className="w-full sm:max-w-sm sm:mx-4 bg-zinc-950 rounded-b-3xl sm:rounded-2xl border-0 sm:border border-white/10 shadow-2xl slide-down sm:animate-in overflow-hidden"
+            style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
+          >
             <div
               className="px-5 pt-4 sm:pt-6 pb-5"
-              style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
             >
               <h3 className="text-white text-base font-bold mb-4">{t("info.title")}</h3>
               <div className="space-y-3.5">
@@ -779,6 +777,9 @@ export function PixelCanvas({ name }: { name: string }) {
                 {t("info.gotIt")}
               </button>
             </div>
+            <div className="flex justify-center pt-1 pb-3 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
           </div>
         </div>
       )}
@@ -786,7 +787,7 @@ export function PixelCanvas({ name }: { name: string }) {
       {/* Mobile more sheet */}
       {showMore && (
         <div
-          className="fixed inset-0 z-50 flex items-start sm:hidden bg-black/60"
+          className="fixed inset-0 z-[500] flex items-start sm:hidden bg-black/60"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowMore(false);
           }}
