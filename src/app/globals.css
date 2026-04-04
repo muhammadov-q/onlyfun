@@ -88,6 +88,20 @@ body {
   animation-delay: 1s;
 }
 
+/* ---- Preview listening ring ---- */
+
+@keyframes preview-ring {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0.3;
+  }
+}
+
 /* ---- Speaking / voice animations ---- */
 
 @keyframes speak-ring {

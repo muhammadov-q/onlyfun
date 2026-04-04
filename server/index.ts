@@ -178,6 +178,7 @@ function makeSeedRoom(): Room {
 const rooms = new Map<string, Room>();
 const seedRoomIds = new Set<string>();
 const users = new Map<string, { ws: WebSocket; name: string; roomId: string | null }>();
+const previewers = new Map<string, { roomId: string; timeout: NodeJS.Timeout }>();
 let colorIdx = 0;
 
 const SEED_COUNT = 50;
@@ -226,6 +227,28 @@ function sendToRoom(roomId: string, msg: object, excludeId?: string) {
     if (p.id === excludeId) continue;
     const user = users.get(p.id);
     if (user && user.ws.readyState === WebSocket.OPEN) user.ws.send(data);
+  }
+}
+
+function stopPreview(userId: string) {
+  const preview = previewers.get(userId);
+  if (!preview) return;
+  clearTimeout(preview.timeout);
+  previewers.delete(userId);
+
+  const room = rooms.get(preview.roomId);
+  if (room) {
+    for (const p of room.people) {
+      const u = users.get(p.id);
+      if (u && u.ws.readyState === WebSocket.OPEN) {
+        u.ws.send(JSON.stringify({ type: "peer-leave", id: userId }));
+      }
+    }
+  }
+
+  const user = users.get(userId);
+  if (user && user.ws.readyState === WebSocket.OPEN) {
+    user.ws.send(JSON.stringify({ type: "preview-stopped" }));
   }
 }
 
@@ -357,9 +380,47 @@ wss.on("connection", (ws) => {
         text: String(msg.text).slice(0, 200),
       });
     }
+
+    if (msg.type === "preview") {
+      const user = users.get(connId);
+      if (!user || user.roomId) return; // can't preview while in a room
+
+      const room = rooms.get(String(msg.roomId));
+      if (!room) return;
+
+      // Stop any existing preview by this user
+      stopPreview(connId);
+
+      // Only real (non-seed) participants with an active ws can stream audio
+      const realPeople = room.people.filter((p) => users.has(p.id) && !p.id.startsWith("_seed_"));
+      if (realPeople.length === 0) {
+        ws.send(JSON.stringify({ type: "preview-unavailable", roomId: room.id }));
+        return;
+      }
+
+      // Tell room members to connect their audio to the previewer
+      for (const p of realPeople) {
+        const peerUser = users.get(p.id);
+        if (peerUser && peerUser.ws.readyState === WebSocket.OPEN) {
+          peerUser.ws.send(JSON.stringify({ type: "peer-join", id: connId, name: "_preview" }));
+          peerUser.ws.send(JSON.stringify({ type: "mic-ready", from: connId }));
+        }
+      }
+
+      ws.send(JSON.stringify({ type: "preview-started", roomId: room.id }));
+
+      // Auto-stop after 7 seconds (client stops at ~6s, this is a safety net)
+      const timeout = setTimeout(() => stopPreview(connId), 7000);
+      previewers.set(connId, { roomId: room.id, timeout });
+    }
+
+    if (msg.type === "preview-stop") {
+      stopPreview(connId);
+    }
   });
 
   ws.on("close", () => {
+    stopPreview(connId);
     leaveRoom(connId);
     users.delete(connId);
     broadcastAll({ type: "online", count: users.size + SEED_ONLINE_OFFSET });

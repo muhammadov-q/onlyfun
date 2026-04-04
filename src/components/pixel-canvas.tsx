@@ -7,6 +7,7 @@ import { CreateModal } from "./create-modal";
 import { useI18n } from "@/i18n";
 import { LangSwitcher } from "./lang-switcher";
 import { CityMap } from "./city-map";
+import { usePreview } from "./use-preview";
 
 function InfoIcon({ className }: { className?: string }) {
   return (
@@ -210,6 +211,7 @@ export function PixelCanvas({ name }: { name: string }) {
   const weather = useWeather();
   const bishkekTime = useBishkekTime();
   const music = useMusic();
+  const preview = usePreview(party);
   const weatherRef = useRef<HTMLDivElement>(null);
 
   // Close weather dropdown on outside click
@@ -419,7 +421,66 @@ export function PixelCanvas({ name }: { name: string }) {
           onPlace={(lat, lng) => setShowCreate({ lat, lng })}
           showPanel={showPanel}
           setShowPanel={setShowPanel}
+          onPreview={preview.startPreview}
+          previewingRoomId={preview.previewingRoomId}
         />
+
+        {/* Preview listening indicator */}
+        {preview.previewingRoomId && (
+          <div
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full animate-in"
+            style={{
+              position: "absolute",
+              bottom: "max(90px, env(safe-area-inset-bottom, 0px) + 80px)",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 500,
+              pointerEvents: "none",
+              background: "rgba(0,0,0,0.8)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.12)",
+            }}
+          >
+            <div className="flex items-end gap-[2px]" style={{ height: 12 }}>
+              {[0, 1, 2, 3].map((i) => (
+                <span
+                  key={i}
+                  className="music-bar"
+                  style={{ width: 2, backgroundColor: "#22c55e", animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
+            </div>
+            <span className="text-white/80 text-xs font-medium">
+              {t("room.previewListening")} {preview.previewCountdown}s
+            </span>
+          </div>
+        )}
+
+        {/* Cooldown toast */}
+        {preview.cooldownMsg && (
+          <div
+            className="animate-in"
+            style={{
+              position: "absolute",
+              top: 16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 500,
+              pointerEvents: "none",
+              background: "rgba(0,0,0,0.85)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 20,
+              padding: "8px 16px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span className="text-white/60 text-xs font-medium">
+              {t("room.previewCooldown")} {preview.cooldownMsg}
+            </span>
+          </div>
+        )}
 
         {/* + FAB — hidden while placing */}
         {!placing && (

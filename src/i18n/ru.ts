@@ -72,6 +72,12 @@ export default {
   "room.join": "войти",
   "room.full": "комната заполнена",
   "room.noRooms": "комнат пока нет",
+  "room.listen": "слушок",
+  "room.listening": "тсс...",
+  "room.previewListening": "слушаем...",
+  "room.previewCooldown": "снова через",
+  "room.searchPlaceholder": "Поиск комнат…",
+  "room.noMatch": "Ничего не найдено",
 
   // AI features
   "ai.suggestTopic": "предложить тему",

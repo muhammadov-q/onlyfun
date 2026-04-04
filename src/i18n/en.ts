@@ -71,6 +71,12 @@ export default {
   "room.join": "join",
   "room.full": "room is full",
   "room.noRooms": "no rooms yet",
+  "room.listen": "sneak in",
+  "room.listening": "shhh...",
+  "room.previewListening": "listening...",
+  "room.previewCooldown": "preview again in",
+  "room.searchPlaceholder": "Search rooms…",
+  "room.noMatch": "No rooms match",
 
   // AI features
   "ai.suggestTopic": "suggest topic",

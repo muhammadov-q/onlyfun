@@ -30,6 +30,9 @@ export function useParty(name: string) {
   const onPeerJoin = useRef<((id: string, name: string) => void) | undefined>(undefined);
   const onPeerLeave = useRef<((id: string) => void) | undefined>(undefined);
   const onMicReady = useRef<((from: string) => void) | undefined>(undefined);
+  const onPreviewStarted = useRef<((roomId: string) => void) | undefined>(undefined);
+  const onPreviewStopped = useRef<(() => void) | undefined>(undefined);
+  const onPreviewUnavailable = useRef<((roomId: string) => void) | undefined>(undefined);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,6 +75,9 @@ export function useParty(name: string) {
         if (msg.type === "peer-leave") onPeerLeave.current?.(msg.id);
         if (msg.type === "mic-ready") onMicReady.current?.(msg.from);
         if (msg.type === "chat") setChatMessages((prev) => [...prev.slice(-100), msg]);
+        if (msg.type === "preview-started") onPreviewStarted.current?.(msg.roomId);
+        if (msg.type === "preview-stopped") onPreviewStopped.current?.();
+        if (msg.type === "preview-unavailable") onPreviewUnavailable.current?.(msg.roomId);
       };
 
       ws.onclose = () => {
@@ -110,6 +116,9 @@ export function useParty(name: string) {
 
   const sendChat = useCallback((text: string) => send({ type: "chat", text }), [send]);
 
+  const startPreview = useCallback((roomId: string) => send({ type: "preview", roomId }), [send]);
+  const stopPreview = useCallback(() => send({ type: "preview-stop" }), [send]);
+
   const currentRoom = rooms.find((r) => r.id === currentRoomId) ?? null;
 
   return {
@@ -125,10 +134,15 @@ export function useParty(name: string) {
     sendSignal,
     sendMicReady,
     sendChat,
+    startPreview,
+    stopPreview,
     onSignal,
     onPeerJoin,
     onPeerLeave,
     onMicReady,
+    onPreviewStarted,
+    onPreviewStopped,
+    onPreviewUnavailable,
   };
 }
 

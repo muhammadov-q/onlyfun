@@ -31,53 +31,145 @@ function pointInPolygon(lat: number, lng: number, ring: [number, number][]): boo
 function RoomCard({
   room,
   onJoin,
+  onPreview,
+  isPreviewing,
   t,
 }: {
   room: Room;
   onJoin: () => void;
+  onPreview?: () => void;
+  isPreviewing?: boolean;
   t: ReturnType<typeof useI18n>["t"];
 }) {
   const full = room.people.length >= room.maxPeople;
   return (
-    <button
-      onClick={onJoin}
-      disabled={full}
-      className="w-full bg-white rounded-xl p-2.5 text-left border border-zinc-200/80 hover:border-zinc-300 hover:shadow-lg transition-all disabled:cursor-not-allowed shadow-md group relative overflow-hidden"
+    <div
+      className="w-full rounded-2xl text-left relative"
+      style={{
+        background: "#fff",
+        border: "1px solid rgba(0,0,0,0.08)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08)",
+        padding: 10,
+      }}
     >
+      {/* Color accent bar */}
       <div
-        className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl"
+        className="absolute top-0 left-3 right-3 h-[2px] rounded-b-full"
         style={{ backgroundColor: room.color }}
       />
-      <p className="text-black text-[11px] font-semibold leading-snug mb-1 line-clamp-2">
+
+      {/* Topic */}
+      <p className="text-zinc-900 text-[11px] font-semibold leading-snug mb-2 mt-0.5 line-clamp-2">
         {room.topic}
       </p>
-      <div className="flex items-center justify-between">
-        <div className="flex -space-x-1">
-          {room.people.slice(0, 4).map((p) => (
+
+      {/* People + count row */}
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex -space-x-1.5">
+          {room.people.slice(0, 5).map((p) => (
             <div
               key={p.id}
-              className="w-4 h-4 rounded-full border border-white flex items-center justify-center text-[7px] font-bold uppercase"
-              style={{ backgroundColor: room.color + "30", color: room.color }}
+              className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold uppercase"
+              style={{
+                backgroundColor: room.color + "20",
+                color: room.color,
+                border: "1.5px solid #fff",
+              }}
             >
               {p.name[0]}
             </div>
           ))}
+          {room.people.length > 5 && (
+            <div
+              className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-medium text-zinc-400"
+              style={{ backgroundColor: "#f4f4f5", border: "1.5px solid #fff" }}
+            >
+              +{room.people.length - 5}
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-1">
-          <div className={`w-1 h-1 rounded-full ${full ? "bg-zinc-300" : "bg-emerald-400"}`} />
-          <span className="text-zinc-400 text-[9px]">
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-50">
+          <div className={`w-1.5 h-1.5 rounded-full ${full ? "bg-zinc-300" : "bg-emerald-400"}`} />
+          <span className="text-zinc-400 text-[9px] font-mono tabular-nums">
             {room.people.length}/{room.maxPeople}
           </span>
         </div>
       </div>
-      <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-black/[0.04]">
-        <span
-          className={`text-white text-[9px] px-2.5 py-1 rounded-full font-semibold shadow-sm ${full ? "bg-zinc-700" : "bg-black"}`}
+
+      {/* Action buttons */}
+      <div className="flex gap-1.5">
+        {onPreview && !full && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPreview();
+            }}
+            className="flex items-center justify-center gap-1 h-8 px-3 rounded-xl text-[10px] font-semibold transition-all active:scale-95"
+            style={{
+              touchAction: "manipulation",
+              backgroundColor: isPreviewing ? room.color + "12" : "#f4f4f5",
+              color: isPreviewing ? room.color : "#71717a",
+              border: isPreviewing ? `1px solid ${room.color}35` : "1px solid transparent",
+            }}
+          >
+            {isPreviewing ? (
+              <>
+                <span style={{ fontSize: 11 }}>👂</span>
+                {t("room.listening")}
+              </>
+            ) : (
+              <>
+                <span style={{ fontSize: 11 }}>🕵️</span>
+                {t("room.listen")}
+              </>
+            )}
+          </button>
+        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onJoin();
+          }}
+          disabled={full}
+          className="flex-1 h-8 rounded-xl text-[10px] font-semibold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{
+            touchAction: "manipulation",
+            backgroundColor: full ? "#e4e4e7" : "#000",
+            color: full ? "#a1a1aa" : "#fff",
+          }}
         >
           {full ? t("room.full") : t("room.join")}
-        </span>
+        </button>
       </div>
-    </button>
+
+      {/* Tail — attached to card bottom */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: -6,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: 12,
+          height: 6,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: 10,
+            height: 10,
+            backgroundColor: "#fff",
+            border: "1px solid rgba(0,0,0,0.08)",
+            transform: "rotate(45deg)",
+            position: "absolute",
+            top: -6,
+            left: "50%",
+            marginLeft: -5,
+            boxShadow: "2px 2px 4px rgba(0,0,0,0.06)",
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -93,6 +185,8 @@ type Props = {
   onPlace: (lat: number, lng: number) => void;
   showPanel: boolean;
   setShowPanel: (v: boolean | ((prev: boolean) => boolean)) => void;
+  onPreview?: (roomId: string) => void;
+  previewingRoomId?: string | null;
 };
 
 export function CityMap({
@@ -104,6 +198,8 @@ export function CityMap({
   onPlace,
   showPanel,
   setShowPanel,
+  onPreview,
+  previewingRoomId,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -449,7 +545,7 @@ export function CityMap({
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search rooms…"
+                  placeholder={t("room.searchPlaceholder")}
                   className="w-full bg-white/5 text-white text-xs pl-8 pr-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-white/20 placeholder-white/25"
                 />
                 {search && (
@@ -515,7 +611,7 @@ export function CityMap({
                             className={`w-1 h-1 rounded-full ${full ? "bg-zinc-500" : "bg-emerald-400"}`}
                           />
                           <span className="text-white/40 text-[10px]">
-                            {room.people.length}/{room.maxPeople} people
+                            {room.people.length}/{room.maxPeople}
                           </span>
                         </div>
                       </div>
@@ -526,7 +622,7 @@ export function CityMap({
                 rooms.filter((r) => r.topic.toLowerCase().includes(search.toLowerCase())).length ===
                   0 && (
                   <p className="text-white/30 text-xs text-center py-8">
-                    No rooms match &ldquo;{search}&rdquo;
+                    {t("room.noMatch")} &ldquo;{search}&rdquo;
                   </p>
                 )}
             </div>
@@ -543,6 +639,7 @@ export function CityMap({
               // Hide rooms outside the Bishkek border
               if (bishkekRing && !pointInPolygon(room.lat, room.lng, bishkekRing)) return null;
               const isActive = hoveredId === room.id;
+              const isPreviewing = previewingRoomId === room.id;
               const full = room.people.length >= room.maxPeople;
               return (
                 <div
@@ -551,15 +648,21 @@ export function CityMap({
                   data-lng={room.lng}
                   style={{
                     position: "absolute",
-                    transform: "translate(-50%, -50%)",
+                    transform: showCards ? "translate(-50%, -100%)" : "translate(-50%, -50%)",
                     zIndex: isActive ? 20 : 10,
                   }}
                   onMouseEnter={() => setHoveredId(room.id)}
                   onMouseLeave={() => setHoveredId(null)}
                 >
                   {showCards ? (
-                    <div style={{ width: 160 }}>
-                      <RoomCard room={room} onJoin={() => onJoin(room.id)} t={t} />
+                    <div style={{ width: 170, paddingBottom: 6 }}>
+                      <RoomCard
+                        room={room}
+                        onJoin={() => onJoin(room.id)}
+                        onPreview={() => onPreview?.(room.id)}
+                        isPreviewing={previewingRoomId === room.id}
+                        t={t}
+                      />
                     </div>
                   ) : (
                     <>
@@ -570,11 +673,17 @@ export function CityMap({
                             bottom: 18,
                             left: "50%",
                             transform: "translateX(-50%)",
-                            width: 160,
+                            width: 170,
                             zIndex: 20,
                           }}
                         >
-                          <RoomCard room={room} onJoin={() => onJoin(room.id)} t={t} />
+                          <RoomCard
+                            room={room}
+                            onJoin={() => onJoin(room.id)}
+                            onPreview={() => onPreview?.(room.id)}
+                            isPreviewing={previewingRoomId === room.id}
+                            t={t}
+                          />
                         </div>
                       )}
                       {/* Larger touch target wrapping the dot */}
@@ -613,6 +722,23 @@ export function CityMap({
                           className="gps-pulse gps-pulse-2"
                           style={{ "--pulse-color": room.color } as React.CSSProperties}
                         />
+                        {/* Preview listening ring */}
+                        {isPreviewing && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: "50%",
+                              left: "50%",
+                              width: 28,
+                              height: 28,
+                              borderRadius: "50%",
+                              transform: "translate(-50%, -50%)",
+                              border: `2px solid ${room.color}`,
+                              animation: "preview-ring 1.2s ease-in-out infinite",
+                              zIndex: 2,
+                            }}
+                          />
+                        )}
                         <div
                           style={{
                             position: "relative",
@@ -621,9 +747,13 @@ export function CityMap({
                             height: 10,
                             borderRadius: "50%",
                             backgroundColor: room.color,
-                            border: "2px solid rgba(255,255,255,0.8)",
-                            boxShadow: isActive ? `0 0 0 4px ${room.color}50` : undefined,
-                            transition: "box-shadow 0.15s",
+                            border: `2px solid ${isPreviewing ? "#fff" : "rgba(255,255,255,0.8)"}`,
+                            boxShadow: isPreviewing
+                              ? `0 0 8px ${room.color}, 0 0 16px ${room.color}60`
+                              : isActive
+                                ? `0 0 0 4px ${room.color}50`
+                                : undefined,
+                            transition: "box-shadow 0.15s, border-color 0.15s",
                           }}
                         />
                       </div>
