@@ -243,8 +243,11 @@ export function PixelCanvas({ name }: { name: string }) {
           <h1 className="text-lg font-bold text-white tracking-tight">onlyfun</h1>
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-white/40 text-xs">
+            <span className="text-white/40 text-xs hidden sm:inline">
               {party.onlineCount} {t("nav.online")}
+            </span>
+            <span className="text-white/40 text-xs sm:hidden">
+              {party.onlineCount}
             </span>
           </div>
         </div>
