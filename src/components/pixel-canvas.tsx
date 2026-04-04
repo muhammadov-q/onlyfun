@@ -196,7 +196,22 @@ function useMusic() {
     }
   }, [playing]);
 
-  return { playing, toggle };
+  const pause = useCallback(() => {
+    if (audioRef.current && playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    }
+  }, [playing]);
+
+  const duck = useCallback(() => {
+    if (audioRef.current && playing) audioRef.current.volume = 0.08;
+  }, [playing]);
+
+  const unduck = useCallback(() => {
+    if (audioRef.current) audioRef.current.volume = 0.3;
+  }, []);
+
+  return { playing, toggle, pause, duck, unduck };
 }
 
 export function PixelCanvas({ name }: { name: string }) {
@@ -213,6 +228,20 @@ export function PixelCanvas({ name }: { name: string }) {
   const music = useMusic();
   const preview = usePreview(party);
   const weatherRef = useRef<HTMLDivElement>(null);
+
+  // Pause music when entering a room
+  useEffect(() => {
+    if (party.currentRoom) music.pause();
+  }, [party.currentRoom, music.pause]);
+
+  // Duck music volume during preview, restore after
+  useEffect(() => {
+    if (preview.previewingRoomId) {
+      music.duck();
+    } else {
+      music.unduck();
+    }
+  }, [preview.previewingRoomId, music.duck, music.unduck]);
 
   // Close weather dropdown on outside click
   useEffect(() => {
