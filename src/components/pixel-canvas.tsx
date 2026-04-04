@@ -225,6 +225,10 @@ export function PixelCanvas({ name }: { name: string }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [banToast, setBanToast] = useState<string | null>(null);
+  const [liveCamOpen, setLiveCamOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("onlyfun-livecam") !== "closed";
+  });
   const weather = useWeather();
   const bishkekTime = useBishkekTime();
   const music = useMusic();
@@ -624,6 +628,76 @@ export function PixelCanvas({ name }: { name: string }) {
             }}
           >
             <span className="text-white text-xs font-medium">{banToast}</span>
+          </div>
+        )}
+
+        {/* Live Bishkek cam */}
+        {!placing && (
+          <div
+            className="absolute z-[400] transition-all duration-300"
+            style={{ top: 12, left: 12 }}
+          >
+            {liveCamOpen ? (
+              <div className="relative rounded-2xl overflow-hidden border border-white/15 bg-black">
+                <iframe
+                  src="https://www.youtube.com/embed/GQRnp3GLx1U?autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&loop=1&disablekb=1&fs=0&rel=0&showinfo=0&iv_load_policy=3"
+                  allow="autoplay; encrypted-media"
+                  className="w-[260px] h-[146px] sm:w-[320px] sm:h-[180px] block pointer-events-none"
+                  style={{ border: 0 }}
+                />
+                {/* LIVE badge */}
+                <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600/90 text-white text-[10px] font-bold uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  {t("live.badge")}
+                </div>
+                <button
+                  onClick={() => {
+                    localStorage.setItem("onlyfun-livecam", "closed");
+                    setLiveCamOpen(false);
+                  }}
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 text-white/70 flex items-center justify-center hover:text-white transition-colors"
+                  style={{ touchAction: "manipulation" }}
+                >
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  localStorage.removeItem("onlyfun-livecam");
+                  setLiveCamOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900/90 border border-white/10 text-white/60 hover:text-white transition-all shadow-lg"
+                style={{ touchAction: "manipulation" }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polygon points="23 7 16 12 23 17 23 7" />
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                </svg>
+                <span className="text-[11px] font-medium">{t("live.button")}</span>
+              </button>
+            )}
           </div>
         )}
 

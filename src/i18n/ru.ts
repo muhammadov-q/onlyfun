@@ -106,4 +106,8 @@ export default {
   "ai.suggesting": "думаю...",
   "ai.iceBreaker": "айсбрейкер от AI",
   "ai.iceLoading": "придумываю вопрос...",
+
+  // Live cam
+  "live.badge": "эфир",
+  "live.button": "Эфир",
 } as const;

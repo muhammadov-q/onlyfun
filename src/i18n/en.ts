@@ -105,4 +105,8 @@ export default {
   "ai.suggesting": "thinking...",
   "ai.iceBreaker": "ice breaker from AI",
   "ai.iceLoading": "thinking of something...",
+
+  // Live cam
+  "live.badge": "live",
+  "live.button": "Live",
 } as const;
