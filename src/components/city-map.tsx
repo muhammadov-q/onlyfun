@@ -142,6 +142,8 @@ export function CityMap({
 
     const loadMaps = (): Promise<void> => {
       if (window.google?.maps) return Promise.resolve();
+      const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+      if (existing) return new Promise((resolve) => { existing.addEventListener("load", () => resolve(), { once: true }); });
       return new Promise((resolve, reject) => {
         const script = document.createElement("script");
         script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&v=weekly&libraries=maps`;
