@@ -3,15 +3,22 @@
 import { useRef, useCallback, useState, useEffect } from "react";
 import type { PartyState } from "./use-party";
 
-async function routeToOutputDevice(audio: HTMLAudioElement) {
-  if (typeof audio.setSinkId !== "function") return;
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const outputs = devices.filter((d) => d.kind === "audiooutput");
-    const comm = outputs.find((d) => d.deviceId === "communications");
-    const target = comm || outputs.find((d) => d.deviceId === "default");
-    if (target) await audio.setSinkId(target.deviceId);
-  } catch {}
+function createAudioElement(): HTMLAudioElement {
+  const audio = document.createElement("audio");
+  audio.autoplay = true;
+  audio.setAttribute("playsinline", "");
+  audio.style.position = "absolute";
+  audio.style.width = "0";
+  audio.style.height = "0";
+  audio.style.opacity = "0";
+  document.body.appendChild(audio);
+  return audio;
+}
+
+function removeAudioElement(audio: HTMLAudioElement) {
+  audio.pause();
+  audio.srcObject = null;
+  audio.remove();
 }
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -107,9 +114,7 @@ export function usePreview(party: PartyState) {
       pc.ontrack = (e) => {
         let audio = audios.current.get(targetId);
         if (!audio) {
-          audio = new Audio();
-          audio.autoplay = true;
-          routeToOutputDevice(audio);
+          audio = createAudioElement();
           audios.current.set(targetId, audio);
         }
         audio.srcObject = e.streams[0];
@@ -143,8 +148,7 @@ export function usePreview(party: PartyState) {
     for (const [, pc] of peers.current) pc.close();
     peers.current.clear();
     for (const [, audio] of audios.current) {
-      audio.pause();
-      audio.srcObject = null;
+      removeAudioElement(audio);
     }
     audios.current.clear();
     iceQueue.current.clear();

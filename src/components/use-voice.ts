@@ -3,17 +3,25 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import type { PartyState } from "./use-party";
 
-// Route audio to the default communication device (earbuds/headphones if connected)
-async function routeToOutputDevice(audio: HTMLAudioElement) {
-  if (typeof audio.setSinkId !== "function") return;
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const outputs = devices.filter((d) => d.kind === "audiooutput");
-    // Prefer the communications device, fall back to default
-    const comm = outputs.find((d) => d.deviceId === "communications");
-    const target = comm || outputs.find((d) => d.deviceId === "default");
-    if (target) await audio.setSinkId(target.deviceId);
-  } catch {}
+// Create a DOM-attached <audio> element so mobile browsers route through
+// the active audio device (earbuds/headphones) instead of the speaker.
+function createAudioElement(): HTMLAudioElement {
+  const audio = document.createElement("audio");
+  audio.autoplay = true;
+  audio.setAttribute("playsinline", "");
+  // Hidden but in DOM — iOS needs this for proper audio routing
+  audio.style.position = "absolute";
+  audio.style.width = "0";
+  audio.style.height = "0";
+  audio.style.opacity = "0";
+  document.body.appendChild(audio);
+  return audio;
+}
+
+function removeAudioElement(audio: HTMLAudioElement) {
+  audio.pause();
+  audio.srcObject = null;
+  audio.remove();
 }
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -156,9 +164,7 @@ export function useVoice(party: PartyState) {
       pc.ontrack = (e) => {
         let audio = audios.current.get(targetId);
         if (!audio) {
-          audio = new Audio();
-          audio.autoplay = true;
-          routeToOutputDevice(audio);
+          audio = createAudioElement();
           audios.current.set(targetId, audio);
         }
         audio.srcObject = e.streams[0];
@@ -208,8 +214,7 @@ export function useVoice(party: PartyState) {
     }
     const a = audios.current.get(targetId);
     if (a) {
-      a.pause();
-      a.srcObject = null;
+      removeAudioElement(a);
       audios.current.delete(targetId);
     }
     iceCandidateQueue.current.delete(targetId);
