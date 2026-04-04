@@ -26,14 +26,18 @@ function SparkleIcon({ className }: { className?: string }) {
 export function CreateModal({
   onClose,
   onCreate,
+  initialTopic,
+  initialMode,
 }: {
   onClose: () => void;
   onCreate: (topic: string, max: number, mode: RoomModeId) => void;
+  initialTopic?: string;
+  initialMode?: RoomModeId;
 }) {
-  const [topic, setTopic] = useState("");
+  const [topic, setTopic] = useState(initialTopic ?? "");
   const [max, setMax] = useState(4);
   const [suggesting, setSuggesting] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<RoomModeId>("chill");
+  const [selectedMode, setSelectedMode] = useState<RoomModeId>(initialMode ?? "chill");
   const { t, locale } = useI18n();
 
   const suggestTopic = async () => {

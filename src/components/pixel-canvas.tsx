@@ -9,6 +9,8 @@ import { LangSwitcher } from "./lang-switcher";
 import { CityMap } from "./city-map";
 import { usePreview } from "./use-preview";
 import { DesktopSidebar } from "./desktop-sidebar";
+import { BishkekPulseFeed } from "./sidebar/BishkekPulseFeed";
+import type { RoomModeId } from "@/types/room";
 
 function InfoIcon({ className }: { className?: string }) {
   return (
@@ -234,6 +236,8 @@ export function PixelCanvas({ name }: { name: string }) {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("onlyfun-livecam") !== "closed";
   });
+  const [pulseDraft, setPulseDraft] = useState<{ topic: string; mode: RoomModeId } | null>(null);
+  const [showMobilePulse, setShowMobilePulse] = useState(false);
   const weather = useWeather();
   const bishkekTime = useBishkekTime();
   const music = useMusic();
@@ -324,8 +328,9 @@ export function PixelCanvas({ name }: { name: string }) {
     return <InsideRoom party={party} />;
   }
 
-  // Cast t for weather desc key
+  // Cast t for dynamic keys
   const tw = (key: string) => t(key as Parameters<typeof t>[0]);
+  const tp = (key: string) => t(key as Parameters<typeof t>[0]);
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-black">
@@ -557,6 +562,12 @@ export function PixelCanvas({ name }: { name: string }) {
             }
           }}
           liveBadgeText={t("live.badge")}
+          onTalkAbout={(topic, mode) => {
+            setPulseDraft({ topic, mode });
+            setPlacing(true);
+          }}
+          rooms={party.rooms}
+          onJoinRoom={party.joinRoom}
         />
 
         {/* Map */}
@@ -802,7 +813,10 @@ export function PixelCanvas({ name }: { name: string }) {
 
           {/* Live cam toggle button — mobile only (desktop uses sidebar) */}
           {!placing && !liveCamOpen && (
-            <div className="absolute z-[400] sm:hidden" style={{ top: 12, left: 12 }}>
+            <div
+              className="absolute z-[400] sm:hidden flex flex-col gap-2"
+              style={{ top: 12, left: 12 }}
+            >
               <button
                 onClick={() => {
                   localStorage.removeItem("onlyfun-livecam");
@@ -826,6 +840,52 @@ export function PixelCanvas({ name }: { name: string }) {
                   <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                 </svg>
                 <span className="text-[11px] font-medium">{t("live.button")}</span>
+              </button>
+              <button
+                onClick={() => setShowMobilePulse(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900/90 border border-white/10 text-white/60 hover:text-white transition-all shadow-lg"
+                style={{ touchAction: "manipulation" }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span className="text-[11px] font-medium">{tp("pulse.button")}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Pulse button when live cam is open — mobile only */}
+          {!placing && liveCamOpen && (
+            <div className="absolute z-[400] sm:hidden" style={{ top: 170, left: 12 }}>
+              <button
+                onClick={() => setShowMobilePulse(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900/90 border border-white/10 text-white/60 hover:text-white transition-all shadow-lg"
+                style={{ touchAction: "manipulation" }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span className="text-[11px] font-medium">{tp("pulse.button")}</span>
               </button>
             </div>
           )}
@@ -863,12 +923,87 @@ export function PixelCanvas({ name }: { name: string }) {
 
       {showCreate && (
         <CreateModal
-          onClose={() => setShowCreate(null)}
+          onClose={() => {
+            setShowCreate(null);
+            setPulseDraft(null);
+          }}
           onCreate={(topic, max, mode) => {
             party.createRoom(topic, max, showCreate.lat, showCreate.lng, mode, locale);
             setShowCreate(null);
+            setPulseDraft(null);
           }}
+          initialTopic={pulseDraft?.topic}
+          initialMode={pulseDraft?.mode}
         />
+      )}
+
+      {/* Mobile Pulse drawer */}
+      {showMobilePulse && (
+        <div
+          className="fixed inset-0 z-[500] flex items-end sm:hidden bg-black/70"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowMobilePulse(false);
+          }}
+        >
+          <div className="w-full bg-black rounded-t-3xl border-t border-white/10 shadow-2xl slide-up max-h-[80dvh] flex flex-col">
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pt-2 pb-3 shrink-0">
+              <div className="flex items-center gap-2">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-purple-400"
+                >
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span className="text-sm font-semibold text-white/80">{tp("pulse.title")}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400/60 animate-pulse" />
+              </div>
+              <button
+                onClick={() => setShowMobilePulse(false)}
+                className="w-7 h-7 rounded-full bg-white/5 text-white/40 flex items-center justify-center"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            {/* Feed */}
+            <div className="flex-1 overflow-y-auto px-4 pb-6">
+              <BishkekPulseFeed
+                onTalkAbout={(topic, mode) => {
+                  setShowMobilePulse(false);
+                  setPulseDraft({ topic, mode });
+                  setPlacing(true);
+                }}
+                rooms={party.rooms}
+                onJoinRoom={(roomId) => {
+                  setShowMobilePulse(false);
+                  party.joinRoom(roomId);
+                }}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {showInfo && (

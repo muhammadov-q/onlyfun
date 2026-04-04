@@ -12,8 +12,8 @@ export default {
   "nav.placing": "выбор места…",
   "nav.allRooms": "все комнаты",
   "nav.language": "язык",
-  "nav.musicOn": "музыка вкл",
-  "nav.musicOff": "музыка выкл",
+  "nav.musicOn": "звук недели вкл",
+  "nav.musicOff": "звук недели выкл",
   "nav.logout": "выйти",
 
   // Weather
@@ -110,4 +110,14 @@ export default {
   // Live cam
   "live.badge": "эфир",
   "live.button": "Эфир",
+
+  // Bishkek Pulse
+  "pulse.title": "Пульс Бишкека",
+  "pulse.talk": "обсудить",
+  "pulse.join": "войти в комнату",
+  "pulse.error": "не удалось загрузить ленту",
+  "pulse.empty": "пока нет новостей города",
+  "pulse.retry": "попробовать снова",
+  "pulse.button": "Пульс",
+  "pulse.source": "источник",
 } as const;

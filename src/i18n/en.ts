@@ -12,8 +12,8 @@ export default {
   "nav.placing": "placing…",
   "nav.allRooms": "all rooms",
   "nav.language": "language",
-  "nav.musicOn": "music on",
-  "nav.musicOff": "music off",
+  "nav.musicOn": "sound of the week on",
+  "nav.musicOff": "sound of the week off",
   "nav.logout": "log out",
 
   // Weather
@@ -109,4 +109,14 @@ export default {
   // Live cam
   "live.badge": "live",
   "live.button": "Live",
+
+  // Bishkek Pulse
+  "pulse.title": "Bishkek Pulse",
+  "pulse.talk": "talk about this",
+  "pulse.join": "join room",
+  "pulse.error": "couldn't load feed",
+  "pulse.empty": "no city updates right now",
+  "pulse.retry": "try again",
+  "pulse.button": "Pulse",
+  "pulse.source": "source",
 } as const;
