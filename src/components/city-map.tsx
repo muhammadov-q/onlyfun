@@ -25,6 +25,18 @@ function pointInPolygon(lat: number, lng: number, ring: [number, number][]): boo
   return inside;
 }
 
+function highlightMatch(text: string, query: string) {
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <span className="text-white bg-white/20 rounded-sm px-0.5">{text.slice(idx, idx + query.length)}</span>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Room card
 // ---------------------------------------------------------------------------
@@ -495,11 +507,13 @@ export function CityMap({
           <div
             className="fixed inset-0 bg-black/40 sm:hidden"
             style={{ zIndex: 599 }}
-            onClick={() => setShowPanel(false)}
+            onClick={() => { setShowPanel(false); setSearch(""); }}
           />
           <div
-            className={`fixed sm:absolute left-0 right-0 sm:left-auto sm:right-4 sm:w-[300px] sm:max-h-[calc(100%-32px)] sm:bottom-4 bg-zinc-950 border border-white/10 shadow-2xl flex flex-col overflow-hidden ${
-              searchFocused ? "inset-0 rounded-none" : "bottom-0 max-h-[70vh] rounded-t-2xl sm:rounded-2xl"
+            className={`fixed sm:absolute left-0 right-0 sm:left-auto sm:right-4 sm:w-[300px] sm:max-h-[calc(100%-32px)] sm:bottom-4 bg-zinc-950 border border-white/10 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out ${
+              searchFocused
+                ? "top-0 bottom-0 rounded-none sm:rounded-2xl"
+                : "bottom-0 max-h-[70vh] rounded-t-2xl sm:rounded-2xl"
             }`}
             style={{ zIndex: 600 }}
           >
@@ -512,7 +526,7 @@ export function CityMap({
             <div className="px-4 pt-3 pb-2 border-b border-white/10 shrink-0 flex items-center justify-between">
               <p className="text-white text-sm font-semibold">{rooms.length} rooms</p>
               <button
-                onClick={() => setShowPanel(false)}
+                onClick={() => { setShowPanel(false); setSearch(""); }}
                 className="text-white/40 hover:text-white transition-colors p-1"
               >
                 <svg
@@ -586,8 +600,9 @@ export function CityMap({
                   return (
                     <button
                       key={room.id}
-                      onTouchStart={() => searchRef.current?.blur()}
-                      onClick={() => {
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        searchRef.current?.blur();
                         const map = mapRef.current;
                         if (map) {
                           const d = 0.0015;
@@ -601,6 +616,7 @@ export function CityMap({
                             0
                           );
                         }
+                        setSearch("");
                         setShowPanel(false);
                         setHoveredId(room.id);
                       }}
@@ -612,7 +628,9 @@ export function CityMap({
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-xs font-medium leading-snug truncate">
-                          {room.topic}
+                          {search
+                            ? highlightMatch(room.topic, search)
+                            : room.topic}
                         </p>
                         <div className="flex items-center gap-1.5 mt-1">
                           <div
