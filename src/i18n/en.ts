@@ -8,6 +8,9 @@ export default {
 
   // Navbar
   "nav.online": "online",
+  "nav.createRoom": "create room",
+  "nav.placing": "placing…",
+  "nav.allRooms": "all rooms",
 
   // Weather
   "weather.humidity": "humidity",

@@ -133,15 +133,15 @@ export function InsideRoom({ party }: { party: PartyState }) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-white">
+    <div className="h-screen flex flex-col bg-black">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 shrink-0 bg-white">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0 bg-black">
         <button
           onClick={() => {
             voice.stop();
             party.leaveRoom();
           }}
-          className="text-zinc-400 hover:text-black flex items-center gap-1.5 transition-colors text-sm"
+          className="text-white/40 hover:text-white flex items-center gap-1.5 transition-colors text-sm"
         >
           <ArrowLeftIcon /> {t("room.leave")}
         </button>
@@ -150,8 +150,8 @@ export function InsideRoom({ party }: { party: PartyState }) {
             onClick={voice.toggleMute}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               voice.muted
-                ? "bg-red-50 text-red-500 border border-red-100"
-                : "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
             }`}
           >
             {voice.muted ? (
@@ -164,25 +164,25 @@ export function InsideRoom({ party }: { party: PartyState }) {
               </>
             )}
           </button>
-          <span className="text-zinc-300 text-xs font-mono">
+          <span className="text-white/20 text-xs font-mono">
             {room.people.length}/{room.maxPeople}
           </span>
         </div>
       </div>
 
       {/* Topic section */}
-      <div className="px-5 py-4 border-b border-zinc-100 shrink-0">
+      <div className="px-5 py-4 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-2 mb-1.5">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: room.color }} />
-          <span className="text-zinc-400 text-xs">
+          <span className="text-white/40 text-xs">
             {t("room.by")} {room.hostName}
           </span>
         </div>
-        <h2 className="text-lg font-bold text-black leading-snug">{room.topic}</h2>
+        <h2 className="text-lg font-bold text-white leading-snug">{room.topic}</h2>
       </div>
 
       {/* People grid */}
-      <div className="px-5 py-3 border-b border-zinc-100 shrink-0">
+      <div className="px-5 py-3 border-b border-white/10 shrink-0">
         <div className="flex flex-wrap gap-2">
           {room.people.map((p) => {
             const isMe = p.id === party.myId;
@@ -195,20 +195,20 @@ export function InsideRoom({ party }: { party: PartyState }) {
                 key={p.id}
                 className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition-all ${
                   isLive
-                    ? "bg-emerald-50 border border-emerald-100"
-                    : "bg-zinc-50 border border-zinc-100"
+                    ? "bg-emerald-500/10 border border-emerald-500/20"
+                    : "bg-white/5 border border-white/10"
                 }`}
               >
                 {isMuted ? (
                   <MicOffIcon size={12} className="text-red-400" />
                 ) : isLive ? (
-                  <MicIcon size={12} className="text-emerald-500" />
+                  <MicIcon size={12} className="text-emerald-400" />
                 ) : (
-                  <MicOffIcon size={12} className="text-zinc-300" />
+                  <MicOffIcon size={12} className="text-white/20" />
                 )}
                 <span
                   className={`text-sm ${
-                    isMe ? "font-medium text-black" : isLive ? "text-emerald-700" : "text-zinc-400"
+                    isMe ? "font-medium text-white" : isLive ? "text-emerald-400" : "text-white/40"
                   }`}
                 >
                   {p.name}
@@ -219,7 +219,7 @@ export function InsideRoom({ party }: { party: PartyState }) {
           })}
         </div>
         {!voice.micActive && (
-          <p className="text-amber-500 text-xs mt-2 flex items-center gap-1">
+          <p className="text-amber-400 text-xs mt-2 flex items-center gap-1">
             <MicOffIcon size={10} className="text-amber-400" />
             {t("room.micWarning")}
           </p>
@@ -231,39 +231,39 @@ export function InsideRoom({ party }: { party: PartyState }) {
         <div className="flex-1 overflow-y-auto px-5 py-3 space-y-0.5">
           {party.chatMessages.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-zinc-300 text-sm">{t("room.noMessages")}</p>
+              <p className="text-white/20 text-sm">{t("room.noMessages")}</p>
               {iceLoading ? (
-                <p className="text-zinc-300 text-xs mt-2 animate-pulse">{t("ai.iceLoading")}</p>
+                <p className="text-white/20 text-xs mt-2 animate-pulse">{t("ai.iceLoading")}</p>
               ) : iceBreaker ? (
-                <div className="mt-3 mx-auto max-w-[280px] bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
+                <div className="mt-3 mx-auto max-w-[280px] bg-violet-500/10 border border-violet-500/20 rounded-xl px-4 py-3">
                   <p className="text-[10px] text-violet-400 font-medium mb-1">
                     {t("ai.iceBreaker")}
                   </p>
-                  <p className="text-violet-700 text-sm">{iceBreaker}</p>
+                  <p className="text-violet-300 text-sm">{iceBreaker}</p>
                 </div>
               ) : (
-                <p className="text-zinc-200 text-xs mt-1">{t("room.iceBreaker")}</p>
+                <p className="text-white/20 text-xs mt-1">{t("room.iceBreaker")}</p>
               )}
             </div>
           )}
           {party.chatMessages.map((msg, i) => (
             <div key={i} className="text-sm py-0.5">
               <span
-                className={`font-medium ${msg.from === party.myId ? "text-black" : "text-zinc-500"}`}
+                className={`font-medium ${msg.from === party.myId ? "text-white" : "text-white/50"}`}
               >
                 {msg.name}
               </span>
-              <span className="text-zinc-600 ml-2">{msg.text}</span>
+              <span className="text-white/40 ml-2">{msg.text}</span>
             </div>
           ))}
           <div ref={chatEnd} />
         </div>
 
         {/* Chat input */}
-        <form onSubmit={onChat} className="px-4 py-3 border-t border-zinc-100 shrink-0">
+        <form onSubmit={onChat} className="px-4 py-3 border-t border-white/10 shrink-0" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
           <div className="flex gap-2">
             <input
-              className="flex-1 bg-zinc-50 text-black text-sm px-4 py-3 rounded-xl border border-zinc-200 focus:outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 placeholder-zinc-300 transition-all"
+              className="flex-1 bg-white/5 text-white text-sm px-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-white/25 focus:ring-2 focus:ring-white/5 placeholder-white/20 transition-all"
               placeholder={t("room.inputPlaceholder")}
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
@@ -272,7 +272,7 @@ export function InsideRoom({ party }: { party: PartyState }) {
             <button
               type="submit"
               disabled={!chatInput.trim()}
-              className="px-3 py-3 rounded-xl bg-black text-white disabled:opacity-20 hover:bg-zinc-800 transition-all shrink-0"
+              className="px-3 py-3 rounded-xl bg-white text-black disabled:opacity-20 hover:bg-zinc-100 transition-all shrink-0"
             >
               <SendIcon />
             </button>

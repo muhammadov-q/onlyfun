@@ -9,8 +9,8 @@ type Room = {
   maxPeople: number;
   people: { id: string; name: string }[];
   color: string;
-  x: number;
-  y: number;
+  lat: number;
+  lng: number;
   createdAt: number;
 };
 
@@ -29,38 +29,11 @@ const COLORS = [
   "#3b82f6",
 ];
 
-// Fake names pool for seed rooms
 const FAKE_NAMES = [
-  "Aida",
-  "Timur",
-  "Mila",
-  "daniyar",
-  "alex",
-  "Нурай",
-  "Bekzat",
-  "Камила",
-  "Arsen",
-  "max",
-  "Zarina",
-  "Эрмек",
-  "Aliya",
-  "Sasha",
-  "Айдана",
-  "Ruslan",
-  "Dina",
-  "Azamat",
-  "Nika",
-  "Askar",
-  "Лера",
-  "Марат",
-  "Анара",
-  "Damir",
-  "Elina",
-  "Talgat",
-  "Asel",
-  "Beka",
-  "Kira",
-  "Sultan",
+  "Aida", "Timur", "Mila", "daniyar", "alex", "Нурай", "Bekzat", "Камила",
+  "Arsen", "max", "Zarina", "Эрмек", "Aliya", "Sasha", "Айдана", "Ruslan",
+  "Dina", "Azamat", "Nika", "Askar", "Лера", "Марат", "Анара", "Damir",
+  "Elina", "Talgat", "Asel", "Beka", "Kira", "Sultan",
 ];
 
 const SEED_TOPICS = [
@@ -83,65 +56,58 @@ const SEED_TOPICS = [
 
 const SEED_ONLINE_OFFSET = 17;
 
-function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
+// Bishkek bounds
+const LAT_MIN = 42.83, LAT_MAX = 42.92;
+const LNG_MIN = 74.50, LNG_MAX = 74.70;
 
-// Room card dimensions + padding for overlap check
-const ROOM_W = 260;
-const ROOM_H = 180;
+// Minimum distance between rooms (degrees) — ~300m apart
+const MIN_DIST = 0.003;
 
-function overlaps(x: number, y: number, existingRooms: Room[]): boolean {
+function tooClose(lat: number, lng: number, existingRooms: Room[]): boolean {
   for (const r of existingRooms) {
-    if (x < r.x + ROOM_W && x + ROOM_W > r.x && y < r.y + ROOM_H && y + ROOM_H > r.y) return true;
+    const dlat = lat - r.lat;
+    const dlng = lng - r.lng;
+    if (Math.sqrt(dlat * dlat + dlng * dlng) < MIN_DIST) return true;
   }
   return false;
 }
 
-function findFreePosition(existingRooms: Room[]): { x: number; y: number } {
-  // Try random positions up to 50 times, then fall back to a grid slot
-  for (let i = 0; i < 50; i++) {
-    const x = 150 + Math.floor(Math.random() * 700);
-    const y = 100 + Math.floor(Math.random() * 400);
-    if (!overlaps(x, y, existingRooms)) return { x, y };
-  }
-  // Fallback: grid layout
-  const cols = 4;
-  for (let row = 0; row < 10; row++) {
-    for (let col = 0; col < cols; col++) {
-      const x = 150 + col * (ROOM_W + 30);
-      const y = 100 + row * (ROOM_H + 30);
-      if (!overlaps(x, y, existingRooms)) return { x, y };
-    }
-  }
-  return { x: 150 + Math.random() * 700, y: 100 + Math.random() * 400 };
+function randomLatLng(): { lat: number; lng: number } {
+  return {
+    lat: LAT_MIN + Math.random() * (LAT_MAX - LAT_MIN),
+    lng: LNG_MIN + Math.random() * (LNG_MAX - LNG_MIN),
+  };
 }
 
-// Find free position near a preferred coordinate (for user-placed rooms)
-function findFreeNear(
-  preferX: number,
-  preferY: number,
-  existingRooms: Room[]
-): { x: number; y: number } {
-  if (!overlaps(preferX, preferY, existingRooms)) return { x: preferX, y: preferY };
-  // Spiral out in steps until a free spot is found
-  const step = ROOM_W + 20;
+function findFreePosition(existingRooms: Room[]): { lat: number; lng: number } {
+  for (let i = 0; i < 50; i++) {
+    const pos = randomLatLng();
+    if (!tooClose(pos.lat, pos.lng, existingRooms)) return pos;
+  }
+  return randomLatLng();
+}
+
+function findFreeNear(lat: number, lng: number, existingRooms: Room[]): { lat: number; lng: number } {
+  if (!tooClose(lat, lng, existingRooms)) return { lat, lng };
   for (let radius = 1; radius <= 8; radius++) {
+    const d = MIN_DIST * radius;
     const candidates = [
-      { x: preferX + radius * step, y: preferY },
-      { x: preferX - radius * step, y: preferY },
-      { x: preferX, y: preferY + radius * step },
-      { x: preferX, y: preferY - radius * step },
-      { x: preferX + radius * step, y: preferY + radius * step },
-      { x: preferX - radius * step, y: preferY - radius * step },
-      { x: preferX + radius * step, y: preferY - radius * step },
-      { x: preferX - radius * step, y: preferY + radius * step },
+      { lat: lat + d, lng },
+      { lat: lat - d, lng },
+      { lat, lng: lng + d },
+      { lat, lng: lng - d },
+      { lat: lat + d, lng: lng + d },
+      { lat: lat - d, lng: lng - d },
     ];
     for (const c of candidates) {
-      if (!overlaps(c.x, c.y, existingRooms)) return c;
+      if (!tooClose(c.lat, c.lng, existingRooms)) return c;
     }
   }
-  return { x: preferX, y: preferY };
+  return { lat, lng };
+}
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function makeSeedRoom(): Room {
@@ -154,13 +120,13 @@ function makeSeedRoom(): Room {
     { id: `_seed_${crypto.randomUUID().slice(0, 8)}`, name: host },
   ];
   while (people.length < maxPeople) {
-    let name = pickRandom(FAKE_NAMES);
+    const name = pickRandom(FAKE_NAMES);
     if (usedNames.has(name)) continue;
     usedNames.add(name);
     people.push({ id: `_seed_${crypto.randomUUID().slice(0, 8)}`, name });
   }
 
-  const { x, y } = findFreePosition([...rooms.values()]);
+  const { lat, lng } = findFreePosition([...rooms.values()]);
 
   return {
     id: crypto.randomUUID(),
@@ -170,8 +136,8 @@ function makeSeedRoom(): Room {
     maxPeople,
     people,
     color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    x,
-    y,
+    lat,
+    lng,
     createdAt: Date.now() - Math.floor(Math.random() * 7200000),
   };
 }
@@ -182,8 +148,7 @@ const seedRoomIds = new Set<string>();
 const users = new Map<string, { ws: WebSocket; name: string; roomId: string | null }>();
 let colorIdx = 0;
 
-// Init seed rooms (3 full rooms — always exactly 3)
-const SEED_COUNT = 3;
+const SEED_COUNT = 50;
 for (let i = 0; i < SEED_COUNT; i++) {
   const room = makeSeedRoom();
   rooms.set(room.id, room);
@@ -191,27 +156,19 @@ for (let i = 0; i < SEED_COUNT; i++) {
 }
 colorIdx = SEED_COUNT;
 
-// --- Shuffle seed rooms every 20-40 seconds to feel alive ---
 function shuffleSeeds() {
-  // Replace one random seed room to keep exactly 3
   const ids = [...seedRoomIds];
   if (ids.length > 0) {
     const removeId = pickRandom(ids);
     rooms.delete(removeId);
     seedRoomIds.delete(removeId);
   }
-
-  // Ensure always 3 seed rooms
   while (seedRoomIds.size < SEED_COUNT) {
     const newRoom = makeSeedRoom();
     rooms.set(newRoom.id, newRoom);
     seedRoomIds.add(newRoom.id);
   }
-
-  // Broadcast updated rooms
   sendRooms();
-
-  // Schedule next shuffle at random interval
   setTimeout(shuffleSeeds, 20000 + Math.random() * 20000);
 }
 
@@ -255,9 +212,7 @@ function leaveRoom(userId: string) {
     }
   }
 
-  if (room.people.length === 0) {
-    rooms.delete(room.id);
-  }
+  if (room.people.length === 0) rooms.delete(room.id);
   user.roomId = null;
 }
 
@@ -270,7 +225,6 @@ console.log(`WebSocket server running on port ${PORT}`);
 wss.on("connection", (ws) => {
   const connId = crypto.randomUUID();
 
-  // Send current rooms on connect
   ws.send(JSON.stringify({ type: "sync", rooms: [...rooms.values()] }));
 
   ws.on("message", (raw) => {
@@ -292,6 +246,10 @@ wss.on("connection", (ws) => {
       if (!user) return;
       leaveRoom(connId);
 
+      const preferLat = Number(msg.lat) || 42.8746;
+      const preferLng = Number(msg.lng) || 74.5953;
+      const { lat, lng } = findFreeNear(preferLat, preferLng, [...rooms.values()]);
+
       const room: Room = {
         id: crypto.randomUUID(),
         hostId: connId,
@@ -300,7 +258,8 @@ wss.on("connection", (ws) => {
         maxPeople: Math.min(Math.max(Number(msg.max) || 4, 2), 8),
         people: [{ id: connId, name: user.name }],
         color: COLORS[colorIdx++ % COLORS.length],
-        ...findFreeNear(Number(msg.x) || 400, Number(msg.y) || 300, [...rooms.values()]),
+        lat,
+        lng,
         createdAt: Date.now(),
       };
       rooms.set(room.id, room);
@@ -315,7 +274,7 @@ wss.on("connection", (ws) => {
       if (!user) return;
       const room = rooms.get(String(msg.roomId));
       if (!room) return;
-      if (seedRoomIds.has(room.id)) return; // can't join seed rooms
+      if (seedRoomIds.has(room.id)) return;
       if (room.people.length >= room.maxPeople) return;
       if (room.people.some((p) => p.id === connId)) return;
 

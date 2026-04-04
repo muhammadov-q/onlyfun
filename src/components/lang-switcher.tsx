@@ -28,10 +28,10 @@ export function LangSwitcher() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-zinc-50 border border-zinc-100 hover:border-zinc-300 transition-all text-xs"
+        className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-all text-xs"
       >
         <span>{current.flag}</span>
-        <span className="text-zinc-500 font-medium">{current.code.toUpperCase()}</span>
+        <span className="text-white/70 font-medium">{current.code.toUpperCase()}</span>
         <svg
           width="10"
           height="10"
@@ -41,14 +41,14 @@ export function LangSwitcher() {
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="text-zinc-400"
+          className="text-white/40"
         >
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-zinc-200 shadow-lg z-50 overflow-hidden animate-in min-w-[120px]">
+        <div className="absolute right-0 top-full mt-1 bg-zinc-900 rounded-xl border border-white/10 shadow-lg z-50 overflow-hidden animate-in min-w-[120px]">
           {LANGS.map((lang) => (
             <button
               key={lang.code}
@@ -58,8 +58,8 @@ export function LangSwitcher() {
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
                 locale === lang.code
-                  ? "bg-zinc-50 text-black font-medium"
-                  : "text-zinc-500 hover:bg-zinc-50 hover:text-black"
+                  ? "bg-white/10 text-white font-medium"
+                  : "text-white/50 hover:bg-white/5 hover:text-white"
               }`}
             >
               <span>{lang.flag}</span>

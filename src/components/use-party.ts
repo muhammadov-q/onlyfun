@@ -10,8 +10,8 @@ export type Room = {
   maxPeople: number;
   people: { id: string; name: string }[];
   color: string;
-  x: number;
-  y: number;
+  lat: number;
+  lng: number;
   createdAt: number;
 };
 
@@ -91,8 +91,8 @@ export function useParty(name: string) {
   }, []);
 
   const createRoom = useCallback(
-    (topic: string, max: number, x: number, y: number) => {
-      send({ type: "create", topic, max, x, y });
+    (topic: string, max: number, lat: number, lng: number) => {
+      send({ type: "create", topic, max, lat, lng });
     },
     [send]
   );

@@ -8,6 +8,9 @@ export default {
 
   // Navbar
   "nav.online": "онлайн",
+  "nav.createRoom": "создать комнату",
+  "nav.placing": "выбор места…",
+  "nav.allRooms": "все комнаты",
 
   // Weather
   "weather.humidity": "влажность",

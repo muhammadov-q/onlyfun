@@ -47,3 +47,31 @@ body {
 .music-bar {
   animation: music-bar 0.8s ease-in-out infinite;
 }
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.slide-up {
+  animation: slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes gps-ping {
+  0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(3);   opacity: 0; }
+}
+
+.gps-pulse {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background-color: var(--pulse-color);
+  animation: gps-ping 2s ease-out infinite;
+  pointer-events: none;
+}
+
+.gps-pulse-2 {
+  animation-delay: 1s;
+}

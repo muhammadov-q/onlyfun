@@ -6,7 +6,8 @@ import { InsideRoom } from "./inside-pixel";
 import { CreateModal } from "./create-modal";
 import { useI18n } from "@/i18n";
 import { LangSwitcher } from "./lang-switcher";
-import type { Room } from "./use-party";
+import { CityMap } from "./city-map";
+
 
 function InfoIcon({ className }: { className?: string }) {
   return (
@@ -201,9 +202,11 @@ function useMusic() {
 export function PixelCanvas({ name }: { name: string }) {
   const { t } = useI18n();
   const party = useParty(name);
-  const [showCreate, setShowCreate] = useState<{ x: number; y: number } | null>(null);
+  const [showCreate, setShowCreate] = useState<{ lat: number; lng: number } | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showWeather, setShowWeather] = useState(false);
+  const [placing, setPlacing] = useState(false);
+  const [showPanel, setShowPanel] = useState(false);
   const weather = useWeather();
   const bishkekTime = useBishkekTime();
   const music = useMusic();
@@ -221,119 +224,9 @@ export function PixelCanvas({ name }: { name: string }) {
     return () => document.removeEventListener("mousedown", handler);
   }, [showWeather]);
 
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const dragging = useRef(false);
-  const lastPos = useRef({ x: 0, y: 0 });
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const lastPinchDist = useRef(0);
-
-  // Mouse wheel zoom
-  const handleWheel = useCallback((e: WheelEvent) => {
-    e.preventDefault();
-    const factor = e.deltaY > 0 ? 0.92 : 1.08;
-    setZoom((z) => Math.min(3, Math.max(0.15, z * factor)));
+  const onDblClick = useCallback((lat: number, lng: number) => {
+    setShowCreate({ lat, lng });
   }, []);
-
-  useEffect(() => {
-    const el = canvasRef.current;
-    if (!el) return;
-    el.addEventListener("wheel", handleWheel, { passive: false });
-    return () => el.removeEventListener("wheel", handleWheel);
-  }, [handleWheel]);
-
-  // Touch: pinch zoom + single-finger pan
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      lastPinchDist.current = Math.sqrt(dx * dx + dy * dy);
-    } else if (e.touches.length === 1) {
-      if ((e.target as HTMLElement).closest("[data-room]")) return;
-      dragging.current = true;
-      lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }
-  }, []);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (lastPinchDist.current > 0) {
-        const scale = dist / lastPinchDist.current;
-        setZoom((z) => Math.min(3, Math.max(0.15, z * scale)));
-      }
-      lastPinchDist.current = dist;
-      dragging.current = false;
-    } else if (e.touches.length === 1 && dragging.current) {
-      const touch = e.touches[0];
-      setPan((p) => ({
-        x: p.x + touch.clientX - lastPos.current.x,
-        y: p.y + touch.clientY - lastPos.current.y,
-      }));
-      lastPos.current = { x: touch.clientX, y: touch.clientY };
-    }
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    dragging.current = false;
-    lastPinchDist.current = 0;
-  }, []);
-
-  // Mouse pan — native listeners on document for Miro-like behavior
-  useEffect(() => {
-    const el = canvasRef.current;
-    if (!el) return;
-
-    const onDown = (e: PointerEvent) => {
-      if (e.pointerType === "touch") return;
-      if ((e.target as HTMLElement).closest("[data-room]")) return;
-      e.preventDefault();
-      dragging.current = true;
-      lastPos.current = { x: e.clientX, y: e.clientY };
-      el.style.cursor = "grabbing";
-    };
-
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerType === "touch") return;
-      if (!dragging.current) return;
-      e.preventDefault();
-      const dx = e.clientX - lastPos.current.x;
-      const dy = e.clientY - lastPos.current.y;
-      lastPos.current = { x: e.clientX, y: e.clientY };
-      setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
-    };
-
-    const onUp = (e: PointerEvent) => {
-      if (e.pointerType === "touch") return;
-      if (!dragging.current) return;
-      dragging.current = false;
-      el.style.cursor = "grab";
-    };
-
-    el.addEventListener("pointerdown", onDown);
-    document.addEventListener("pointermove", onMove);
-    document.addEventListener("pointerup", onUp);
-    return () => {
-      el.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerup", onUp);
-    };
-  }, []);
-
-  const onDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
-      if ((e.target as HTMLElement).closest("[data-room]")) return;
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setShowCreate({
-        x: Math.round((e.clientX - rect.left - pan.x) / zoom),
-        y: Math.round((e.clientY - rect.top - pan.y) / zoom),
-      });
-    },
-    [pan, zoom]
-  );
 
   if (party.currentRoom) {
     return <InsideRoom party={party} />;
@@ -343,79 +236,103 @@ export function PixelCanvas({ name }: { name: string }) {
   const tw = (key: string) => t(key as Parameters<typeof t>[0]);
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-zinc-50">
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-black">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-200/60 shrink-0 z-10 bg-white">
+      <div className="flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-b border-white/10 shrink-0 z-10 bg-black">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold text-black tracking-tight">onlyfun</h1>
+          <h1 className="text-lg font-bold text-white tracking-tight">onlyfun</h1>
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-zinc-400 text-xs">
+            <span className="text-white/40 text-xs">
               {party.onlineCount} {t("nav.online")}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <LangSwitcher />
+
+          {/* Create room */}
+          <button
+            onClick={() => setPlacing(true)}
+            className={`flex items-center gap-1.5 h-8 px-2 sm:px-2.5 rounded-lg text-xs font-medium border transition-all ${
+              placing
+                ? "bg-white/10 text-white border-white/20"
+                : "bg-white/5 text-white/70 border-white/10 hover:border-white/20 hover:text-white"
+            }`}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span className="hidden sm:inline">{placing ? t("nav.placing") : t("nav.createRoom")}</span>
+          </button>
+
+          {/* All rooms */}
+          <button
+            onClick={() => setShowPanel((v) => !v)}
+            className={`flex items-center gap-1.5 h-8 px-2 sm:px-2.5 rounded-lg text-xs font-medium border transition-all ${
+              showPanel
+                ? "bg-white/10 text-white border-white/20"
+                : "bg-white/5 text-white/70 border-white/10 hover:border-white/20 hover:text-white"
+            }`}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+            </svg>
+            <span className="hidden sm:inline">{t("nav.allRooms")}</span>
+            <span className="bg-white/15 text-white/80 text-[9px] font-bold px-1 py-0.5 rounded-full">{party.rooms.length}</span>
+          </button>
 
           {/* Weather */}
           {weather && (
             <div className="relative" ref={weatherRef}>
               <button
                 onClick={() => setShowWeather((v) => !v)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-50 border border-zinc-100 hover:border-zinc-300 transition-all"
+                className="flex items-center gap-1 h-8 px-2 sm:px-2.5 rounded-lg bg-white/5 border border-white/10 hover:border-white/20 transition-all"
               >
-                <span className="text-sm">{weather.icon}</span>
-                <span className="text-xs text-black font-medium">{weather.temp}°</span>
-                <span className="text-xs text-zinc-400 hidden sm:inline">
-                  {tw(weather.descKey)}
-                </span>
+                <span className="text-sm leading-none">{weather.icon}</span>
+                <span className="text-xs text-white font-medium">{weather.temp}°</span>
+                <span className="text-xs text-white/40 hidden sm:inline">{tw(weather.descKey)}</span>
               </button>
 
               {showWeather && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl border border-zinc-200 shadow-xl p-4 z-50 animate-in">
+                <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 rounded-2xl border border-white/10 shadow-2xl p-4 z-50 animate-in">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <p className="text-xs text-zinc-400">Bishkek, KG</p>
+                        <p className="text-xs text-white/40">Bishkek, KG</p>
                         {bishkekTime && (
-                          <p className="text-xs font-medium text-zinc-500">{bishkekTime}</p>
+                          <p className="text-xs font-medium text-white/50">{bishkekTime}</p>
                         )}
                       </div>
                       <div className="flex items-baseline gap-1.5 mt-0.5">
-                        <span className="text-3xl font-bold text-black">{weather.temp}°</span>
+                        <span className="text-3xl font-bold text-white">{weather.temp}°</span>
                         <span className="text-lg">{weather.icon}</span>
                       </div>
-                      <p className="text-xs text-zinc-500 capitalize">{tw(weather.descKey)}</p>
+                      <p className="text-xs text-white/50 capitalize">{tw(weather.descKey)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-zinc-400">
+                      <p className="text-xs text-white/40">
                         {t("weather.high")}: {weather.high}° {t("weather.low")}: {weather.low}°
                       </p>
-                      <p className="text-xs text-zinc-400 mt-0.5">
+                      <p className="text-xs text-white/40 mt-0.5">
                         {t("weather.feelsLike")} {weather.feelsLike}°
                       </p>
                     </div>
                   </div>
-
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-zinc-50 rounded-xl p-2.5 text-center">
-                      <p className="text-[10px] text-zinc-400 mb-0.5">{t("weather.humidity")}</p>
-                      <p className="text-sm font-semibold text-black">{weather.humidity}%</p>
+                    <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                      <p className="text-[10px] text-white/40 mb-0.5">{t("weather.humidity")}</p>
+                      <p className="text-sm font-semibold text-white">{weather.humidity}%</p>
                     </div>
-                    <div className="bg-zinc-50 rounded-xl p-2.5 text-center">
-                      <p className="text-[10px] text-zinc-400 mb-0.5">{t("weather.wind")}</p>
-                      <p className="text-sm font-semibold text-black">
+                    <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                      <p className="text-[10px] text-white/40 mb-0.5">{t("weather.wind")}</p>
+                      <p className="text-sm font-semibold text-white">
                         {weather.windSpeed}{" "}
-                        <span className="text-[10px] font-normal text-zinc-400">
-                          km/h {weather.windDir}
-                        </span>
+                        <span className="text-[10px] font-normal text-white/40">km/h {weather.windDir}</span>
                       </p>
                     </div>
-                    <div className="bg-zinc-50 rounded-xl p-2.5 text-center">
-                      <p className="text-[10px] text-zinc-400 mb-0.5">{t("weather.uv")}</p>
-                      <p className="text-sm font-semibold text-black">{weather.uv}</p>
+                    <div className="bg-white/5 rounded-xl p-2.5 text-center">
+                      <p className="text-[10px] text-white/40 mb-0.5">{t("weather.uv")}</p>
+                      <p className="text-sm font-semibold text-white">{weather.uv}</p>
                     </div>
                   </div>
                 </div>
@@ -428,18 +345,18 @@ export function PixelCanvas({ name }: { name: string }) {
             onClick={music.toggle}
             className={`h-8 rounded-lg flex items-center justify-center border transition-all gap-1.5 ${
               music.playing
-                ? "bg-black text-white border-black px-2.5"
-                : "bg-zinc-50 text-zinc-400 border-zinc-200 hover:text-black w-8"
+                ? "bg-white text-black border-white px-2"
+                : "bg-white/5 text-white/40 border-white/10 hover:text-white w-8"
             }`}
           >
             {music.playing ? (
               <>
                 <SpeakerIcon />
-                <div className="flex items-end gap-[2px] h-3">
+                <div className="hidden sm:flex items-end gap-[2px] h-3">
                   {[1, 2, 3, 4].map((i) => (
                     <span
                       key={i}
-                      className="w-[2px] bg-white rounded-full music-bar"
+                      className="w-[2px] bg-black rounded-full music-bar"
                       style={{ animationDelay: `${i * 0.15}s` }}
                     />
                   ))}
@@ -451,89 +368,40 @@ export function PixelCanvas({ name }: { name: string }) {
           </button>
 
           {/* Username */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-50 border border-zinc-100">
-            <div className="w-4 h-4 rounded-full bg-black flex items-center justify-center text-[9px] font-bold text-white uppercase">
+          <div className="flex items-center gap-1.5 px-2 sm:px-2.5 h-8 rounded-lg bg-white/5 border border-white/10">
+            <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center text-[9px] font-bold text-black uppercase shrink-0">
               {name[0]}
             </div>
-            <span className="text-xs font-medium text-zinc-700">{name}</span>
+            <span className="text-xs font-medium text-white/70 hidden sm:inline max-w-[80px] truncate">{name}</span>
           </div>
 
           {/* Info */}
           <button
             onClick={() => setShowInfo(true)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-50 text-zinc-400 border border-zinc-200 hover:text-black transition-all"
+            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-white/40 border border-white/10 hover:text-white transition-all"
           >
             <InfoIcon />
           </button>
         </div>
       </div>
 
-      {/* Canvas */}
-      <div
-        ref={canvasRef}
-        className="flex-1 relative select-none"
-        style={{ touchAction: "none", cursor: "grab" }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onDoubleClick={onDoubleClick}
-      >
-        {/* Dot grid */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: "radial-gradient(circle, rgba(0,0,0,0.08) 1px, transparent 1px)",
-            backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
-            backgroundPosition: `${pan.x % (24 * zoom)}px ${pan.y % (24 * zoom)}px`,
-          }}
-        />
-
-        {/* Rooms layer */}
-        <div
-          className="absolute"
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: "0 0",
-          }}
-        >
-          {party.rooms.map((room) => (
-            <RoomCard key={room.id} room={room} onJoin={() => party.joinRoom(room.id)} t={t} />
-          ))}
-
-          {/* Welcome card — always visible on canvas */}
-          <div className="absolute" style={{ left: 460, top: 30 }}>
-            <div className="bg-white rounded-2xl border border-zinc-200 shadow-md p-6 w-[280px] text-center">
-              <p className="text-black text-base font-bold mb-1">{t("welcome.title")}</p>
-              <p className="text-zinc-400 text-sm">{t("welcome.desc")}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Zoom controls */}
-        <div className="absolute bottom-4 left-4 flex items-center gap-1 z-10">
-          <button
-            onClick={() => setZoom((z) => Math.min(3, z * 1.25))}
-            className="w-8 h-8 rounded-lg bg-white border border-zinc-200 text-zinc-400 hover:text-black flex items-center justify-center shadow-sm text-sm"
-          >
-            +
-          </button>
-          <span className="text-zinc-400 text-[10px] w-10 text-center font-mono">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            onClick={() => setZoom((z) => Math.max(0.15, z / 1.25))}
-            className="w-8 h-8 rounded-lg bg-white border border-zinc-200 text-zinc-400 hover:text-black flex items-center justify-center shadow-sm text-sm"
-          >
-            -
-          </button>
-        </div>
-      </div>
+      {/* Map */}
+      <CityMap
+        rooms={party.rooms}
+        onJoin={party.joinRoom}
+        onDblClick={onDblClick}
+        t={t}
+        placing={placing}
+        setPlacing={setPlacing}
+        showPanel={showPanel}
+        setShowPanel={setShowPanel}
+      />
 
       {showCreate && (
         <CreateModal
           onClose={() => setShowCreate(null)}
           onCreate={(topic, max) => {
-            party.createRoom(topic, max, showCreate.x, showCreate.y);
+            party.createRoom(topic, max, showCreate.lat, showCreate.lng);
             setShowCreate(null);
           }}
         />
@@ -541,35 +409,38 @@ export function PixelCanvas({ name }: { name: string }) {
 
       {showInfo && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowInfo(false);
-          }}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowInfo(false); }}
         >
-          <div className="w-full max-w-sm mx-4 bg-white rounded-2xl border border-zinc-200 shadow-xl animate-in p-6">
-            <h3 className="text-black text-base font-bold mb-4">{t("info.title")}</h3>
-            <div className="space-y-3">
-              {[
-                { icon: "💬", title: t("info.create.title"), desc: t("info.create.desc") },
-                { icon: "👋", title: t("info.join.title"), desc: t("info.join.desc") },
-                { icon: "🎙️", title: t("info.talk.title"), desc: t("info.talk.desc") },
-                { icon: "✋", title: t("info.move.title"), desc: t("info.move.desc") },
-              ].map((item) => (
-                <div key={item.title} className="flex gap-3 items-start">
-                  <span className="text-lg shrink-0 mt-0.5">{item.icon}</span>
-                  <div>
-                    <p className="text-black text-sm font-medium">{item.title}</p>
-                    <p className="text-zinc-400 text-xs mt-0.5">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
+          <div className="w-full sm:max-w-sm sm:mx-4 bg-zinc-950 rounded-t-3xl sm:rounded-2xl border-0 sm:border border-white/10 shadow-2xl slide-up sm:animate-in overflow-hidden">
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
-            <button
-              onClick={() => setShowInfo(false)}
-              className="w-full mt-5 py-3 rounded-xl text-sm font-medium bg-zinc-50 text-zinc-500 border border-zinc-200 hover:bg-zinc-100 transition-all"
-            >
-              {t("info.gotIt")}
-            </button>
+            <div className="px-5 pt-4 sm:pt-6 pb-5" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
+              <h3 className="text-white text-base font-bold mb-4">{t("info.title")}</h3>
+              <div className="space-y-3.5">
+                {[
+                  { icon: "💬", title: t("info.create.title"), desc: t("info.create.desc") },
+                  { icon: "👋", title: t("info.join.title"), desc: t("info.join.desc") },
+                  { icon: "🎙️", title: t("info.talk.title"), desc: t("info.talk.desc") },
+                  { icon: "✋", title: t("info.move.title"), desc: t("info.move.desc") },
+                ].map((item) => (
+                  <div key={item.title} className="flex gap-3 items-start">
+                    <span className="text-lg shrink-0 mt-0.5">{item.icon}</span>
+                    <div>
+                      <p className="text-white text-sm font-medium">{item.title}</p>
+                      <p className="text-white/40 text-xs mt-0.5">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setShowInfo(false)}
+                className="w-full mt-5 py-3 rounded-xl text-sm font-medium bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 active:bg-white/15 transition-all"
+              >
+                {t("info.gotIt")}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -577,71 +448,5 @@ export function PixelCanvas({ name }: { name: string }) {
   );
 }
 
-function RoomCard({
-  room,
-  onJoin,
-  t,
-}: {
-  room: Room;
-  onJoin: () => void;
-  t: ReturnType<typeof useI18n>["t"];
-}) {
-  const full = room.people.length >= room.maxPeople;
-  return (
-    <div data-room className="absolute" style={{ left: room.x, top: room.y, width: 240 }}>
-      <button
-        onClick={onJoin}
-        disabled={full}
-        className="w-full bg-white rounded-2xl p-4 text-left border border-zinc-200/80 hover:border-zinc-300 hover:shadow-lg transition-all disabled:cursor-not-allowed shadow-sm group relative overflow-hidden"
-      >
-        <div
-          className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl"
-          style={{ backgroundColor: room.color }}
-        />
+// ---------------------------------------------------------------------------
 
-        <div className="pt-1">
-          <p className="text-black text-sm font-semibold leading-snug mb-1.5 line-clamp-2">
-            {room.topic}
-          </p>
-          <p className="text-zinc-400 text-xs mb-3">
-            {t("room.by")} {room.hostName}
-          </p>
-
-          <div className="flex items-center justify-between">
-            <div className="flex -space-x-1.5">
-              {room.people.map((p) => (
-                <div
-                  key={p.id}
-                  className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold uppercase"
-                  style={{ backgroundColor: room.color + "20", color: room.color }}
-                >
-                  {p.name[0]}
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div
-                className={`w-1.5 h-1.5 rounded-full ${full ? "bg-zinc-300" : "bg-emerald-400"}`}
-              />
-              <span className="text-zinc-400 text-xs">
-                {room.people.length}/{room.maxPeople}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-black/[0.03]">
-          {full ? (
-            <span className="bg-zinc-800 text-white text-xs px-4 py-1.5 rounded-full font-medium shadow-sm">
-              {t("room.full")}
-            </span>
-          ) : (
-            <span className="bg-black text-white text-xs px-4 py-1.5 rounded-full font-medium shadow-sm">
-              {t("room.join")}
-            </span>
-          )}
-        </div>
-      </button>
-    </div>
-  );
-}

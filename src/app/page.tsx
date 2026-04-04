@@ -17,7 +17,7 @@ export default function Home() {
 
   if (!name) {
     return (
-      <div className="h-screen flex items-center justify-center bg-white relative">
+      <div className="h-screen flex items-center justify-center bg-black relative">
         {/* Language switcher */}
         <div className="absolute top-4 right-4">
           <LangSwitcher />
@@ -25,8 +25,8 @@ export default function Home() {
 
         <div className="w-full max-w-sm px-6 text-center">
           <div className="mb-10">
-            <h1 className="text-5xl font-bold text-black mb-3 tracking-tight">onlyfun</h1>
-            <p className="text-zinc-400 text-sm leading-relaxed">
+            <h1 className="text-5xl font-bold text-white mb-3 tracking-tight">onlyfun</h1>
+            <p className="text-white/40 text-sm leading-relaxed">
               {t("landing.tagline1")}
               <br />
               {t("landing.tagline2")}
@@ -49,18 +49,18 @@ export default function Home() {
               onChange={(e) => setInput(e.target.value)}
               maxLength={20}
               autoFocus
-              className="w-full bg-zinc-50 text-black text-center text-base px-4 py-4 rounded-2xl border border-zinc-200 focus:outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 placeholder-zinc-300 transition-all"
+              className="w-full bg-white/5 text-white text-center text-base px-4 py-4 rounded-2xl border border-white/10 focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/5 placeholder-white/20 transition-all"
             />
             <button
               type="submit"
               disabled={input.trim().length < 2}
-              className="w-full bg-black text-white font-semibold py-4 rounded-2xl text-base disabled:opacity-20 hover:bg-zinc-800 transition-all active:scale-[0.98] shadow-sm"
+              className="w-full bg-white text-black font-semibold py-4 rounded-2xl text-base disabled:opacity-20 hover:bg-zinc-100 transition-all active:scale-[0.98]"
             >
               {t("landing.enter")}
             </button>
           </form>
 
-          <p className="text-zinc-300 text-xs mt-8">{t("landing.noAccount")}</p>
+          <p className="text-white/20 text-xs mt-8">{t("landing.noAccount")}</p>
         </div>
       </div>
     );
