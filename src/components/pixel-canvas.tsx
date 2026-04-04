@@ -204,6 +204,7 @@ export function PixelCanvas({ name }: { name: string }) {
   const [showCreate, setShowCreate] = useState<{ lat: number; lng: number } | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [showWeather, setShowWeather] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const weather = useWeather();
@@ -248,9 +249,7 @@ export function PixelCanvas({ name }: { name: string }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <LangSwitcher />
-
+        <div className="flex items-center gap-1.5">
           {/* Create room */}
           <button
             onClick={() => setPlacing(true)}
@@ -260,54 +259,27 @@ export function PixelCanvas({ name }: { name: string }) {
                 : "bg-white/5 text-white/70 border-white/10 hover:border-white/20 hover:text-white"
             }`}
           >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            >
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span className="hidden sm:inline">
-              {placing ? t("nav.placing") : t("nav.createRoom")}
-            </span>
+            <span className="hidden sm:inline">{placing ? t("nav.placing") : t("nav.createRoom")}</span>
           </button>
 
           {/* All rooms */}
           <button
             onClick={() => setShowPanel((v) => !v)}
             className={`flex items-center gap-1.5 h-8 px-2 sm:px-2.5 rounded-lg text-xs font-medium border transition-all ${
-              showPanel
-                ? "bg-white/10 text-white border-white/20"
-                : "bg-white/5 text-white/70 border-white/10 hover:border-white/20 hover:text-white"
+              showPanel ? "bg-white/10 text-white border-white/20" : "bg-white/5 text-white/70 border-white/10 hover:border-white/20 hover:text-white"
             }`}
           >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="3" width="7" height="7" />
-              <rect x="14" y="3" width="7" height="7" />
-              <rect x="3" y="14" width="7" height="7" />
-              <rect x="14" y="14" width="7" height="7" />
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
             </svg>
             <span className="hidden sm:inline">{t("nav.allRooms")}</span>
-            <span className="bg-white/15 text-white/80 text-[9px] font-bold px-1 py-0.5 rounded-full">
-              {party.rooms.length}
-            </span>
+            <span className="bg-white/15 text-white/80 text-[9px] font-bold px-1 py-0.5 rounded-full">{party.rooms.length}</span>
           </button>
 
-          {/* Weather */}
+          {/* Weather — always visible */}
           {weather && (
             <div className="relative" ref={weatherRef}>
               <button
@@ -316,20 +288,15 @@ export function PixelCanvas({ name }: { name: string }) {
               >
                 <span className="text-sm leading-none">{weather.icon}</span>
                 <span className="text-xs text-white font-medium">{weather.temp}°</span>
-                <span className="text-xs text-white/40 hidden sm:inline">
-                  {tw(weather.descKey)}
-                </span>
+                <span className="text-xs text-white/40 hidden sm:inline">{tw(weather.descKey)}</span>
               </button>
-
               {showWeather && (
                 <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 rounded-2xl border border-white/10 shadow-2xl p-4 z-50 animate-in">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-1.5">
                         <p className="text-xs text-white/40">Bishkek, KG</p>
-                        {bishkekTime && (
-                          <p className="text-xs font-medium text-white/50">{bishkekTime}</p>
-                        )}
+                        {bishkekTime && <p className="text-xs font-medium text-white/50">{bishkekTime}</p>}
                       </div>
                       <div className="flex items-baseline gap-1.5 mt-0.5">
                         <span className="text-3xl font-bold text-white">{weather.temp}°</span>
@@ -338,12 +305,8 @@ export function PixelCanvas({ name }: { name: string }) {
                       <p className="text-xs text-white/50 capitalize">{tw(weather.descKey)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-white/40">
-                        {t("weather.high")}: {weather.high}° {t("weather.low")}: {weather.low}°
-                      </p>
-                      <p className="text-xs text-white/40 mt-0.5">
-                        {t("weather.feelsLike")} {weather.feelsLike}°
-                      </p>
+                      <p className="text-xs text-white/40">{t("weather.high")}: {weather.high}° {t("weather.low")}: {weather.low}°</p>
+                      <p className="text-xs text-white/40 mt-0.5">{t("weather.feelsLike")} {weather.feelsLike}°</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -353,12 +316,7 @@ export function PixelCanvas({ name }: { name: string }) {
                     </div>
                     <div className="bg-white/5 rounded-xl p-2.5 text-center">
                       <p className="text-[10px] text-white/40 mb-0.5">{t("weather.wind")}</p>
-                      <p className="text-sm font-semibold text-white">
-                        {weather.windSpeed}{" "}
-                        <span className="text-[10px] font-normal text-white/40">
-                          km/h {weather.windDir}
-                        </span>
-                      </p>
+                      <p className="text-sm font-semibold text-white">{weather.windSpeed} <span className="text-[10px] font-normal text-white/40">km/h {weather.windDir}</span></p>
                     </div>
                     <div className="bg-white/5 rounded-xl p-2.5 text-center">
                       <p className="text-[10px] text-white/40 mb-0.5">{t("weather.uv")}</p>
@@ -370,49 +328,43 @@ export function PixelCanvas({ name }: { name: string }) {
             </div>
           )}
 
-          {/* Music toggle */}
-          <button
-            onClick={music.toggle}
-            className={`h-8 rounded-lg flex items-center justify-center border transition-all gap-1.5 ${
-              music.playing
-                ? "bg-white text-black border-white px-2"
-                : "bg-white/5 text-white/40 border-white/10 hover:text-white w-8"
-            }`}
-          >
-            {music.playing ? (
-              <>
-                <SpeakerIcon />
-                <div className="hidden sm:flex items-end gap-[2px] h-3">
-                  {[1, 2, 3, 4].map((i) => (
-                    <span
-                      key={i}
-                      className="w-[2px] bg-black rounded-full music-bar"
-                      style={{ animationDelay: `${i * 0.15}s` }}
-                    />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <SpeakerOffIcon />
-            )}
-          </button>
-
-          {/* Username */}
-          <div className="flex items-center gap-1.5 px-2 sm:px-2.5 h-8 rounded-lg bg-white/5 border border-white/10">
-            <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center text-[9px] font-bold text-black uppercase shrink-0">
-              {name[0]}
+          {/* Desktop-only: lang, music, username, info */}
+          <div className="hidden sm:flex items-center gap-1.5">
+            <LangSwitcher />
+            <button
+              onClick={music.toggle}
+              className={`h-8 rounded-lg flex items-center justify-center border transition-all gap-1.5 ${
+                music.playing ? "bg-white text-black border-white px-2" : "bg-white/5 text-white/40 border-white/10 hover:text-white w-8"
+              }`}
+            >
+              {music.playing ? (
+                <>
+                  <SpeakerIcon />
+                  <div className="flex items-end gap-[2px] h-3">
+                    {[1, 2, 3, 4].map((i) => (
+                      <span key={i} className="w-[2px] bg-black rounded-full music-bar" style={{ animationDelay: `${i * 0.15}s` }} />
+                    ))}
+                  </div>
+                </>
+              ) : <SpeakerOffIcon />}
+            </button>
+            <div className="flex items-center gap-1.5 px-2.5 h-8 rounded-lg bg-white/5 border border-white/10">
+              <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center text-[9px] font-bold text-black uppercase shrink-0">{name[0]}</div>
+              <span className="text-xs font-medium text-white/70 max-w-[80px] truncate">{name}</span>
             </div>
-            <span className="text-xs font-medium text-white/70 hidden sm:inline max-w-[80px] truncate">
-              {name}
-            </span>
+            <button onClick={() => setShowInfo(true)} className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-white/40 border border-white/10 hover:text-white transition-all">
+              <InfoIcon />
+            </button>
           </div>
 
-          {/* Info */}
+          {/* Mobile-only: more menu button */}
           <button
-            onClick={() => setShowInfo(true)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-white/40 border border-white/10 hover:text-white transition-all"
+            onClick={() => setShowMore(true)}
+            className="sm:hidden w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-white/40 border border-white/10 active:text-white transition-all"
           >
-            <InfoIcon />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/>
+            </svg>
           </button>
         </div>
       </div>
@@ -476,6 +428,41 @@ export function PixelCanvas({ name }: { name: string }) {
                 className="w-full mt-5 py-3 rounded-xl text-sm font-medium bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 active:bg-white/15 transition-all"
               >
                 {t("info.gotIt")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile more sheet */}
+      {showMore && (
+        <div className="fixed inset-0 z-50 flex items-end sm:hidden bg-black/60" onClick={(e) => { if (e.target === e.currentTarget) setShowMore(false); }}>
+          <div className="w-full bg-zinc-950 rounded-t-3xl border-t border-white/10 shadow-2xl slide-up" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+            <div className="px-4 pb-2 space-y-1">
+              {/* Username row */}
+              <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/5">
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-black uppercase shrink-0">{name[0]}</div>
+                <span className="text-sm font-medium text-white truncate">{name}</span>
+              </div>
+              {/* Lang */}
+              <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-white/5">
+                <span className="text-sm text-white/60">{t("nav.language")}</span>
+                <LangSwitcher />
+              </div>
+              {/* Music */}
+              <button onClick={() => { music.toggle(); setShowMore(false); }} className="w-full flex items-center justify-between px-3 py-3 rounded-xl hover:bg-white/5 transition-colors">
+                <span className="text-sm text-white/60">{music.playing ? t("nav.musicOn") : t("nav.musicOff")}</span>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs ${music.playing ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/10"}`}>
+                  {music.playing ? <SpeakerIcon /> : <SpeakerOffIcon />}
+                </div>
+              </button>
+              {/* Info */}
+              <button onClick={() => { setShowMore(false); setShowInfo(true); }} className="w-full flex items-center justify-between px-3 py-3 rounded-xl hover:bg-white/5 transition-colors">
+                <span className="text-sm text-white/60">{t("info.title")}</span>
+                <InfoIcon className="text-white/30" />
               </button>
             </div>
           </div>

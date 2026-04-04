@@ -11,6 +11,9 @@ export default {
   "nav.createRoom": "create room",
   "nav.placing": "placing…",
   "nav.allRooms": "all rooms",
+  "nav.language": "language",
+  "nav.musicOn": "music on",
+  "nav.musicOff": "music off",
 
   // Weather
   "weather.humidity": "humidity",

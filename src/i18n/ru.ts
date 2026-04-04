@@ -11,6 +11,9 @@ export default {
   "nav.createRoom": "создать комнату",
   "nav.placing": "выбор места…",
   "nav.allRooms": "все комнаты",
+  "nav.language": "язык",
+  "nav.musicOn": "музыка вкл",
+  "nav.musicOff": "музыка выкл",
 
   // Weather
   "weather.humidity": "влажность",
