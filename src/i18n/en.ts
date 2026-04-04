@@ -14,6 +14,7 @@ export default {
   "nav.language": "language",
   "nav.musicOn": "music on",
   "nav.musicOff": "music off",
+  "nav.logout": "log out",
 
   // Weather
   "weather.humidity": "humidity",

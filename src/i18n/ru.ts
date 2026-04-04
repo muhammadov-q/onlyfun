@@ -14,6 +14,7 @@ export default {
   "nav.language": "язык",
   "nav.musicOn": "музыка вкл",
   "nav.musicOff": "музыка выкл",
+  "nav.logout": "выйти",
 
   // Weather
   "weather.humidity": "влажность",

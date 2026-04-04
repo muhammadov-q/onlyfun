@@ -121,8 +121,8 @@ export function useParty(name: string) {
   }, []);
 
   const createRoom = useCallback(
-    (topic: string, max: number, lat: number, lng: number, mode: string) => {
-      send({ type: "create", topic, max, lat, lng, mode });
+    (topic: string, max: number, lat: number, lng: number, mode: string, lang: string) => {
+      send({ type: "create", topic, max, lat, lng, mode, lang });
     },
     [send]
   );

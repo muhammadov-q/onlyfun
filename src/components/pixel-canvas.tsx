@@ -215,13 +215,14 @@ function useMusic() {
 }
 
 export function PixelCanvas({ name }: { name: string }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const party = useParty(name);
   const [showCreate, setShowCreate] = useState<{ lat: number; lng: number } | null>(null);
   const [placing, setPlacing] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showWeather, setShowWeather] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [banToast, setBanToast] = useState<string | null>(null);
   const weather = useWeather();
@@ -229,6 +230,7 @@ export function PixelCanvas({ name }: { name: string }) {
   const music = useMusic();
   const preview = usePreview(party);
   const weatherRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   // Show banned toast
   useEffect(() => {
@@ -271,6 +273,23 @@ export function PixelCanvas({ name }: { name: string }) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showWeather]);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    if (!showProfile) return;
+    const handler = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setShowProfile(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showProfile]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("onlyfun-name");
+    window.location.reload();
+  };
 
   if (party.currentRoom) {
     return <InsideRoom party={party} />;
@@ -337,9 +356,6 @@ export function PixelCanvas({ name }: { name: string }) {
               >
                 <span className="text-sm leading-none">{weather.icon}</span>
                 <span className="text-xs text-white font-medium">{weather.temp}°</span>
-                <span className="text-xs text-white/40 hidden sm:inline">
-                  {tw(weather.descKey)}
-                </span>
               </button>
               {showWeather && (
                 <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 rounded-2xl border border-white/10 shadow-2xl p-4 z-50 animate-in">
@@ -390,9 +406,8 @@ export function PixelCanvas({ name }: { name: string }) {
             </div>
           )}
 
-          {/* Desktop-only: lang, music, username, info */}
+          {/* Desktop-only: music, profile */}
           <div className="hidden sm:flex items-center gap-1.5">
-            <LangSwitcher />
             <button
               onClick={music.toggle}
               className={`h-8 rounded-lg flex items-center justify-center border transition-all gap-1.5 ${
@@ -418,20 +433,86 @@ export function PixelCanvas({ name }: { name: string }) {
                 <SpeakerOffIcon />
               )}
             </button>
-            <div className="flex items-center gap-1.5 px-2.5 h-8 rounded-lg bg-white/5 border border-white/10">
-              <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center text-[9px] font-bold text-black uppercase shrink-0">
-                {name[0]}
-              </div>
-              <span className="text-xs font-medium text-white/70 max-w-[80px] truncate">
-                {name}
-              </span>
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setShowProfile((v) => !v)}
+                className={`flex items-center gap-1.5 px-2.5 h-8 rounded-lg border transition-all ${
+                  showProfile
+                    ? "bg-white/10 border-white/20"
+                    : "bg-white/5 border-white/10 hover:border-white/20"
+                }`}
+              >
+                <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center text-[9px] font-bold text-black uppercase shrink-0">
+                  {name[0]}
+                </div>
+                <span className="text-xs font-medium text-white/70 max-w-[80px] truncate">
+                  {name}
+                </span>
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-white/30"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {showProfile && (
+                <div className="absolute right-0 top-full mt-2 w-52 bg-zinc-900 rounded-2xl border border-white/10 shadow-2xl z-50 animate-in overflow-hidden">
+                  {/* User info */}
+                  <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5">
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-black uppercase shrink-0">
+                      {name[0]}
+                    </div>
+                    <span className="text-sm font-medium text-white truncate">{name}</span>
+                  </div>
+                  <div className="py-1">
+                    {/* Language */}
+                    <div className="flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors">
+                      <span className="text-sm text-white/60">{t("nav.language")}</span>
+                      <LangSwitcher />
+                    </div>
+                    {/* Info */}
+                    <button
+                      onClick={() => {
+                        setShowProfile(false);
+                        setShowInfo(true);
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors"
+                    >
+                      <span className="text-sm text-white/60">{t("info.title")}</span>
+                      <InfoIcon className="text-white/30 w-4 h-4" />
+                    </button>
+                    {/* Logout */}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-white/5 transition-colors text-red-400"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                      <span className="text-sm">{t("nav.logout")}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => setShowInfo(true)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-white/40 border border-white/10 hover:text-white transition-all"
-            >
-              <InfoIcon />
-            </button>
           </div>
 
           {/* Mobile-only: more menu button */}
@@ -482,9 +563,7 @@ export function PixelCanvas({ name }: { name: string }) {
               transform: "translateX(-50%)",
               zIndex: 500,
               pointerEvents: "none",
-              background: "rgba(0,0,0,0.8)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
+              background: "rgba(0,0,0,0.9)",
               border: "1px solid rgba(255,255,255,0.12)",
             }}
           >
@@ -514,8 +593,7 @@ export function PixelCanvas({ name }: { name: string }) {
               transform: "translateX(-50%)",
               zIndex: 500,
               pointerEvents: "none",
-              background: "rgba(0,0,0,0.85)",
-              backdropFilter: "blur(12px)",
+              background: "rgba(0,0,0,0.92)",
               border: "1px solid rgba(255,255,255,0.12)",
               borderRadius: 20,
               padding: "8px 16px",
@@ -539,8 +617,7 @@ export function PixelCanvas({ name }: { name: string }) {
               transform: "translateX(-50%)",
               zIndex: 500,
               pointerEvents: "none",
-              background: "rgba(239,68,68,0.9)",
-              backdropFilter: "blur(12px)",
+              background: "rgba(239,68,68,0.95)",
               borderRadius: 20,
               padding: "8px 16px",
               whiteSpace: "nowrap",
@@ -583,7 +660,7 @@ export function PixelCanvas({ name }: { name: string }) {
         <CreateModal
           onClose={() => setShowCreate(null)}
           onCreate={(topic, max, mode) => {
-            party.createRoom(topic, max, showCreate.lat, showCreate.lng, mode);
+            party.createRoom(topic, max, showCreate.lat, showCreate.lng, mode, locale);
             setShowCreate(null);
           }}
         />
@@ -635,19 +712,16 @@ export function PixelCanvas({ name }: { name: string }) {
       {/* Mobile more sheet */}
       {showMore && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:hidden bg-black/60"
+          className="fixed inset-0 z-50 flex items-start sm:hidden bg-black/60"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowMore(false);
           }}
         >
           <div
-            className="w-full bg-zinc-950 rounded-t-3xl border-t border-white/10 shadow-2xl slide-up"
-            style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+            className="w-full bg-zinc-950 rounded-b-3xl border-b border-white/10 shadow-2xl slide-down"
+            style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
           >
-            <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
-            </div>
-            <div className="px-4 pb-2 space-y-1">
+            <div className="px-4 pb-4 space-y-1">
               {/* Username row */}
               <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/5">
                 <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-black uppercase shrink-0">
@@ -688,6 +762,30 @@ export function PixelCanvas({ name }: { name: string }) {
                 <span className="text-sm text-white/60">{t("info.title")}</span>
                 <InfoIcon className="text-white/30" />
               </button>
+              {/* Logout */}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors text-red-400"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span className="text-sm">{t("nav.logout")}</span>
+              </button>
+            </div>
+            <div className="flex justify-center pt-1 pb-3">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
           </div>
         </div>

@@ -27,6 +27,7 @@ type Room = {
   lng: number;
   createdAt: number;
   banned: Map<string, number>; // name -> ban expiry timestamp
+  lang: string;
   iceBreakers: string[];
   currentQuestion: number;
 };
@@ -199,6 +200,7 @@ function makeSeedRoom(): Room {
     lng,
     createdAt: Date.now() - Math.floor(Math.random() * 7200000),
     banned: new Map(),
+    lang: "en",
     iceBreakers: [],
     currentQuestion: 0,
   };
@@ -253,15 +255,39 @@ function serializeRooms() {
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
-const MODE_TONES: Record<string, string> = {
-  debate: "opinionated, controversial, argumentative — push people to pick a side",
-  chill: "easy, relaxed, light — no pressure, just vibes",
-  confessions: "personal, honest, vulnerable but safe — invite people to share real stuff",
-  business: "practical, money-oriented, career-focused, idea-driven",
-  funny: "playful, absurd, humorous — make people laugh or say something ridiculous",
-  advice: "helpful, supportive, thoughtful — seek wisdom or share experience",
-  deep: "philosophical, emotional, meaningful — make people really think",
-  night: "late-night, random, slightly chaotic — anything goes, unfiltered energy",
+const MODE_TONES: Record<string, { en: string; ru: string }> = {
+  debate: {
+    en: "opinionated, controversial, argumentative — push people to pick a side",
+    ru: "спорные, провокационные, аргументированные — заставь людей выбрать сторону",
+  },
+  chill: {
+    en: "easy, relaxed, light — no pressure, just vibes",
+    ru: "лёгкие, расслабленные — без напряга, просто общение",
+  },
+  confessions: {
+    en: "personal, honest, vulnerable but safe — invite people to share real stuff",
+    ru: "личные, честные, уязвимые но безопасные — пригласи людей поделиться настоящим",
+  },
+  business: {
+    en: "practical, money-oriented, career-focused, idea-driven",
+    ru: "практичные, про деньги, карьеру, бизнес-идеи",
+  },
+  funny: {
+    en: "playful, absurd, humorous — make people laugh or say something ridiculous",
+    ru: "весёлые, абсурдные, юмористические — заставь людей смеяться",
+  },
+  advice: {
+    en: "helpful, supportive, thoughtful — seek wisdom or share experience",
+    ru: "полезные, поддерживающие, вдумчивые — поделись опытом или попроси совет",
+  },
+  deep: {
+    en: "philosophical, emotional, meaningful — make people really think",
+    ru: "философские, эмоциональные, глубокие — заставь задуматься",
+  },
+  night: {
+    en: "late-night, random, slightly chaotic — anything goes, unfiltered energy",
+    ru: "ночные, рандомные, слегка хаотичные — без фильтров и рамок",
+  },
 };
 
 const FALLBACK_TEMPLATES: Record<string, string[]> = {
@@ -383,8 +409,26 @@ async function generateIceBreakersForRoom(roomId: string) {
     return;
   }
 
-  const tone = MODE_TONES[room.mode] || MODE_TONES["chill"];
-  const prompt = `You are an ice-breaker question generator for an anonymous voice chat room.
+  const isRu = room.lang === "ru";
+  const toneObj = MODE_TONES[room.mode] || MODE_TONES["chill"];
+  const tone = isRu ? toneObj.ru : toneObj.en;
+
+  const prompt = isRu
+    ? `Ты генератор вопросов-айсбрейкеров для анонимной голосовой комнаты.
+
+Тема комнаты: "${room.topic}"
+Тон: ${tone}
+
+Правила:
+- Сгенерируй ровно 10 вопросов-айсбрейкеров
+- Каждый вопрос ДОЛЖЕН быть напрямую связан с темой "${room.topic}"
+- Никаких дубликатов и шаблонных вопросов
+- Естественные, разговорные, на простом русском языке
+- Подходят для взрослых в анонимной голосовой комнате
+- Максимум 100 символов на вопрос
+
+Верни ТОЛЬКО валидный JSON: {"questions":["q1","q2","q3","q4","q5","q6","q7","q8","q9","q10"]}`
+    : `You are an ice-breaker question generator for an anonymous voice chat room.
 
 Room topic: "${room.topic}"
 Mode tone: ${tone}
@@ -544,6 +588,7 @@ wss.on("connection", (ws) => {
         lat,
         lng,
         createdAt: Date.now(),
+        lang: String(msg.lang || "en"),
         banned: new Map(),
         iceBreakers: [],
         currentQuestion: 0,

@@ -437,7 +437,7 @@ export function CityMap({
             <button
               onClick={() => setPlacing(false)}
               style={{ touchAction: "manipulation" }}
-              className="flex-1 py-3.5 rounded-2xl text-sm font-medium bg-white/10 text-white border border-white/15 active:bg-white/20 backdrop-blur-sm"
+              className="flex-1 py-3.5 rounded-2xl text-sm font-medium bg-white/10 text-white border border-white/15 active:bg-white/20"
             >
               {t("map.cancel")}
             </button>

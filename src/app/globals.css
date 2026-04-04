@@ -63,6 +63,19 @@ body {
   animation: slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+@keyframes slide-down {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.slide-down {
+  animation: slide-down 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 @keyframes gps-ping {
   0% {
     transform: translate(-50%, -50%) scale(0.5);
