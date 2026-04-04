@@ -780,10 +780,12 @@ export function InsideRoom({ party }: { party: PartyState }) {
             if (!peer) return null;
             return (
               <div
-                className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-2 rounded-2xl animate-in"
+                className="absolute left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3 py-2 rounded-2xl animate-in"
                 style={{
+                  bottom: "calc(env(safe-area-inset-bottom) + 120px)",
                   background: "rgba(28,28,30,0.95)",
                   border: "1px solid rgba(255,255,255,0.1)",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
                 }}
               >
                 <span className="text-white/60 text-xs font-medium px-1">{peer.name}</span>
