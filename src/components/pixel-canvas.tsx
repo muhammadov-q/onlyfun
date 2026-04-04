@@ -234,7 +234,7 @@ export function PixelCanvas({ name }: { name: string }) {
   const tw = (key: string) => t(key as Parameters<typeof t>[0]);
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-black">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-black">
       {/* Header */}
       <div
         className="flex items-center justify-between px-3 sm:px-5 border-b border-white/10 shrink-0 z-10 bg-black"
