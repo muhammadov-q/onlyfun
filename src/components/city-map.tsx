@@ -140,12 +140,20 @@ export function CityMap({
     if (!containerRef.current || mapRef.current) return;
     let mounted = true;
 
-    (async () => {
-      const { setOptions, importLibrary } = await import("@googlemaps/js-api-loader");
-      if (!mounted || !containerRef.current) return;
+    const loadMaps = (): Promise<void> => {
+      if (window.google?.maps) return Promise.resolve();
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&v=weekly&libraries=maps`;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    };
 
-      setOptions({ key: MAPS_KEY, v: "weekly" });
-      await importLibrary("maps");
+    (async () => {
+      await loadMaps();
       if (!mounted || !containerRef.current) return;
 
       const map = new google.maps.Map(containerRef.current, {
