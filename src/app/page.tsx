@@ -17,7 +17,10 @@ export default function Home() {
 
   if (!name) {
     return (
-      <div className="flex items-center justify-center bg-black relative" style={{ height: "100dvh" }}>
+      <div
+        className="flex items-center justify-center bg-black relative"
+        style={{ height: "100dvh" }}
+      >
         {/* Language switcher */}
         <div className="absolute top-4 right-4">
           <LangSwitcher />
