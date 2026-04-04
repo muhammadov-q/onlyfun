@@ -315,7 +315,13 @@ export function CityMap({
 
       {placing && (
         <div
-          style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 600 }}
+          style={{
+            position: "absolute",
+            top: 16,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 600,
+          }}
           className="flex items-center gap-2 pl-4 pr-2 py-2 bg-black text-white rounded-full shadow-xl text-sm font-medium animate-in border border-white/10"
         >
           <span>📍</span>
@@ -324,8 +330,17 @@ export function CityMap({
             onClick={() => setPlacing(false)}
             className="ml-1 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0"
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>

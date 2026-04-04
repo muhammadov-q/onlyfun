@@ -246,9 +246,7 @@ export function PixelCanvas({ name }: { name: string }) {
             <span className="text-white/40 text-xs hidden sm:inline">
               {party.onlineCount} {t("nav.online")}
             </span>
-            <span className="text-white/40 text-xs sm:hidden">
-              {party.onlineCount}
-            </span>
+            <span className="text-white/40 text-xs sm:hidden">{party.onlineCount}</span>
           </div>
         </div>
 
