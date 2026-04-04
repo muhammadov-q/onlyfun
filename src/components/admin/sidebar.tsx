@@ -1,0 +1,122 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Users,
+  Sparkles,
+  Settings,
+  ChevronsUpDown,
+  LogOut,
+} from "lucide-react";
+
+interface AdminUser {
+  id: number;
+  email: string;
+  name: string;
+}
+
+const NAV_ITEMS = [
+  { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { label: "Rooms", href: "/admin/rooms", icon: MessageSquare },
+  { label: "Users", href: "/admin/users", icon: Users },
+  { label: "Ice Breakers", href: "/admin/ice-breakers", icon: Sparkles },
+  { label: "Settings", href: "/admin/settings", icon: Settings },
+];
+
+export function AdminSidebar({ user }: { user: AdminUser }) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch("/api/admin/auth/logout", { method: "POST" });
+    router.push("/admin/login");
+  }
+
+  const initials = user.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <aside className="fixed inset-y-0 left-0 w-56 border-r border-border bg-card flex flex-col z-30">
+      {/* Logo */}
+      <div className="h-14 flex items-center gap-2 px-5">
+        <span className="text-base font-bold text-foreground">onlyfun</span>
+        <span className="text-muted-foreground text-[10px] bg-muted px-1.5 py-0.5 rounded-full">
+          admin
+        </span>
+      </div>
+
+      <Separator />
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-1">
+        {NAV_ITEMS.map((item) => {
+          const isActive =
+            item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                isActive
+                  ? "bg-accent text-accent-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              }`}
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User footer */}
+      <div className="p-3 border-t border-border">
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors outline-none cursor-pointer">
+            <Avatar className="h-7 w-7">
+              <AvatarFallback className="bg-accent text-accent-foreground text-[10px]">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+            </div>
+            <ChevronsUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-48">
+            <DropdownMenuItem onClick={() => router.push("/admin/settings")}>
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="text-destructive focus:text-destructive"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </aside>
+  );
+}

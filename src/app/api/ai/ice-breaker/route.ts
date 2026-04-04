@@ -1,13 +1,12 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+import { getGeminiClient } from "@/lib/gemini/getClient";
 
 export async function POST(req: Request) {
   try {
     const { topic, lang } = await req.json();
     const isRu = lang === "ru";
 
+    const genAI = await getGeminiClient();
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = isRu

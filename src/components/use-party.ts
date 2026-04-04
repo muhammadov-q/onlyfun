@@ -39,6 +39,8 @@ export function useParty(name: string) {
   const onForceMuted = useRef<(() => void) | undefined>(undefined);
   const onKicked = useRef<(() => void) | undefined>(undefined);
   const onBanned = useRef<((minutes: number) => void) | undefined>(undefined);
+  const onAdminWarn = useRef<((message: string) => void) | undefined>(undefined);
+  const onAdminBlock = useRef<((minutes: number, message: string) => void) | undefined>(undefined);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,6 +72,20 @@ export function useParty(name: string) {
         if (msg.type === "online") setOnlineCount(msg.count);
         if (msg.type === "sync") setRooms(msg.rooms);
         if (msg.type === "rooms") setRooms(msg.rooms);
+        if (msg.type === "room-upsert") {
+          setRooms((prev) => {
+            const idx = prev.findIndex((r) => r.id === msg.room.id);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = msg.room;
+              return next;
+            }
+            return [...prev, msg.room];
+          });
+        }
+        if (msg.type === "room-remove") {
+          setRooms((prev) => prev.filter((r) => r.id !== msg.roomId));
+        }
         if (msg.type === "joined") setCurrentRoomId(msg.roomId);
         if (msg.type === "left" || msg.type === "room-closed" || msg.type === "kicked") {
           setCurrentRoomId(null);
@@ -102,6 +118,17 @@ export function useParty(name: string) {
         if (msg.type === "force-muted") onForceMuted.current?.();
         if (msg.type === "kicked") onKicked.current?.();
         if (msg.type === "banned") onBanned.current?.(msg.minutes);
+        if (msg.type === "admin-warn") onAdminWarn.current?.(msg.message);
+        if (msg.type === "admin-block") onAdminBlock.current?.(msg.minutes, msg.message);
+        if (msg.type === "admin-kick") {
+          setCurrentRoomId(null);
+          setChatMessages([]);
+        }
+        if (msg.type === "admin-rename") {
+          // Update localStorage with new name so it persists
+          localStorage.setItem("onlyfun-name", msg.newName);
+          onAdminWarn.current?.(`Your name has been changed to "${msg.newName}"`);
+        }
       };
 
       ws.onclose = () => {
@@ -177,6 +204,8 @@ export function useParty(name: string) {
     onForceMuted,
     onKicked,
     onBanned,
+    onAdminWarn,
+    onAdminBlock,
   };
 }
 

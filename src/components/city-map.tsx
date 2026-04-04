@@ -6,8 +6,34 @@ import type { Room } from "./use-party";
 import type { useI18n } from "@/i18n";
 import { ROOM_MODES_MAP } from "@/config/roomModes";
 
-// Evaluated at module level so Next.js statically inlines the value at build time
-const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY!;
+// Single shared promise for loading Google Maps (prevents duplicate script tags)
+let _loadMapsPromise: Promise<void> | null = null;
+function loadMapsOnce(): Promise<void> {
+  if (_loadMapsPromise) return _loadMapsPromise;
+  _loadMapsPromise = (async () => {
+    if (window.google?.maps?.Map) return;
+    const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    if (existing) {
+      await new Promise<void>((resolve) => {
+        if (window.google?.maps?.Map) return resolve();
+        existing.addEventListener("load", () => resolve(), { once: true });
+      });
+      return;
+    }
+    const res = await fetch("/api/config/maps-key");
+    const { key } = await res.json();
+    if (!key) return;
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&v=weekly&libraries=maps`;
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  })();
+  return _loadMapsPromise;
+}
 
 const BISHKEK_BOUNDS = {
   north: 42.94,
@@ -236,25 +262,8 @@ export function CityMap({
     if (!containerRef.current || mapRef.current) return;
     let mounted = true;
 
-    const loadMaps = (): Promise<void> => {
-      if (window.google?.maps?.Map) return Promise.resolve();
-      const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
-      if (existing)
-        return new Promise((resolve) => {
-          existing.addEventListener("load", () => resolve(), { once: true });
-        });
-      return new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&v=weekly&libraries=maps`;
-        script.async = true;
-        script.onload = () => resolve();
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    };
-
     (async () => {
-      await loadMaps();
+      await loadMapsOnce();
       if (!mounted || !containerRef.current) return;
 
       const map = new google.maps.Map(containerRef.current, {

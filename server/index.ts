@@ -1,7 +1,9 @@
 import { WebSocketServer, WebSocket } from "ws";
+import http from "http";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { neon } from "@neondatabase/serverless";
 
 // Load .env.local if it exists (Next.js doesn't share env with the WS server)
 const envPath = path.resolve(__dirname, "../.env.local");
@@ -209,7 +211,7 @@ function makeSeedRoom(): Room {
 // --- State ---
 const rooms = new Map<string, Room>();
 const seedRoomIds = new Set<string>();
-const users = new Map<string, { ws: WebSocket; name: string; roomId: string | null }>();
+const users = new Map<string, { ws: WebSocket; name: string; roomId: string | null; ip: string }>();
 const previewers = new Map<string, { roomId: string; timeout: NodeJS.Timeout }>();
 let colorIdx = 0;
 
@@ -227,13 +229,14 @@ function shuffleSeeds() {
     const removeId = pickRandom(ids);
     rooms.delete(removeId);
     seedRoomIds.delete(removeId);
+    broadcastRoomRemove(removeId);
   }
   while (seedRoomIds.size < SEED_COUNT) {
     const newRoom = makeSeedRoom();
     rooms.set(newRoom.id, newRoom);
     seedRoomIds.add(newRoom.id);
+    broadcastRoomUpsert(newRoom);
   }
-  sendRooms();
   setTimeout(shuffleSeeds, 20000 + Math.random() * 20000);
 }
 
@@ -247,13 +250,72 @@ function broadcastAll(msg: object) {
   }
 }
 
+function serializeRoom(room: Room) {
+  const { banned, ...rest } = room;
+  return rest;
+}
+
 function serializeRooms() {
   return [...rooms.values()].map(({ banned, ...rest }) => rest);
 }
 
-// --- Ice breaker generation via Gemini API ---
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+/** Send a single room add/update to all clients (instead of the full list) */
+function broadcastRoomUpsert(room: Room) {
+  broadcastAll({ type: "room-upsert", room: serializeRoom(room) });
+}
+
+/** Notify all clients that a room was removed */
+function broadcastRoomRemove(roomId: string) {
+  broadcastAll({ type: "room-remove", roomId });
+}
+
+// --- Block check via DB ---
+async function checkBlocked(ip: string): Promise<{ minutes: number } | null> {
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) return null;
+    const sql = neon(dbUrl);
+    const rows = await sql`
+      SELECT blocked_until FROM blocked_users
+      WHERE ip = ${ip} AND blocked_until > NOW()
+      ORDER BY blocked_until DESC LIMIT 1
+    `;
+    if (!rows[0]) return null;
+    const until = new Date(rows[0].blocked_until).getTime();
+    const minutes = Math.max(1, Math.ceil((until - Date.now()) / 60000));
+    return { minutes };
+  } catch {
+    return null;
+  }
+}
+
+// --- Decrypt helper (matches src/lib/crypto.ts) ---
+function decryptSetting(encoded: string): string {
+  const secret = process.env.JWT_SECRET || "";
+  const key = crypto.createHash("sha256").update(secret).digest();
+  const [ivB64, tagB64, dataB64] = encoded.split(":");
+  const iv = Buffer.from(ivB64, "base64");
+  const tag = Buffer.from(tagB64, "base64");
+  const encrypted = Buffer.from(dataB64, "base64");
+  const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+  decipher.setAuthTag(tag);
+  return decipher.update(encrypted) + decipher.final("utf8");
+}
+
+// --- Gemini API key: DB first, env fallback ---
+const ENV_GEMINI_KEY = process.env.GEMINI_API_KEY || "";
+
+async function getGeminiKey(): Promise<string> {
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      const sql = neon(dbUrl);
+      const rows = await sql`SELECT value FROM app_settings WHERE key = 'gemini_api_key' LIMIT 1`;
+      if (rows[0]?.value) return decryptSetting(rows[0].value);
+    }
+  } catch {}
+  return ENV_GEMINI_KEY;
+}
 
 const MODE_TONES: Record<string, { en: string; ru: string }> = {
   debate: {
@@ -396,16 +458,16 @@ function getFallbackQuestions(topic: string, mode: string): string[] {
 
 async function generateIceBreakersForRoom(roomId: string) {
   const room = rooms.get(roomId);
-  if (!room || !GEMINI_API_KEY) {
-    // No API key — use fallback
-    if (room) {
-      room.iceBreakers = getFallbackQuestions(room.topic, room.mode);
-      sendToRoom(roomId, {
-        type: "ice-breakers",
-        roomId,
-        questions: room.iceBreakers,
-      });
-    }
+  if (!room) return;
+
+  const geminiKey = await getGeminiKey();
+  if (!geminiKey) {
+    room.iceBreakers = getFallbackQuestions(room.topic, room.mode);
+    sendToRoom(roomId, {
+      type: "ice-breakers",
+      roomId,
+      questions: room.iceBreakers,
+    });
     return;
   }
 
@@ -443,7 +505,8 @@ Rules:
 Return ONLY valid JSON: {"questions":["q1","q2","q3","q4","q5","q6","q7","q8","q9","q10"]}`;
 
   try {
-    const res = await fetch(GEMINI_URL, {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
+    const res = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
@@ -470,10 +533,6 @@ Return ONLY valid JSON: {"questions":["q1","q2","q3","q4","q5","q6","q7","q8","q
       questions: room.iceBreakers,
     });
   }
-}
-
-function sendRooms() {
-  broadcastAll({ type: "rooms", rooms: serializeRooms() });
 }
 
 function sendToRoom(roomId: string, msg: object, excludeId?: string) {
@@ -509,12 +568,13 @@ function stopPreview(userId: string) {
   }
 }
 
-function leaveRoom(userId: string) {
+function leaveRoom(userId: string): { roomId: string; deleted: boolean } | null {
   const user = users.get(userId);
-  if (!user?.roomId) return;
+  if (!user?.roomId) return null;
   const room = rooms.get(user.roomId);
-  if (!room) return;
+  if (!room) return null;
 
+  const roomId = room.id;
   room.people = room.people.filter((p) => p.id !== userId);
 
   // If the host left, close the room and kick everyone
@@ -528,6 +588,8 @@ function leaveRoom(userId: string) {
       }
     }
     rooms.delete(room.id);
+    user.roomId = null;
+    return { roomId, deleted: true };
   } else {
     for (const p of room.people) {
       const u = users.get(p.id);
@@ -535,21 +597,191 @@ function leaveRoom(userId: string) {
         u.ws.send(JSON.stringify({ type: "peer-leave", id: userId }));
       }
     }
-    if (room.people.length === 0) rooms.delete(room.id);
+    const deleted = room.people.length === 0;
+    if (deleted) rooms.delete(room.id);
+    user.roomId = null;
+    return { roomId, deleted };
   }
-
-  user.roomId = null;
 }
 
 // --- Server ---
 const PORT = parseInt(process.env.PORT || "1999", 10);
-const wss = new WebSocketServer({ port: PORT });
+const ADMIN_SECRET = process.env.JWT_SECRET || "";
 
-console.log(`WebSocket server running on port ${PORT}`);
-console.log(`Gemini API key: ${GEMINI_API_KEY ? "loaded" : "MISSING"}`);
+const server = http.createServer((req, res) => {
+  // CORS for admin panel
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization");
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
 
-wss.on("connection", (ws) => {
+  if (req.url === "/admin/stats" && req.method === "GET") {
+    // Verify admin token
+    const auth = req.headers.authorization;
+    if (!ADMIN_SECRET || !auth || auth !== `Bearer ${ADMIN_SECRET}`) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unauthorized" }));
+      return;
+    }
+
+    const realRooms: object[] = [];
+    const seedRoomCount = seedRoomIds.size;
+
+    for (const [id, room] of rooms) {
+      if (seedRoomIds.has(id)) continue;
+      realRooms.push({
+        id: room.id,
+        topic: room.topic,
+        mode: room.mode,
+        hostName: room.hostName,
+        people: room.people.map((p) => ({ id: p.id, name: p.name })),
+        maxPeople: room.maxPeople,
+        color: room.color,
+        createdAt: room.createdAt,
+        lang: room.lang,
+      });
+    }
+
+    const realUsers: object[] = [];
+    for (const [id, user] of users) {
+      realUsers.push({
+        id,
+        name: user.name,
+        ip: user.ip,
+        roomId: user.roomId,
+        connected: user.ws.readyState === WebSocket.OPEN,
+      });
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        realRooms,
+        realUsers,
+        seedRoomCount,
+        totalRooms: rooms.size,
+        totalConnections: users.size,
+      })
+    );
+    return;
+  }
+
+  // Admin action: warn / block / kick a user by connection ID
+  if (req.url === "/admin/action" && req.method === "POST") {
+    const auth = req.headers.authorization;
+    if (!ADMIN_SECRET || !auth || auth !== `Bearer ${ADMIN_SECRET}`) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unauthorized" }));
+      return;
+    }
+
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", () => {
+      try {
+        const { action, userId, message, minutes } = JSON.parse(body);
+        const user = users.get(userId);
+
+        if (!user || user.ws.readyState !== WebSocket.OPEN) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "User not connected" }));
+          return;
+        }
+
+        if (action === "warn") {
+          user.ws.send(
+            JSON.stringify({
+              type: "admin-warn",
+              message:
+                message || "You have received a warning for misbehavior. Please follow the rules.",
+            })
+          );
+        } else if (action === "block") {
+          user.ws.send(
+            JSON.stringify({
+              type: "admin-block",
+              minutes: minutes || 30,
+              message: message || "You have been blocked.",
+            })
+          );
+          // Kick from room and close connection after a short delay
+          const result = leaveRoom(userId);
+          if (result) {
+            if (result.deleted) broadcastRoomRemove(result.roomId);
+            else {
+              const r = rooms.get(result.roomId);
+              if (r) broadcastRoomUpsert(r);
+            }
+          }
+          setTimeout(() => {
+            user.ws.close();
+          }, 500);
+        } else if (action === "rename") {
+          const newName = String(message || "").trim();
+          if (!newName) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "New name is required" }));
+            return;
+          }
+          const oldName = user.name;
+          user.name = newName;
+          // Update name in any room they're in
+          if (user.roomId) {
+            const room = rooms.get(user.roomId);
+            if (room) {
+              const person = room.people.find((p) => p.id === userId);
+              if (person) person.name = newName;
+              if (room.hostId === userId) room.hostName = newName;
+              broadcastRoomUpsert(room);
+            }
+          }
+          user.ws.send(JSON.stringify({ type: "admin-rename", oldName, newName }));
+        } else if (action === "kick") {
+          const result = leaveRoom(userId);
+          user.ws.send(JSON.stringify({ type: "admin-kick" }));
+          if (result) {
+            if (result.deleted) broadcastRoomRemove(result.roomId);
+            else {
+              const r = rooms.get(result.roomId);
+              if (r) broadcastRoomUpsert(r);
+            }
+          }
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true }));
+      } catch {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid request" }));
+      }
+    });
+    return;
+  }
+
+  res.writeHead(404);
+  res.end();
+});
+
+const wss = new WebSocketServer({ server });
+server.listen(PORT, () => {
+  console.log(`WebSocket + HTTP server running on port ${PORT}`);
+  getGeminiKey().then((k) =>
+    console.log(`Gemini API key: ${k ? "loaded" : "MISSING (set via admin panel)"}`)
+  );
+});
+
+wss.on("connection", (ws, req) => {
   const connId = crypto.randomUUID();
+  // Extract IP — support proxies via x-forwarded-for
+  const forwarded = req.headers["x-forwarded-for"];
+  let connIp =
+    (typeof forwarded === "string" ? forwarded.split(",")[0].trim() : req.socket.remoteAddress) ||
+    "unknown";
+  // Strip IPv4-mapped IPv6 prefix (::ffff:192.168.1.1 → 192.168.1.1)
+  if (connIp.startsWith("::ffff:")) connIp = connIp.slice(7);
 
   ws.send(JSON.stringify({ type: "sync", rooms: serializeRooms() }));
 
@@ -562,9 +794,24 @@ wss.on("connection", (ws) => {
     }
 
     if (msg.type === "join") {
-      users.set(connId, { ws, name: String(msg.name), roomId: null });
-      ws.send(JSON.stringify({ type: "id", id: connId }));
-      broadcastAll({ type: "online", count: users.size + SEED_ONLINE_OFFSET });
+      const name = String(msg.name);
+      // Check if IP is blocked
+      checkBlocked(connIp).then((block) => {
+        if (block) {
+          ws.send(
+            JSON.stringify({
+              type: "admin-block",
+              minutes: block.minutes,
+              message: "You are blocked. Try again later.",
+            })
+          );
+          setTimeout(() => ws.close(), 500);
+          return;
+        }
+        users.set(connId, { ws, name, roomId: null, ip: connIp });
+        ws.send(JSON.stringify({ type: "id", id: connId }));
+        broadcastAll({ type: "online", count: users.size + SEED_ONLINE_OFFSET });
+      });
     }
 
     if (msg.type === "create") {
@@ -597,7 +844,7 @@ wss.on("connection", (ws) => {
       user.roomId = room.id;
 
       ws.send(JSON.stringify({ type: "joined", roomId: room.id }));
-      sendRooms();
+      broadcastRoomUpsert(room);
 
       // Generate ice breakers in background
       generateIceBreakersForRoom(room.id);
@@ -652,13 +899,19 @@ wss.on("connection", (ws) => {
         );
       }
 
-      sendRooms();
+      broadcastRoomUpsert(room);
     }
 
     if (msg.type === "leave") {
-      leaveRoom(connId);
+      const result = leaveRoom(connId);
       ws.send(JSON.stringify({ type: "left" }));
-      sendRooms();
+      if (result) {
+        if (result.deleted) broadcastRoomRemove(result.roomId);
+        else {
+          const r = rooms.get(result.roomId);
+          if (r) broadcastRoomUpsert(r);
+        }
+      }
     }
 
     if (msg.type === "signal") {
@@ -689,11 +942,17 @@ wss.on("connection", (ws) => {
         target.ws.send(JSON.stringify({ type: "kicked" }));
       }
       // Remove them from the room
-      leaveRoom(targetId);
+      const result = leaveRoom(targetId);
       if (target.ws.readyState === WebSocket.OPEN) {
         target.ws.send(JSON.stringify({ type: "left" }));
       }
-      sendRooms();
+      if (result) {
+        if (result.deleted) broadcastRoomRemove(result.roomId);
+        else {
+          const r = rooms.get(result.roomId);
+          if (r) broadcastRoomUpsert(r);
+        }
+      }
     }
 
     if (msg.type === "mute-peer") {
@@ -782,9 +1041,15 @@ wss.on("connection", (ws) => {
 
   ws.on("close", () => {
     stopPreview(connId);
-    leaveRoom(connId);
+    const result = leaveRoom(connId);
     users.delete(connId);
     broadcastAll({ type: "online", count: users.size + SEED_ONLINE_OFFSET });
-    sendRooms();
+    if (result) {
+      if (result.deleted) broadcastRoomRemove(result.roomId);
+      else {
+        const r = rooms.get(result.roomId);
+        if (r) broadcastRoomUpsert(r);
+      }
+    }
   });
 });

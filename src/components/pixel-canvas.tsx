@@ -225,6 +225,10 @@ export function PixelCanvas({ name }: { name: string }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [banToast, setBanToast] = useState<string | null>(null);
+  const [warnOverlay, setWarnOverlay] = useState<string | null>(null);
+  const [blockOverlay, setBlockOverlay] = useState<{ minutes: number; message: string } | null>(
+    null
+  );
   const [liveCamOpen, setLiveCamOpen] = useState(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("onlyfun-livecam") !== "closed";
@@ -251,6 +255,26 @@ export function PixelCanvas({ name }: { name: string }) {
     const id = setTimeout(() => setBanToast(null), 4000);
     return () => clearTimeout(id);
   }, [banToast]);
+
+  // Admin warning overlay
+  useEffect(() => {
+    party.onAdminWarn.current = (message: string) => {
+      setWarnOverlay(message);
+    };
+    return () => {
+      party.onAdminWarn.current = undefined;
+    };
+  }, [party.onAdminWarn]);
+
+  // Admin block overlay
+  useEffect(() => {
+    party.onAdminBlock.current = (minutes: number, message: string) => {
+      setBlockOverlay({ minutes, message });
+    };
+    return () => {
+      party.onAdminBlock.current = undefined;
+    };
+  }, [party.onAdminBlock]);
 
   // Pause music when entering a room
   useEffect(() => {
@@ -628,6 +652,114 @@ export function PixelCanvas({ name }: { name: string }) {
             }}
           >
             <span className="text-white text-xs font-medium">{banToast}</span>
+          </div>
+        )}
+
+        {/* Admin warning overlay */}
+        {warnOverlay && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div
+              style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)" }}
+              onClick={() => setWarnOverlay(null)}
+            />
+            <div
+              className="animate-in"
+              style={{
+                position: "relative",
+                background: "#000",
+                border: "1px solid rgba(234,179,8,0.3)",
+                borderRadius: 20,
+                padding: "32px 28px",
+                maxWidth: 360,
+                width: "90%",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: 32, marginBottom: 12 }}>{"\u26A0\uFE0F"}</div>
+              <p style={{ color: "#eab308", fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
+                Warning
+              </p>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                  marginBottom: 20,
+                }}
+              >
+                {warnOverlay}
+              </p>
+              <button
+                onClick={() => setWarnOverlay(null)}
+                style={{
+                  background: "#eab308",
+                  color: "#000",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  padding: "10px 32px",
+                  borderRadius: 12,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                I understand
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Admin block overlay */}
+        {blockOverlay && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 99999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(0,0,0,0.95)",
+            }}
+          >
+            <div
+              className="animate-in"
+              style={{
+                background: "#000",
+                border: "1px solid rgba(239,68,68,0.3)",
+                borderRadius: 20,
+                padding: "32px 28px",
+                maxWidth: 360,
+                width: "90%",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: 32, marginBottom: 12 }}>{"\u{1F6AB}"}</div>
+              <p style={{ color: "#ef4444", fontWeight: 700, fontSize: 16, marginBottom: 8 }}>
+                You are blocked
+              </p>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.7)",
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                  marginBottom: 4,
+                }}
+              >
+                {blockOverlay.message}
+              </p>
+              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>
+                Come back after {blockOverlay.minutes} minutes
+              </p>
+            </div>
           </div>
         )}
 
