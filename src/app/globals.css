@@ -50,6 +50,29 @@ body {
   animation: music-bar 0.8s ease-in-out infinite;
 }
 
+@keyframes vibe-bar {
+  0% {
+    height: 3px;
+    opacity: 0.5;
+  }
+  40% {
+    height: 10px;
+    opacity: 0.8;
+  }
+  70% {
+    height: 5px;
+    opacity: 0.6;
+  }
+  100% {
+    height: 3px;
+    opacity: 0.5;
+  }
+}
+
+.vibe-bar {
+  animation: vibe-bar 2.8s ease-in-out infinite;
+}
+
 @keyframes slide-up {
   from {
     transform: translateY(100%);

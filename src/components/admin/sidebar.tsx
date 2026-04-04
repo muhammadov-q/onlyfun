@@ -15,7 +15,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   Users,
-  Sparkles,
   Settings,
   ChevronsUpDown,
   LogOut,
@@ -31,7 +30,6 @@ const NAV_ITEMS = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Rooms", href: "/admin/rooms", icon: MessageSquare },
   { label: "Users", href: "/admin/users", icon: Users },
-  { label: "Ice Breakers", href: "/admin/ice-breakers", icon: Sparkles },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

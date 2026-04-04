@@ -8,6 +8,7 @@ import { useI18n } from "@/i18n";
 import { LangSwitcher } from "./lang-switcher";
 import { CityMap } from "./city-map";
 import { usePreview } from "./use-preview";
+import { DesktopSidebar } from "./desktop-sidebar";
 
 function InfoIcon({ className }: { className?: string }) {
   return (
@@ -434,33 +435,8 @@ export function PixelCanvas({ name }: { name: string }) {
             </div>
           )}
 
-          {/* Desktop-only: music, profile */}
+          {/* Desktop-only: profile */}
           <div className="hidden sm:flex items-center gap-1.5">
-            <button
-              onClick={music.toggle}
-              className={`h-8 rounded-lg flex items-center justify-center border transition-all gap-1.5 ${
-                music.playing
-                  ? "bg-white text-black border-white px-2"
-                  : "bg-white/5 text-white/40 border-white/10 hover:text-white w-8"
-              }`}
-            >
-              {music.playing ? (
-                <>
-                  <SpeakerIcon />
-                  <div className="flex items-end gap-[2px] h-3">
-                    {[1, 2, 3, 4].map((i) => (
-                      <span
-                        key={i}
-                        className="w-[2px] bg-black rounded-full music-bar"
-                        style={{ animationDelay: `${i * 0.15}s` }}
-                      />
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <SpeakerOffIcon />
-              )}
-            </button>
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setShowProfile((v) => !v)}
@@ -564,6 +540,24 @@ export function PixelCanvas({ name }: { name: string }) {
           </button>
         </div>
       </div>
+
+      {/* Main content: sidebar + map */}
+      <div className="flex flex-1 overflow-hidden">
+        <DesktopSidebar
+          musicPlaying={music.playing}
+          onMusicToggle={music.toggle}
+          liveCamOpen={liveCamOpen}
+          onLiveCamToggle={() => {
+            if (liveCamOpen) {
+              localStorage.setItem("onlyfun-livecam", "closed");
+              setLiveCamOpen(false);
+            } else {
+              localStorage.removeItem("onlyfun-livecam");
+              setLiveCamOpen(true);
+            }
+          }}
+          liveBadgeText={t("live.badge")}
+        />
 
       {/* Map */}
       <div className="relative flex-1 overflow-hidden flex flex-col">
@@ -763,13 +757,12 @@ export function PixelCanvas({ name }: { name: string }) {
           </div>
         )}
 
-        {/* Live Bishkek cam */}
-        {!placing && (
+        {/* Live Bishkek cam — embed overlay (mobile only, desktop uses side panel) */}
+        {!placing && liveCamOpen && (
           <div
-            className="absolute z-[400] transition-all duration-300"
+            className="absolute z-[400] transition-all duration-300 sm:hidden"
             style={{ top: 12, left: 12 }}
           >
-            {liveCamOpen ? (
               <div className="relative rounded-2xl overflow-hidden border border-white/15 bg-black">
                 <iframe
                   src="https://www.youtube.com/embed/GQRnp3GLx1U?autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&loop=1&disablekb=1&fs=0&rel=0&showinfo=0&iv_load_policy=3"
@@ -804,7 +797,15 @@ export function PixelCanvas({ name }: { name: string }) {
                   </svg>
                 </button>
               </div>
-            ) : (
+          </div>
+        )}
+
+        {/* Live cam toggle button — mobile only (desktop uses sidebar) */}
+        {!placing && !liveCamOpen && (
+          <div
+            className="absolute z-[400] sm:hidden"
+            style={{ top: 12, left: 12 }}
+          >
               <button
                 onClick={() => {
                   localStorage.removeItem("onlyfun-livecam");
@@ -829,7 +830,6 @@ export function PixelCanvas({ name }: { name: string }) {
                 </svg>
                 <span className="text-[11px] font-medium">{t("live.button")}</span>
               </button>
-            )}
           </div>
         )}
 
@@ -861,6 +861,7 @@ export function PixelCanvas({ name }: { name: string }) {
           </button>
         )}
       </div>
+      </div>{/* end sidebar + map wrapper */}
 
       {showCreate && (
         <CreateModal
