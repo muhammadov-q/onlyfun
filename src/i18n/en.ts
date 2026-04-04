@@ -77,6 +77,9 @@ export default {
   "room.previewCooldown": "preview again in",
   "room.searchPlaceholder": "Search rooms…",
   "room.noMatch": "No rooms match",
+  "room.youWereKicked": "you were kicked from the room",
+  "room.youWereMuted": "the host muted you",
+  "room.banned": "you're banned from this room",
 
   // AI features
   "ai.suggestTopic": "suggest topic",

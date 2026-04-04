@@ -78,6 +78,9 @@ export default {
   "room.previewCooldown": "снова через",
   "room.searchPlaceholder": "Поиск комнат…",
   "room.noMatch": "Ничего не найдено",
+  "room.youWereKicked": "тебя кикнули из комнаты",
+  "room.youWereMuted": "хост выключил тебе микрофон",
+  "room.banned": "тебе запрещён вход в эту комнату",
 
   // AI features
   "ai.suggestTopic": "предложить тему",

@@ -223,11 +223,26 @@ export function PixelCanvas({ name }: { name: string }) {
   const [showWeather, setShowWeather] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
+  const [banToast, setBanToast] = useState<string | null>(null);
   const weather = useWeather();
   const bishkekTime = useBishkekTime();
   const music = useMusic();
   const preview = usePreview(party);
   const weatherRef = useRef<HTMLDivElement>(null);
+
+  // Show banned toast
+  useEffect(() => {
+    party.onBanned.current = (mins: number) => {
+      setBanToast(`${t("room.banned")} (${mins}m)`);
+    };
+    return () => { party.onBanned.current = undefined; };
+  }, [party.onBanned, t]);
+
+  useEffect(() => {
+    if (!banToast) return;
+    const id = setTimeout(() => setBanToast(null), 4000);
+    return () => clearTimeout(id);
+  }, [banToast]);
 
   // Pause music when entering a room
   useEffect(() => {
@@ -508,6 +523,28 @@ export function PixelCanvas({ name }: { name: string }) {
             <span className="text-white/60 text-xs font-medium">
               {t("room.previewCooldown")} {preview.cooldownMsg}
             </span>
+          </div>
+        )}
+
+        {/* Ban toast */}
+        {banToast && (
+          <div
+            className="animate-in"
+            style={{
+              position: "absolute",
+              top: 16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 500,
+              pointerEvents: "none",
+              background: "rgba(239,68,68,0.9)",
+              backdropFilter: "blur(12px)",
+              borderRadius: 20,
+              padding: "8px 16px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span className="text-white text-xs font-medium">{banToast}</span>
           </div>
         )}
 

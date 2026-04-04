@@ -39,6 +39,7 @@ export function useVoice(party: PartyState) {
   const [connectedPeers, setConnectedPeers] = useState<Set<string>>(new Set());
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speakingPeers, setSpeakingPeers] = useState<Set<string>>(new Set());
+  const [wasForceMuted, setWasForceMuted] = useState(false);
 
   const stream = useRef<MediaStream | null>(null);
   const peers = useRef<Map<string, RTCPeerConnection>>(new Map());
@@ -323,6 +324,29 @@ export function useVoice(party: PartyState) {
     };
   }, [connect, sendMicReady, onMicReady]);
 
+  // When host force-mutes us
+  useEffect(() => {
+    party.onForceMuted.current = () => {
+      if (!muted) {
+        setMuted(true);
+        setWasForceMuted(true);
+        for (const [, pc] of peers.current) {
+          for (const sender of pc.getSenders()) {
+            if (sender.track?.kind === "audio" || sender.track === null) {
+              sender.replaceTrack(null).catch(() => {});
+            }
+          }
+        }
+        stream.current?.getAudioTracks().forEach((t) => {
+          t.enabled = false;
+        });
+      }
+    };
+    return () => {
+      party.onForceMuted.current = undefined;
+    };
+  }, [muted, party.onForceMuted]);
+
   // Start mic and announce ready
   const start = useCallback(async () => {
     const mic = await getMic();
@@ -372,11 +396,7 @@ export function useVoice(party: PartyState) {
       t.enabled = !next;
     });
 
-    // Mute / unmute incoming audio from all peers
-    audios.current.forEach((audio) => {
-      audio.muted = next;
-    });
   }, [muted]);
 
-  return { start, stop, toggleMute, muted, micActive, connectedPeers, isSpeaking, speakingPeers };
+  return { start, stop, toggleMute, muted, micActive, connectedPeers, isSpeaking, speakingPeers, wasForceMuted, clearForceMuted: () => setWasForceMuted(false) };
 }

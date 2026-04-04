@@ -33,6 +33,9 @@ export function useParty(name: string) {
   const onPreviewStarted = useRef<((roomId: string) => void) | undefined>(undefined);
   const onPreviewStopped = useRef<(() => void) | undefined>(undefined);
   const onPreviewUnavailable = useRef<((roomId: string) => void) | undefined>(undefined);
+  const onForceMuted = useRef<(() => void) | undefined>(undefined);
+  const onKicked = useRef<(() => void) | undefined>(undefined);
+  const onBanned = useRef<((minutes: number) => void) | undefined>(undefined);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,7 +68,7 @@ export function useParty(name: string) {
         if (msg.type === "sync") setRooms(msg.rooms);
         if (msg.type === "rooms") setRooms(msg.rooms);
         if (msg.type === "joined") setCurrentRoomId(msg.roomId);
-        if (msg.type === "left" || msg.type === "room-closed") {
+        if (msg.type === "left" || msg.type === "room-closed" || msg.type === "kicked") {
           setCurrentRoomId(null);
           setChatMessages([]);
         }
@@ -78,6 +81,9 @@ export function useParty(name: string) {
         if (msg.type === "preview-started") onPreviewStarted.current?.(msg.roomId);
         if (msg.type === "preview-stopped") onPreviewStopped.current?.();
         if (msg.type === "preview-unavailable") onPreviewUnavailable.current?.(msg.roomId);
+        if (msg.type === "force-muted") onForceMuted.current?.();
+        if (msg.type === "kicked") onKicked.current?.();
+        if (msg.type === "banned") onBanned.current?.(msg.minutes);
       };
 
       ws.onclose = () => {
@@ -118,6 +124,8 @@ export function useParty(name: string) {
 
   const startPreview = useCallback((roomId: string) => send({ type: "preview", roomId }), [send]);
   const stopPreview = useCallback(() => send({ type: "preview-stop" }), [send]);
+  const kickPeer = useCallback((targetId: string) => send({ type: "kick", targetId }), [send]);
+  const mutePeer = useCallback((targetId: string) => send({ type: "mute-peer", targetId }), [send]);
 
   const currentRoom = rooms.find((r) => r.id === currentRoomId) ?? null;
 
@@ -136,6 +144,8 @@ export function useParty(name: string) {
     sendChat,
     startPreview,
     stopPreview,
+    kickPeer,
+    mutePeer,
     onSignal,
     onPeerJoin,
     onPeerLeave,
@@ -143,6 +153,9 @@ export function useParty(name: string) {
     onPreviewStarted,
     onPreviewStopped,
     onPreviewUnavailable,
+    onForceMuted,
+    onKicked,
+    onBanned,
   };
 }
 

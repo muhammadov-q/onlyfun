@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PartyState } from "./use-party";
 import { useVoice } from "./use-voice";
 import { useI18n } from "@/i18n";
@@ -155,12 +155,16 @@ function MarbleParticipants({
   isSpeaking,
   speakingPeers,
   muted,
+  onSelect,
+  selectedId,
 }: {
   people: { id: string; name: string }[];
   myId: string | null;
   isSpeaking: boolean;
   speakingPeers: Set<string>;
   muted: boolean;
+  onSelect?: (id: string) => void;
+  selectedId?: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const posRef = useRef<Map<string, PhysPos>>(new Map());
@@ -294,6 +298,7 @@ function MarbleParticipants({
         const isMe = myId !== null && p.id === myId;
         const speaking = isMe ? isSpeaking : speakingPeers.has(p.id);
         const isMuted = isMe && muted;
+        const isSelected = selectedId === p.id;
         const color = marbleColor(p.id);
 
         return (
@@ -334,19 +339,39 @@ function MarbleParticipants({
               dragRef.current.lastX = e.clientX;
               dragRef.current.lastY = e.clientY;
             }}
-            onPointerUp={() => {
+            onPointerUp={(e) => {
               if (dragRef.current?.id !== p.id) return;
               const pos = posRef.current.get(p.id);
+              const wasDrag =
+                dragRef.current &&
+                (Math.abs(dragRef.current.vx) > 2 || Math.abs(dragRef.current.vy) > 2);
               if (pos && dragRef.current) {
                 pos.vx = dragRef.current.vx * 2.5;
                 pos.vy = dragRef.current.vy * 2.5;
               }
               dragRef.current = null;
+              // Tap (not drag) — select for admin actions
+              if (!wasDrag && !isMe && onSelect) {
+                e.stopPropagation();
+                onSelect(p.id);
+              }
             }}
             onPointerCancel={() => {
               if (dragRef.current?.id === p.id) dragRef.current = null;
             }}
           >
+            {/* Selection ring */}
+            {isSelected && (
+              <div
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  inset: -4,
+                  border: "2px solid #fff",
+                  opacity: 0.6,
+                }}
+              />
+            )}
+
             {/* Speaking rings */}
             {speaking && (
               <>
@@ -445,12 +470,30 @@ export function InsideRoom({ party }: { party: PartyState }) {
   const room = party.currentRoom!;
   const voice = useVoice(party);
   const { t } = useI18n();
+  const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const isHost = party.myId === room.hostId;
 
   useEffect(() => {
     voice.start();
     return () => voice.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Show toast when force-muted by host
+  useEffect(() => {
+    if (voice.wasForceMuted) {
+      setToast(t("room.youWereMuted"));
+      voice.clearForceMuted();
+    }
+  }, [voice.wasForceMuted, voice.clearForceMuted, t]);
+
+  // Auto-hide toast
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   const prevPeopleRef = useRef<string[]>([]);
   useEffect(() => {
@@ -508,6 +551,8 @@ export function InsideRoom({ party }: { party: PartyState }) {
           isSpeaking={voice.isSpeaking}
           speakingPeers={voice.speakingPeers}
           muted={voice.muted}
+          onSelect={isHost ? (id) => setSelectedPeer(id === selectedPeer ? null : id) : undefined}
+          selectedId={selectedPeer}
         />
 
         {/* Mic warning */}
@@ -517,6 +562,64 @@ export function InsideRoom({ party }: { party: PartyState }) {
             {t("room.micWarning")}
           </p>
         )}
+
+        {/* Toast */}
+        {toast && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-4 py-2 bg-red-500/90 text-white text-xs font-medium rounded-full backdrop-blur-sm">
+            {toast}
+          </div>
+        )}
+
+        {/* Host admin actions */}
+        {isHost && selectedPeer && (() => {
+          const peer = room.people.find((p) => p.id === selectedPeer);
+          if (!peer) return null;
+          return (
+            <div
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-2 rounded-2xl animate-in"
+              style={{
+                background: "rgba(28,28,30,0.92)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}
+            >
+              <span className="text-white/60 text-xs font-medium px-1">{peer.name}</span>
+              <button
+                onClick={() => {
+                  party.mutePeer(selectedPeer);
+                  setToast(`${peer.name} muted`);
+                  setSelectedPeer(null);
+                }}
+                style={{ touchAction: "manipulation" }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 text-white/70 text-xs font-medium active:bg-white/20 transition-colors"
+              >
+                <MicOffIcon size={12} />
+                Mute
+              </button>
+              <button
+                onClick={() => {
+                  party.kickPeer(selectedPeer);
+                  setToast(`${peer.name} kicked`);
+                  setSelectedPeer(null);
+                }}
+                style={{ touchAction: "manipulation" }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/20 text-red-400 text-xs font-medium active:bg-red-500/30 transition-colors"
+              >
+                Kick
+              </button>
+              <button
+                onClick={() => setSelectedPeer(null)}
+                style={{ touchAction: "manipulation" }}
+                className="px-2 py-2 text-white/30 active:text-white/60"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── Controls ── iOS liquid pill ── */}

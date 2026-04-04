@@ -12,6 +12,7 @@ type Room = {
   lat: number;
   lng: number;
   createdAt: number;
+  banned: Map<string, number>; // name -> ban expiry timestamp
 };
 
 const COLORS = [
@@ -171,6 +172,7 @@ function makeSeedRoom(): Room {
     lat,
     lng,
     createdAt: Date.now() - Math.floor(Math.random() * 7200000),
+    banned: new Map(),
   };
 }
 
@@ -215,8 +217,12 @@ function broadcastAll(msg: object) {
   }
 }
 
+function serializeRooms() {
+  return [...rooms.values()].map(({ banned, ...rest }) => rest);
+}
+
 function sendRooms() {
-  broadcastAll({ type: "rooms", rooms: [...rooms.values()] });
+  broadcastAll({ type: "rooms", rooms: serializeRooms() });
 }
 
 function sendToRoom(roomId: string, msg: object, excludeId?: string) {
@@ -293,7 +299,7 @@ console.log(`WebSocket server running on port ${PORT}`);
 wss.on("connection", (ws) => {
   const connId = crypto.randomUUID();
 
-  ws.send(JSON.stringify({ type: "sync", rooms: [...rooms.values()] }));
+  ws.send(JSON.stringify({ type: "sync", rooms: serializeRooms() }));
 
   ws.on("message", (raw) => {
     let msg: Record<string, unknown>;
@@ -329,6 +335,7 @@ wss.on("connection", (ws) => {
         lat,
         lng,
         createdAt: Date.now(),
+        banned: new Map(),
       };
       rooms.set(room.id, room);
       user.roomId = room.id;
@@ -345,6 +352,13 @@ wss.on("connection", (ws) => {
       if (seedRoomIds.has(room.id)) return;
       if (room.people.length >= room.maxPeople) return;
       if (room.people.some((p) => p.id === connId)) return;
+      // Check ban by name
+      const banExpiry = room.banned.get(user.name);
+      if (banExpiry && Date.now() < banExpiry) {
+        const mins = Math.ceil((banExpiry - Date.now()) / 60000);
+        ws.send(JSON.stringify({ type: "banned", minutes: mins }));
+        return;
+      }
 
       leaveRoom(connId);
       room.people.push({ id: connId, name: user.name });
@@ -381,6 +395,41 @@ wss.on("connection", (ws) => {
       const user = users.get(connId);
       if (!user?.roomId) return;
       sendToRoom(user.roomId, { type: "mic-ready", from: connId }, connId);
+    }
+
+    if (msg.type === "kick") {
+      const user = users.get(connId);
+      if (!user?.roomId) return;
+      const room = rooms.get(user.roomId);
+      if (!room || room.hostId !== connId) return; // only host can kick
+      const targetId = String(msg.targetId);
+      const target = users.get(targetId);
+      if (!target || target.roomId !== room.id || targetId === connId) return;
+      // Ban the user's name for 1 hour
+      room.banned.set(target.name, Date.now() + 60 * 60 * 1000);
+      // Notify the kicked user
+      if (target.ws.readyState === WebSocket.OPEN) {
+        target.ws.send(JSON.stringify({ type: "kicked" }));
+      }
+      // Remove them from the room
+      leaveRoom(targetId);
+      if (target.ws.readyState === WebSocket.OPEN) {
+        target.ws.send(JSON.stringify({ type: "left" }));
+      }
+      sendRooms();
+    }
+
+    if (msg.type === "mute-peer") {
+      const user = users.get(connId);
+      if (!user?.roomId) return;
+      const room = rooms.get(user.roomId);
+      if (!room || room.hostId !== connId) return; // only host
+      const targetId = String(msg.targetId);
+      const target = users.get(targetId);
+      if (!target || target.roomId !== room.id || targetId === connId) return;
+      if (target.ws.readyState === WebSocket.OPEN) {
+        target.ws.send(JSON.stringify({ type: "force-muted" }));
+      }
     }
 
     if (msg.type === "chat") {
