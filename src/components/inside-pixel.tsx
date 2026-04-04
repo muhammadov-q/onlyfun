@@ -1,9 +1,49 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { PartyState } from "./use-party";
 import { useVoice } from "./use-voice";
 import { useI18n } from "@/i18n";
+
+// ─── Sound effects ────────────────────────────────────────────────────────────
+
+function playTone(
+  freq: number,
+  startAt: number,
+  duration: number,
+  gain: number,
+  ctx: AudioContext
+) {
+  const osc = ctx.createOscillator();
+  const amp = ctx.createGain();
+  osc.connect(amp);
+  amp.connect(ctx.destination);
+  osc.type = "sine";
+  osc.frequency.value = freq;
+  amp.gain.setValueAtTime(0, ctx.currentTime + startAt);
+  amp.gain.linearRampToValueAtTime(gain, ctx.currentTime + startAt + 0.01);
+  amp.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startAt + duration);
+  osc.start(ctx.currentTime + startAt);
+  osc.stop(ctx.currentTime + startAt + duration + 0.05);
+}
+
+function playJoinSound() {
+  try {
+    const ctx = new AudioContext();
+    playTone(880, 0, 0.18, 0.22, ctx);
+    playTone(1320, 0.12, 0.25, 0.16, ctx);
+    setTimeout(() => ctx.close(), 1200);
+  } catch {}
+}
+
+function playLeaveSound() {
+  try {
+    const ctx = new AudioContext();
+    playTone(660, 0, 0.18, 0.2, ctx);
+    playTone(440, 0.13, 0.28, 0.13, ctx);
+    setTimeout(() => ctx.close(), 1200);
+  } catch {}
+}
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -48,37 +88,16 @@ function MicOffIcon({ size = 20 }: { size?: number }) {
   );
 }
 
-function SendIcon() {
+function PhoneDeclineIcon({ size = 24 }: { size?: number }) {
   return (
     <svg
-      width="16"
-      height="16"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill="currentColor"
+      style={{ transform: "rotate(135deg)" }}
     >
-      <line x1="22" y1="2" x2="11" y2="13" />
-      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-    </svg>
-  );
-}
-
-function ChevronLeftIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="15 18 9 12 15 6" />
+      <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" />
     </svg>
   );
 }
@@ -103,116 +122,329 @@ function SoundWave({ color }: { color: string }) {
   );
 }
 
-// ─── Person avatar with speaking rings ────────────────────────────────────────
+// ─── Marble physics ───────────────────────────────────────────────────────────
 
-// Returns avatar px sizes based on how many people are in the room
-function avatarSize(total: number): { wrap: number; circle: number; text: number; badge: number } {
-  if (total <= 2) return { wrap: 80, circle: 68, text: 12, badge: 20 };
-  if (total <= 4) return { wrap: 68, circle: 56, text: 11, badge: 18 };
-  if (total <= 6) return { wrap: 58, circle: 48, text: 10, badge: 16 };
-  if (total <= 8) return { wrap: 50, circle: 40, text: 10, badge: 14 };
-  return { wrap: 44, circle: 34, text: 9, badge: 13 };
+const MARBLE_COLORS = [
+  "#a855f7", // purple
+  "#3b82f6", // blue
+  "#ec4899", // pink
+  "#f97316", // orange
+  "#22c55e", // green
+  "#06b6d4", // cyan
+  "#eab308", // yellow
+  "#ef4444", // red
+  "#8b5cf6", // violet
+  "#14b8a6", // teal
+];
+
+function marbleColor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  return MARBLE_COLORS[hash % MARBLE_COLORS.length];
 }
 
-function PersonAvatar({
-  name,
-  color,
+const GREEN = "#22c55e";
+const RED = "#ef4444";
+const R = 34; // avatar radius in px
+
+type PhysPos = { x: number; y: number; vx: number; vy: number };
+
+function MarbleParticipants({
+  people,
+  myId,
   isSpeaking,
-  isMe,
-  isMuted,
-  isConnected,
-  total,
+  speakingPeers,
+  muted,
 }: {
-  name: string;
-  color: string;
+  people: { id: string; name: string }[];
+  myId: string | null;
   isSpeaking: boolean;
-  isMe: boolean;
-  isMuted: boolean;
-  isConnected: boolean;
-  total: number;
+  speakingPeers: Set<string>;
+  muted: boolean;
 }) {
-  const sz = avatarSize(total);
-  const fontSize = total <= 4 ? "1.2rem" : total <= 6 ? "1rem" : "0.8rem";
+  const containerRef = useRef<HTMLDivElement>(null);
+  const posRef = useRef<Map<string, PhysPos>>(new Map());
+  const elemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const rafRef = useRef<number>(0);
+  const dragRef = useRef<{
+    id: string;
+    lastX: number;
+    lastY: number;
+    vx: number;
+    vy: number;
+  } | null>(null);
+  const sizeRef = useRef({ w: 0, h: 0 });
+
+  // Measure container
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => {
+      sizeRef.current = { w: el.offsetWidth, h: el.offsetHeight };
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Sync people: add new, remove gone
+  useEffect(() => {
+    const { w, h } = sizeRef.current;
+    const cw = w || 320;
+    const ch = h || 500;
+    const ids = new Set(people.map((p) => p.id));
+
+    for (const id of [...posRef.current.keys()]) {
+      if (!ids.has(id)) posRef.current.delete(id);
+    }
+    people.forEach((p) => {
+      if (!posRef.current.has(p.id)) {
+        // Start at center with a tiny random nudge so collisions can separate them
+        posRef.current.set(p.id, {
+          x: cw / 2 + (Math.random() - 0.5) * 4,
+          y: ch / 2 + (Math.random() - 0.5) * 4,
+          vx: 0,
+          vy: 0,
+        });
+      }
+    });
+  }, [people]);
+
+  // Physics RAF loop — updates DOM directly, no React re-renders
+  useEffect(() => {
+    const tick = () => {
+      const { w, h } = sizeRef.current;
+      if (w > 0 && h > 0) {
+        const ids = [...posRef.current.keys()];
+
+        // Spring toward center + damping
+        const cx = w / 2;
+        const cy = h / 2;
+        const k = 0.07; // spring stiffness
+        const damp = 0.8; // velocity damping per frame
+
+        for (const id of ids) {
+          if (dragRef.current?.id === id) continue;
+          const p = posRef.current.get(id)!;
+          p.vx += (cx - p.x) * k;
+          p.vy += (cy - p.y) * k;
+          p.vx *= damp;
+          p.vy *= damp;
+          p.x += p.vx;
+          p.y += p.vy;
+        }
+
+        // Circle-circle collisions
+        for (let i = 0; i < ids.length; i++) {
+          for (let j = i + 1; j < ids.length; j++) {
+            const a = posRef.current.get(ids[i])!;
+            const b = posRef.current.get(ids[j])!;
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const minD = R * 2 + 6;
+            if (dist < minD && dist > 0.001) {
+              const nx = dx / dist;
+              const ny = dy / dist;
+              const overlap = (minD - dist) / 2;
+              const aDrag = dragRef.current?.id === ids[i];
+              const bDrag = dragRef.current?.id === ids[j];
+              if (!aDrag) {
+                a.x -= nx * overlap;
+                a.y -= ny * overlap;
+              }
+              if (!bDrag) {
+                b.x += nx * overlap;
+                b.y += ny * overlap;
+              }
+              const dot = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
+              if (dot > 0) {
+                if (!aDrag) {
+                  a.vx -= dot * nx * 0.7;
+                  a.vy -= dot * ny * 0.7;
+                }
+                if (!bDrag) {
+                  b.vx += dot * nx * 0.7;
+                  b.vy += dot * ny * 0.7;
+                }
+              }
+            }
+          }
+        }
+
+        // Apply positions to DOM
+        for (const [id, pos] of posRef.current) {
+          const el = elemRefs.current.get(id);
+          if (el) {
+            el.style.left = `${pos.x - R}px`;
+            el.style.top = `${pos.y - R}px`;
+          }
+        }
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
 
   return (
-    <div className="flex flex-col items-center gap-1.5" style={{ width: sz.wrap }}>
-      <div
-        className="relative flex items-center justify-center"
-        style={{ width: sz.circle, height: sz.circle }}
-      >
-        {/* Radiating speak rings */}
-        {isSpeaking && (
-          <>
-            <div className="speak-ring" style={{ backgroundColor: color + "55" }} />
-            <div className="speak-ring speak-ring-2" style={{ backgroundColor: color + "38" }} />
-            <div className="speak-ring speak-ring-3" style={{ backgroundColor: color + "20" }} />
-          </>
-        )}
+    <div ref={containerRef} className="absolute inset-0 overflow-hidden">
+      {people.map((p) => {
+        const isMe = myId !== null && p.id === myId;
+        const speaking = isMe ? isSpeaking : speakingPeers.has(p.id);
+        const isMuted = isMe && muted;
+        const color = marbleColor(p.id);
 
-        {/* Avatar circle */}
-        <div
-          className="relative z-10 rounded-full flex items-center justify-center font-bold transition-all duration-300"
-          style={{
-            width: sz.circle,
-            height: sz.circle,
-            fontSize,
-            backgroundColor: color + "18",
-            border: `2px solid ${isSpeaking ? color : isConnected ? color + "55" : "rgba(255,255,255,0.1)"}`,
-            color,
-            boxShadow: isSpeaking ? `0 0 14px ${color}55, 0 0 30px ${color}20` : "none",
-          }}
-        >
-          {name[0].toUpperCase()}
-        </div>
-
-        {/* Muted badge */}
-        {isMuted && (
+        return (
           <div
-            className="absolute -bottom-0.5 -right-0.5 z-20 rounded-full bg-white border-2 border-black flex items-center justify-center text-black"
-            style={{ width: sz.badge, height: sz.badge }}
+            key={p.id}
+            ref={(el) => {
+              if (el) elemRefs.current.set(p.id, el);
+              else elemRefs.current.delete(p.id);
+            }}
+            className="absolute select-none"
+            style={{
+              width: R * 2,
+              height: R * 2,
+              left: 0,
+              top: 0,
+              touchAction: "none",
+              cursor: "grab",
+            }}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              const pos = posRef.current.get(p.id);
+              if (pos) {
+                pos.vx = 0;
+                pos.vy = 0;
+              }
+              dragRef.current = { id: p.id, lastX: e.clientX, lastY: e.clientY, vx: 0, vy: 0 };
+            }}
+            onPointerMove={(e) => {
+              if (dragRef.current?.id !== p.id) return;
+              const pos = posRef.current.get(p.id);
+              if (!pos) return;
+              const dx = e.clientX - dragRef.current.lastX;
+              const dy = e.clientY - dragRef.current.lastY;
+              pos.x += dx;
+              pos.y += dy;
+              dragRef.current.vx = dx;
+              dragRef.current.vy = dy;
+              dragRef.current.lastX = e.clientX;
+              dragRef.current.lastY = e.clientY;
+            }}
+            onPointerUp={() => {
+              if (dragRef.current?.id !== p.id) return;
+              const pos = posRef.current.get(p.id);
+              if (pos && dragRef.current) {
+                pos.vx = dragRef.current.vx * 2.5;
+                pos.vy = dragRef.current.vy * 2.5;
+              }
+              dragRef.current = null;
+            }}
+            onPointerCancel={() => {
+              if (dragRef.current?.id === p.id) dragRef.current = null;
+            }}
           >
-            <MicOffIcon size={sz.badge - 7} />
+            {/* Speaking rings */}
+            {speaking && (
+              <>
+                <div className="speak-ring" style={{ backgroundColor: color + "55" }} />
+                <div
+                  className="speak-ring speak-ring-2"
+                  style={{ backgroundColor: color + "38" }}
+                />
+                <div
+                  className="speak-ring speak-ring-3"
+                  style={{ backgroundColor: color + "20" }}
+                />
+              </>
+            )}
+
+            {/* Circle — glass marble */}
+            <div
+              className="absolute inset-0 rounded-full flex items-center justify-center font-bold z-10 overflow-hidden"
+              style={{
+                fontSize: "1.15rem",
+                background: `radial-gradient(circle at 35% 30%, ${color}ff 0%, ${color}bb 45%, ${color}33 100%)`,
+                border: `1.5px solid ${color}99`,
+                color: "#fff",
+                textShadow: `0 1px 4px rgba(0,0,0,0.5)`,
+                boxShadow: speaking
+                  ? `0 0 20px ${color}88, 0 0 40px ${color}33, inset 0 1px 6px rgba(255,255,255,0.25)`
+                  : `0 6px 20px rgba(0,0,0,0.5), inset 0 1px 6px rgba(255,255,255,0.2), inset 0 -2px 4px rgba(0,0,0,0.3)`,
+              }}
+            >
+              {/* Highlight glint */}
+              <div
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  width: "38%",
+                  height: "22%",
+                  top: "14%",
+                  left: "18%",
+                  background:
+                    "radial-gradient(ellipse, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 100%)",
+                  transform: "rotate(-25deg)",
+                }}
+              />
+              {/* Small bottom reflection */}
+              <div
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  width: "22%",
+                  height: "10%",
+                  bottom: "16%",
+                  right: "20%",
+                  background:
+                    "radial-gradient(ellipse, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 100%)",
+                }}
+              />
+              <span className="relative z-10">{p.name[0].toUpperCase()}</span>
+            </div>
+
+            {/* Muted badge */}
+            {isMuted && (
+              <div
+                className="absolute -bottom-0.5 -right-0.5 z-20 rounded-full bg-white border-2 border-black flex items-center justify-center text-black"
+                style={{ width: 20, height: 20 }}
+              >
+                <MicOffIcon size={11} />
+              </div>
+            )}
+
+            {/* Name below */}
+            <div
+              className="absolute left-1/2 text-center text-white/55 font-medium leading-tight"
+              style={{
+                top: R * 2 + 5,
+                transform: "translateX(-50%)",
+                fontSize: 11,
+                whiteSpace: "nowrap",
+                pointerEvents: "none",
+              }}
+            >
+              {p.name}
+              {isMe && (
+                <span className="block text-white/25" style={{ fontSize: 9 }}>
+                  you
+                </span>
+              )}
+            </div>
           </div>
-        )}
-
-        {/* Live dot */}
-        {!isMe && isConnected && !isMuted && (
-          <div
-            className="absolute -bottom-0.5 -right-0.5 z-20 rounded-full border-2 border-black"
-            style={{ width: sz.badge - 4, height: sz.badge - 4, backgroundColor: color }}
-          />
-        )}
-      </div>
-
-      <p
-        className="font-medium text-center leading-tight w-full text-white/55 truncate"
-        style={{ fontSize: sz.text }}
-      >
-        {name}
-        {isMe && (
-          <span className="block text-white/25" style={{ fontSize: sz.text - 2 }}>
-            you
-          </span>
-        )}
-      </p>
+        );
+      })}
     </div>
   );
 }
 
 // ─── InsideRoom ───────────────────────────────────────────────────────────────
 
-const GREEN = "#22c55e";
-const RED = "#ef4444";
-
 export function InsideRoom({ party }: { party: PartyState }) {
   const room = party.currentRoom!;
   const voice = useVoice(party);
-  const [chatInput, setChatInput] = useState("");
-  const [iceBreaker, setIceBreaker] = useState<string | null>(null);
-  const [iceLoading, setIceLoading] = useState(false);
-  const iceFetched = useRef(false);
-  const chatEnd = useRef<HTMLDivElement>(null);
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
 
   useEffect(() => {
     voice.start();
@@ -220,36 +452,20 @@ export function InsideRoom({ party }: { party: PartyState }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const prevPeopleRef = useRef<string[]>([]);
   useEffect(() => {
-    if (iceFetched.current) return;
-    iceFetched.current = true;
-    setIceLoading(true);
-    fetch("/api/ai/ice-breaker", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ topic: room.topic, lang: locale }),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.question) setIceBreaker(d.question);
-      })
-      .catch(() => {})
-      .finally(() => setIceLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    chatEnd.current?.scrollIntoView({ behavior: "smooth" });
-  }, [party.chatMessages]);
-
-  const onChat = (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = chatInput.trim();
-    if (text) {
-      party.sendChat(text);
-      setChatInput("");
+    const prev = new Set(prevPeopleRef.current);
+    const current = room.people.map((p) => p.id);
+    // Someone new joined
+    for (const id of current) {
+      if (!prev.has(id) && id !== party.myId && prev.size > 0) playJoinSound();
     }
-  };
+    // Someone left
+    for (const id of prevPeopleRef.current) {
+      if (!current.includes(id) && id !== party.myId) playLeaveSound();
+    }
+    prevPeopleRef.current = current;
+  }, [room.people, party.myId]);
 
   const myPerson = room.people.find((p) => p.id === party.myId);
   const activeSpeaker: string | null = voice.isSpeaking
@@ -258,25 +474,11 @@ export function InsideRoom({ party }: { party: PartyState }) {
 
   return (
     <div className="flex flex-col bg-black" style={{ height: "100dvh" }}>
-      {/* ── Header ── safe-area top keeps it clear of notch / Dynamic Island */}
+      {/* ── Header ── */}
       <div
         className="shrink-0 flex items-center gap-3 px-4 border-b border-white/10 bg-black"
-        style={{
-          paddingTop: "calc(env(safe-area-inset-top) + 10px)",
-          paddingBottom: "10px",
-        }}
+        style={{ paddingTop: "calc(env(safe-area-inset-top) + 10px)", paddingBottom: "10px" }}
       >
-        <button
-          style={{ touchAction: "manipulation" }}
-          onClick={() => {
-            voice.stop();
-            party.leaveRoom();
-          }}
-          className="flex items-center justify-center w-9 h-9 rounded-full bg-white/8 border border-white/12 text-white/60 active:bg-white/15 transition-colors shrink-0"
-        >
-          <ChevronLeftIcon />
-        </button>
-
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-0.5">
             <div
@@ -298,199 +500,117 @@ export function InsideRoom({ party }: { party: PartyState }) {
         </div>
       </div>
 
-      {/* ── Participants ─────────────────────────────────────────────────────── */}
-      <div className="shrink-0 px-4 pt-5 pb-3">
-        {(() => {
-          const n = room.people.length;
-          // Columns: 1→1, 2→2, 3→3, 4→4, 5→5, 6→3, 7→4, 8→4, 9→5, 10→5
-          const cols = n <= 5 ? n : n <= 6 ? 3 : n <= 8 ? 4 : 5;
-          return (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: `repeat(${cols}, 1fr)`,
-                gap: n >= 7 ? "10px 6px" : "12px 8px",
-                justifyItems: "center",
-              }}
-            >
-              {room.people.map((p) => {
-                const isMe = p.id === party.myId;
-                return (
-                  <PersonAvatar
-                    key={p.id}
-                    name={p.name}
-                    color={room.color}
-                    isSpeaking={isMe ? voice.isSpeaking : voice.speakingPeers.has(p.id)}
-                    isMe={isMe}
-                    isMuted={isMe && voice.muted}
-                    isConnected={isMe || voice.connectedPeers.has(p.id)}
-                    total={n}
-                  />
-                );
-              })}
-            </div>
-          );
-        })()}
+      {/* ── Marble participants ── */}
+      <div className="flex-1 relative">
+        <MarbleParticipants
+          people={room.people}
+          myId={party.myId}
+          isSpeaking={voice.isSpeaking}
+          speakingPeers={voice.speakingPeers}
+          muted={voice.muted}
+        />
 
-        {/* Speaking indicator */}
-        <div className="flex justify-center mt-4" style={{ minHeight: 30 }}>
-          {activeSpeaker ? (
-            <div className="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/8 border border-white/15 animate-in">
-              <SoundWave color={room.color} />
-              <span className="text-white text-xs font-semibold">{activeSpeaker}</span>
-            </div>
-          ) : (
-            <span className="text-white/20 text-[11px]">— quiet —</span>
-          )}
-        </div>
-
+        {/* Mic warning */}
         {!voice.micActive && (
-          <p className="text-amber-400 text-xs text-center mt-2 flex items-center justify-center gap-1">
+          <p className="absolute top-3 left-0 right-0 text-amber-400 text-xs text-center flex items-center justify-center gap-1 pointer-events-none">
             <MicOffIcon size={11} />
             {t("room.micWarning")}
           </p>
         )}
       </div>
 
-      {/* ── Chat messages — Telegram style ───────────────────────────────────── */}
+      {/* ── Controls ── iOS liquid pill ── */}
       <div
-        className="flex-1 min-h-0 overflow-y-auto py-3 px-2"
-        style={{ scrollbarWidth: "none", background: "#111" }}
+        className="shrink-0 flex flex-col items-center gap-3"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)", paddingTop: "12px" }}
       >
-        {party.chatMessages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full px-4 gap-3">
-            {iceLoading ? (
-              <p className="text-white/20 text-xs animate-pulse">{t("ai.iceLoading")}</p>
-            ) : iceBreaker ? (
+        {/* Pill container */}
+        <div
+          className="flex items-center gap-1 px-2"
+          style={{
+            height: 72,
+            borderRadius: 22,
+            background: "rgba(28,28,30,0.85)",
+            backdropFilter: "blur(24px) saturate(1.8)",
+            WebkitBackdropFilter: "blur(24px) saturate(1.8)",
+            border: "1px solid rgba(255,255,255,0.10)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)",
+          }}
+        >
+          {/* Mic button */}
+          <button
+            onClick={voice.toggleMute}
+            className="relative flex items-center justify-center transition-all duration-200"
+            style={{
+              touchAction: "manipulation",
+              width: 72,
+              height: 56,
+              borderRadius: 18,
+              ...(voice.muted
+                ? { background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.5)" }
+                : {
+                    background: "rgba(34,197,94,0.18)",
+                    color: GREEN,
+                    boxShadow: `0 0 16px ${GREEN}40`,
+                  }),
+            }}
+          >
+            {!voice.muted && (
               <div
-                className="rounded-2xl px-4 py-3 text-center"
-                style={{ background: "rgba(255,255,255,0.06)" }}
-              >
-                <p className="text-[10px] font-semibold mb-1.5 uppercase tracking-widest text-white/30">
-                  {t("ai.iceBreaker")}
-                </p>
-                <p className="text-white/60 text-sm leading-snug italic">{iceBreaker}</p>
-              </div>
+                className="absolute inset-0 animate-ping opacity-15"
+                style={{
+                  borderRadius: 18,
+                  width: 72,
+                  height: 56,
+                  backgroundColor: GREEN,
+                  animationDuration: "2.5s",
+                }}
+              />
+            )}
+            <span className="relative z-10">
+              {voice.muted ? <MicOffIcon size={24} /> : <MicIcon size={24} />}
+            </span>
+          </button>
+
+          {/* Speaking indicator in the middle */}
+          <div className="flex flex-col items-center justify-center" style={{ width: 80, gap: 4 }}>
+            {activeSpeaker ? (
+              <>
+                <SoundWave
+                  color={marbleColor(room.people.find((p) => p.name === activeSpeaker)?.id ?? "")}
+                />
+                <span
+                  className="text-white font-semibold truncate"
+                  style={{ fontSize: 10, maxWidth: 76 }}
+                >
+                  {activeSpeaker}
+                </span>
+              </>
             ) : (
-              <p className="text-white/20 text-xs">{t("room.iceBreaker")}</p>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>quiet</span>
             )}
           </div>
-        )}
 
-        <div className="space-y-1">
-          {party.chatMessages.map((msg, i) => {
-            const isMe = msg.from === party.myId;
-            // Show sender avatar/name only when sender changes
-            const prevMsg = party.chatMessages[i - 1];
-            const showSender = !isMe && msg.from !== prevMsg?.from;
-            const initial = msg.name?.[0]?.toUpperCase() ?? "?";
-
-            return (
-              <div
-                key={i}
-                className={`flex items-end gap-2 px-2 ${isMe ? "justify-end" : "justify-start"}`}
-                style={{ marginTop: showSender && !isMe ? 10 : undefined }}
-              >
-                {/* Left avatar — only for others, only when sender changes */}
-                {!isMe && (
-                  <div className="shrink-0 w-7 h-7 mb-0.5">
-                    {showSender && (
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold"
-                        style={{ backgroundColor: room.color + "30", color: room.color }}
-                      >
-                        {initial}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Bubble */}
-                <div className={`max-w-[72%] ${isMe ? "items-end" : "items-start"} flex flex-col`}>
-                  {showSender && (
-                    <span
-                      className="text-[11px] font-semibold px-1 mb-0.5"
-                      style={{ color: room.color }}
-                    >
-                      {msg.name}
-                    </span>
-                  )}
-                  <div
-                    className={`px-3.5 py-2 text-sm leading-snug ${
-                      isMe
-                        ? "rounded-2xl rounded-br-[4px] text-white"
-                        : "rounded-2xl rounded-bl-[4px] text-white/90"
-                    }`}
-                    style={{
-                      background: isMe ? "#2a2a2a" : "#1e1e1e",
-                    }}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {/* Leave button — red rounded rect like iOS */}
+          <button
+            onClick={() => {
+              voice.stop();
+              party.leaveRoom();
+            }}
+            className="flex items-center justify-center transition-all duration-200"
+            style={{
+              touchAction: "manipulation",
+              width: 72,
+              height: 56,
+              borderRadius: 20,
+              background: "linear-gradient(160deg, #ff4b4b 0%, #d93025 100%)",
+              color: "#fff",
+              boxShadow: "0 4px 16px rgba(239,68,68,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
+            }}
+          >
+            <PhoneDeclineIcon size={26} />
+          </button>
         </div>
-
-        <div ref={chatEnd} />
-      </div>
-
-      {/* ── Bottom bar: single input pill with mic/send toggle ───────────────── */}
-      <div
-        className="shrink-0 px-4 border-t border-white/8"
-        style={{
-          paddingTop: "10px",
-          paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)",
-        }}
-      >
-        <form
-          onSubmit={onChat}
-          className="flex items-center gap-2 rounded-full border border-white/12 px-4"
-          style={{ background: "rgba(255,255,255,0.06)", height: 52 }}
-        >
-          <input
-            className="flex-1 bg-transparent text-white placeholder-white/25 focus:outline-none min-w-0"
-            placeholder={t("room.inputPlaceholder")}
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            maxLength={200}
-            style={{ fontSize: "16px" }}
-          />
-
-          {/* Right button: send when typing, mic toggle when idle */}
-          {chatInput.trim() ? (
-            <button
-              type="submit"
-              style={{ touchAction: "manipulation" }}
-              className="shrink-0 w-9 h-9 rounded-full bg-white text-black flex items-center justify-center"
-            >
-              <SendIcon />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={voice.toggleMute}
-              className="relative shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200"
-              style={{
-                touchAction: "manipulation",
-                ...(voice.muted
-                  ? { background: "rgba(239,68,68,0.2)", color: RED }
-                  : { background: "rgba(34,197,94,0.2)", color: GREEN }),
-              }}
-            >
-              {!voice.muted && (
-                <div
-                  className="absolute inset-0 rounded-full animate-ping opacity-20"
-                  style={{ backgroundColor: GREEN, animationDuration: "2.5s" }}
-                />
-              )}
-              <span className="relative z-10">
-                {voice.muted ? <MicOffIcon size={18} /> : <MicIcon size={18} />}
-              </span>
-            </button>
-          )}
-        </form>
       </div>
     </div>
   );
