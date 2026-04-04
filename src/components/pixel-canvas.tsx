@@ -747,12 +747,11 @@ export function PixelCanvas({ name }: { name: string }) {
             if (e.target === e.currentTarget) setShowInfo(false);
           }}
         >
-          <div className="w-full sm:max-w-sm sm:mx-4 bg-zinc-950 rounded-b-3xl sm:rounded-2xl border-0 sm:border border-white/10 shadow-2xl slide-down sm:animate-in overflow-hidden"
+          <div
+            className="w-full sm:max-w-sm sm:mx-4 bg-zinc-950 rounded-b-3xl sm:rounded-2xl border-0 sm:border border-white/10 shadow-2xl slide-down sm:animate-in overflow-hidden"
             style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
           >
-            <div
-              className="px-5 pt-4 sm:pt-6 pb-5"
-            >
+            <div className="px-5 pt-4 sm:pt-6 pb-5">
               <h3 className="text-white text-base font-bold mb-4">{t("info.title")}</h3>
               <div className="space-y-3.5">
                 {[
