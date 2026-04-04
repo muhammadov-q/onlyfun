@@ -234,17 +234,7 @@ export function CityMap({
   const [showCards, setShowCards] = useState(false);
   const [search, setSearch] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
-  const [vpHeight, setVpHeight] = useState<number | null>(null);
-  const keyboardOpen = vpHeight != null && vpHeight < window.innerHeight * 0.75;
-
-  // Track visual viewport height so the panel shrinks when the keyboard opens
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => setVpHeight(vv.height);
-    vv.addEventListener("resize", update);
-    return () => vv.removeEventListener("resize", update);
-  }, []);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -508,8 +498,10 @@ export function CityMap({
             onClick={() => setShowPanel(false)}
           />
           <div
-            className="fixed sm:absolute bottom-0 sm:bottom-4 left-0 right-0 sm:left-auto sm:right-4 sm:w-[300px] sm:max-h-[calc(100%-32px)] rounded-t-2xl sm:rounded-2xl bg-zinc-950 border border-white/10 shadow-2xl flex flex-col overflow-hidden"
-            style={{ zIndex: 600, maxHeight: keyboardOpen ? `${vpHeight}px` : vpHeight ? `${vpHeight * 0.7}px` : "70vh" }}
+            className={`fixed sm:absolute left-0 right-0 sm:left-auto sm:right-4 sm:w-[300px] sm:max-h-[calc(100%-32px)] sm:bottom-4 bg-zinc-950 border border-white/10 shadow-2xl flex flex-col overflow-hidden ${
+              searchFocused ? "inset-0 rounded-none" : "bottom-0 max-h-[70vh] rounded-t-2xl sm:rounded-2xl"
+            }`}
+            style={{ zIndex: 600 }}
           >
             {/* Drag handle mobile */}
             <div className="flex justify-center pt-3 pb-1 sm:hidden">
@@ -558,6 +550,8 @@ export function CityMap({
                   ref={searchRef}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
                   placeholder={t("room.searchPlaceholder")}
                   className="w-full bg-white/5 text-white text-base sm:text-xs pl-8 pr-3 py-2 rounded-lg border border-white/10 focus:outline-none focus:border-white/20 placeholder-white/25"
                 />
