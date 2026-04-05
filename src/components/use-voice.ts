@@ -67,6 +67,9 @@ export function useVoice(party: PartyState) {
   // Pending mic-ready messages that arrived before our mic was ready
   const pendingMicReady = useRef<Set<string>>(new Set());
 
+  // Pending offers that arrived before our mic was ready (mobile: getUserMedia is slow)
+  const pendingOffers = useRef<Map<string, { sdp: RTCSessionDescriptionInit }>>(new Map());
+
   // Speaking detection
   const audioCtxRef = useRef<AudioContext | null>(null);
   const localAnalyser = useRef<{ node: AnalyserNode; buf: Uint8Array<ArrayBuffer> } | null>(null);
@@ -345,6 +348,12 @@ export function useVoice(party: PartyState) {
           return;
         }
 
+        // On mobile, getUserMedia can be slow — buffer offers until mic is ready
+        if (!stream.current) {
+          if (s.sdp) pendingOffers.current.set(from, { sdp: s.sdp });
+          return;
+        }
+
         await connect(from, false);
         const pc = peers.current.get(from);
         if (!pc || !s.sdp) return;
@@ -414,7 +423,17 @@ export function useVoice(party: PartyState) {
         return;
       }
 
-      if (peers.current.has(from)) return;
+      // If we already have a connection, only skip if it's healthy.
+      // A premature connect (from onPeerJoin before the peer's mic was ready)
+      // can leave a stale PeerConnection that blocks the mic-ready path.
+      const existingPc = peers.current.get(from);
+      if (existingPc) {
+        const state = existingPc.iceConnectionState;
+        if (state === "connected" || state === "completed") return;
+        // Stale/failed connection — tear it down and retry
+        disconnect(from);
+      }
+
       if (myIdRef.current < from) {
         connect(from, true);
       } else {
@@ -459,6 +478,27 @@ export function useVoice(party: PartyState) {
     if (mic) {
       sendMicReady();
 
+      // Process any offers that arrived before our mic was ready (mobile)
+      if (pendingOffers.current.size > 0) {
+        for (const [from, { sdp }] of pendingOffers.current) {
+          if (peers.current.has(from)) continue;
+          connect(from, false).then(async () => {
+            const pc = peers.current.get(from);
+            if (!pc) return;
+            try {
+              await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              await flushCandidates(from);
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              sendSignal(from, { type: "answer", sdp: pc.localDescription!.toJSON() });
+            } catch (e) {
+              console.warn("Failed to process buffered offer:", e);
+            }
+          });
+        }
+        pendingOffers.current.clear();
+      }
+
       // Process any mic-ready messages that arrived before our mic was ready
       if (pendingMicReady.current.size > 0) {
         for (const peerId of pendingMicReady.current) {
@@ -472,7 +512,7 @@ export function useVoice(party: PartyState) {
         pendingMicReady.current.clear();
       }
     }
-  }, [getMic, sendMicReady, connect]);
+  }, [getMic, sendMicReady, sendSignal, connect, flushCandidates]);
 
   // Stop everything
   const stop = useCallback(() => {
@@ -487,6 +527,7 @@ export function useVoice(party: PartyState) {
     localAnalyser.current = null;
     peerAnalysers.current.clear();
     pendingMicReady.current.clear();
+    pendingOffers.current.clear();
     iceRestartCount.current.clear();
     setMicActive(false);
     setConnectedPeers(new Set());

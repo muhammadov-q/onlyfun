@@ -1052,6 +1052,7 @@ wss.on("connection", (ws, req) => {
       }
 
       leaveRoom(connId);
+      stopPreview(connId);
       room.people.push({ id: connId, name: user.name });
       user.roomId = room.id;
 
