@@ -3,7 +3,7 @@ import type { FeedItem } from "@/types/news";
 import type { RoomModeId } from "@/types/room";
 
 const NEWS_FEED_TTL_MS =
-  (parseInt(process.env.NEWS_FEED_TTL_MINUTES ?? "30", 10) || 30) * 60 * 1000;
+  (parseInt(process.env.NEWS_FEED_TTL_HOURS ?? "24", 10) || 24) * 60 * 60 * 1000;
 
 export async function getCachedFeed(): Promise<{ items: FeedItem[]; fresh: boolean }> {
   const sql = getDb();
