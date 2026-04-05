@@ -38,6 +38,9 @@ export function useParty(name: string) {
   const onPreviewStarted = useRef<((roomId: string) => void) | undefined>(undefined);
   const onPreviewStopped = useRef<(() => void) | undefined>(undefined);
   const onPreviewUnavailable = useRef<((roomId: string) => void) | undefined>(undefined);
+  const onPreviewCooldown = useRef<((roomId: string, remainingMs: number) => void) | undefined>(
+    undefined
+  );
   const onForceMuted = useRef<(() => void) | undefined>(undefined);
   const onKicked = useRef<(() => void) | undefined>(undefined);
   const onBanned = useRef<((minutes: number) => void) | undefined>(undefined);
@@ -118,6 +121,8 @@ export function useParty(name: string) {
         if (msg.type === "preview-started") onPreviewStarted.current?.(msg.roomId);
         if (msg.type === "preview-stopped") onPreviewStopped.current?.();
         if (msg.type === "preview-unavailable") onPreviewUnavailable.current?.(msg.roomId);
+        if (msg.type === "preview-cooldown")
+          onPreviewCooldown.current?.(msg.roomId, msg.remainingMs);
         if (msg.type === "force-muted") onForceMuted.current?.();
         if (msg.type === "kicked") onKicked.current?.();
         if (msg.type === "banned") onBanned.current?.(msg.minutes);
@@ -221,6 +226,7 @@ export function useParty(name: string) {
     onPreviewStarted,
     onPreviewStopped,
     onPreviewUnavailable,
+    onPreviewCooldown,
     onForceMuted,
     onKicked,
     onBanned,

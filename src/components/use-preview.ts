@@ -39,9 +39,9 @@ function getCooldowns(): Record<string, number> {
   }
 }
 
-function saveCooldown(roomId: string) {
+function saveCooldown(roomId: string, remainingMs?: number) {
   const cd = getCooldowns();
-  cd[roomId] = Date.now() + COOLDOWN_MS;
+  cd[roomId] = Date.now() + (remainingMs ?? COOLDOWN_MS);
   // Prune expired entries
   const now = Date.now();
   for (const k of Object.keys(cd)) {
@@ -75,6 +75,7 @@ export function usePreview(party: PartyState) {
     onPreviewStarted,
     onPreviewStopped,
     onPreviewUnavailable,
+    onPreviewCooldown,
   } = party;
 
   const [previewingRoomId, setPreviewingRoomId] = useState<string | null>(null);
@@ -304,10 +305,44 @@ export function usePreview(party: PartyState) {
       }
     };
 
+    onPreviewCooldown.current = (_roomId: string, remainingMs: number) => {
+      // Server rejected — still on cooldown for this room
+      if (activeRef.current) {
+        activeRef.current = false;
+        cleanupAll();
+        setPreviewingRoomId(null);
+        setPreviewCountdown(0);
+        onSignal.current = undefined;
+        onMicReady.current = undefined;
+      }
+      // Sync client-side cooldown with server's remaining time
+      saveCooldown(_roomId, remainingMs);
+      setCooldownMsg(formatCountdown(remainingMs));
+      if (cooldownInterval.current) clearInterval(cooldownInterval.current);
+      if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
+      cooldownInterval.current = setInterval(() => {
+        const r = getRemainingMs(_roomId);
+        if (r <= 0) {
+          setCooldownMsg(null);
+          if (cooldownInterval.current) clearInterval(cooldownInterval.current);
+        } else {
+          setCooldownMsg(formatCountdown(r));
+        }
+      }, 1000);
+      cooldownTimer.current = setTimeout(
+        () => {
+          setCooldownMsg(null);
+          if (cooldownInterval.current) clearInterval(cooldownInterval.current);
+        },
+        Math.min(remainingMs + 1000, 10000)
+      );
+    };
+
     return () => {
       onPreviewStopped.current = undefined;
       onPreviewStarted.current = undefined;
       onPreviewUnavailable.current = undefined;
+      onPreviewCooldown.current = undefined;
     };
   }, [
     previewingRoomId,
@@ -317,6 +352,7 @@ export function usePreview(party: PartyState) {
     onPreviewStarted,
     onPreviewStopped,
     onPreviewUnavailable,
+    onPreviewCooldown,
   ]);
 
   // Stop preview when entering a room

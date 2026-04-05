@@ -216,6 +216,41 @@ const users = new Map<
   { ws: WebSocket; name: string; roomId: string | null; ip: string; deviceId: string | null }
 >();
 const previewers = new Map<string, { roomId: string; timeout: NodeJS.Timeout }>();
+// Server-side preview cooldown: keyed by "deviceId|roomId" or "ip|roomId" → expiry timestamp
+const previewCooldowns = new Map<string, number>();
+const PREVIEW_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes per room
+
+function getPreviewKey(user: { ip: string; deviceId: string | null }, roomId: string): string {
+  return `${user.deviceId || user.ip}|${roomId}`;
+}
+
+function isPreviewOnCooldown(
+  user: { ip: string; deviceId: string | null },
+  roomId: string
+): number {
+  const key = getPreviewKey(user, roomId);
+  const expiry = previewCooldowns.get(key);
+  if (!expiry) return 0;
+  const remaining = expiry - Date.now();
+  if (remaining <= 0) {
+    previewCooldowns.delete(key);
+    return 0;
+  }
+  return remaining;
+}
+
+function setPreviewCooldown(user: { ip: string; deviceId: string | null }, roomId: string) {
+  const key = getPreviewKey(user, roomId);
+  previewCooldowns.set(key, Date.now() + PREVIEW_COOLDOWN_MS);
+}
+
+// Periodically clean up expired cooldowns
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, expiry] of previewCooldowns) {
+    if (expiry < now) previewCooldowns.delete(key);
+  }
+}, 60_000);
 let colorIdx = 0;
 
 const SEED_COUNT = 50;
@@ -636,6 +671,12 @@ function stopPreview(userId: string) {
   clearTimeout(preview.timeout);
   previewers.delete(userId);
 
+  // Set cooldown for this user+room
+  const user = users.get(userId);
+  if (user) {
+    setPreviewCooldown(user, preview.roomId);
+  }
+
   const room = rooms.get(preview.roomId);
   if (room) {
     for (const p of room.people) {
@@ -646,7 +687,6 @@ function stopPreview(userId: string) {
     }
   }
 
-  const user = users.get(userId);
   if (user && user.ws.readyState === WebSocket.OPEN) {
     user.ws.send(JSON.stringify({ type: "preview-stopped" }));
   }
@@ -1183,8 +1223,16 @@ wss.on("connection", (ws, req) => {
       const user = users.get(connId);
       if (!user || user.roomId) return; // can't preview while in a room
 
-      const room = rooms.get(String(msg.roomId));
+      const roomId = String(msg.roomId);
+      const room = rooms.get(roomId);
       if (!room) return;
+
+      // Check server-side cooldown for this user+room
+      const remaining = isPreviewOnCooldown(user, roomId);
+      if (remaining > 0) {
+        ws.send(JSON.stringify({ type: "preview-cooldown", roomId, remainingMs: remaining }));
+        return;
+      }
 
       // Stop any existing preview by this user
       stopPreview(connId);

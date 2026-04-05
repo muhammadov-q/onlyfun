@@ -352,7 +352,10 @@ export function CityMap({
         const wasCard = zoomRef.current >= 15;
         const isCard = z >= 15;
         zoomRef.current = z;
-        if (wasCard !== isCard) setShowCards(isCard);
+        if (wasCard !== isCard) {
+          setShowCards(isCard);
+          if (!isCard) setHoveredId(null);
+        }
       };
       overlay.onRemove = function () {
         div.remove();
