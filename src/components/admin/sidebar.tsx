@@ -18,6 +18,8 @@ import {
   Settings,
   ChevronsUpDown,
   LogOut,
+  Newspaper,
+  CalendarDays,
 } from "lucide-react";
 
 interface AdminUser {
@@ -30,6 +32,8 @@ const NAV_ITEMS = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Rooms", href: "/admin/rooms", icon: MessageSquare },
   { label: "Users", href: "/admin/users", icon: Users },
+  { label: "News", href: "/admin/news", icon: Newspaper },
+  { label: "Events", href: "/admin/events", icon: CalendarDays },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

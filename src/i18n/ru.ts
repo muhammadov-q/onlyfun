@@ -120,4 +120,17 @@ export default {
   "pulse.retry": "попробовать снова",
   "pulse.button": "Пульс",
   "pulse.source": "источник",
+
+  // Events
+  "events.title": "События",
+  "events.talk": "обсудить",
+  "events.join": "войти в комнату",
+  "events.viewEvent": "событие",
+  "events.error": "не удалось загрузить события",
+  "events.empty": "событий пока нет",
+  "events.retry": "попробовать снова",
+  "events.button": "События",
+
+  // Sponsor
+  "sponsor.title": "Спонсор недели",
 } as const;

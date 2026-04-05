@@ -119,4 +119,17 @@ export default {
   "pulse.retry": "try again",
   "pulse.button": "Pulse",
   "pulse.source": "source",
+
+  // Events
+  "events.title": "Events",
+  "events.talk": "talk about this",
+  "events.join": "join room",
+  "events.viewEvent": "view event",
+  "events.error": "couldn't load events",
+  "events.empty": "no events right now",
+  "events.retry": "try again",
+  "events.button": "Events",
+
+  // Sponsor
+  "sponsor.title": "This Week's Sponsor",
 } as const;

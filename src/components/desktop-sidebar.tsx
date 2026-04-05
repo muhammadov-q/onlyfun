@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useI18n } from "@/i18n";
 import { BishkekPulseFeed } from "./sidebar/BishkekPulseFeed";
+import { EventsBox } from "./sidebar/EventsBox";
+import { SponsorBox } from "./sidebar/SponsorBox";
 import type { RoomModeId } from "@/types/room";
 import type { Room } from "./use-party";
 
@@ -108,6 +110,67 @@ function PulseSection({
       {open && (
         <div className="px-3 pb-2">
           <BishkekPulseFeed onTalkAbout={onTalkAbout} rooms={rooms} onJoinRoom={onJoinRoom} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EventsSection({
+  tp,
+  onTalkAbout,
+  rooms,
+  onJoinRoom,
+}: {
+  tp: (key: string) => string;
+  onTalkAbout: (topic: string, mode: RoomModeId) => void;
+  rooms: Room[];
+  onJoinRoom: (roomId: string) => void;
+}) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <div className="shrink-0">
+      <div className="px-3 pt-2 pb-1.5">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="w-full h-9 rounded-xl flex items-center gap-3 px-3 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all group"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-purple-400 shrink-0"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          <span className="text-xs font-medium">{tp("events.title")}</span>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`ml-auto text-white/25 group-hover:text-white/40 transition-transform ${open ? "" : "-rotate-90"}`}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </div>
+      {open && (
+        <div className="px-3 pb-2">
+          <EventsBox onTalkAbout={onTalkAbout} rooms={rooms} onJoinRoom={onJoinRoom} />
         </div>
       )}
     </div>
@@ -224,11 +287,30 @@ export function DesktopSidebar({
 
       <div className="border-t border-white/5 mx-3" />
 
-      {/* === Bottom: Reserved for future feature === */}
-      <div className="flex-1 min-h-[80px] p-3">
-        <div className="h-full rounded-xl border border-dashed border-white/[0.06] flex items-center justify-center">
-          <span className="text-[10px] text-white/15 uppercase tracking-wider">coming soon</span>
+      {/* === Events section === */}
+      <EventsSection tp={tp} onTalkAbout={onTalkAbout} rooms={rooms} onJoinRoom={onJoinRoom} />
+
+      <div className="border-t border-white/5 mx-3" />
+
+      {/* === Sponsor section === */}
+      <div className="shrink-0 px-3 py-2">
+        <div className="flex items-center gap-3 px-3 h-9 mb-1.5">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-yellow-400 shrink-0"
+          >
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          <span className="text-xs font-medium text-white/50">{tp("sponsor.title")}</span>
         </div>
+        <SponsorBox />
       </div>
     </div>
   );

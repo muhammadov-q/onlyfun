@@ -19,6 +19,7 @@ export async function getCachedFeed(): Promise<FeedItem[] | null> {
   // Fetch items created in the most recent ingest batch
   const rows = await sql`
     SELECT * FROM news_feed_items
+    WHERE visible = TRUE
     ORDER BY created_at DESC
     LIMIT 10
   `;

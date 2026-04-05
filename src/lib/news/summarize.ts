@@ -10,14 +10,14 @@ Article text (truncated):
 {BODY}
 
 Rules:
-- headline: very short headline (max 60 chars), catchy, not clickbait
-- headlineRu: same but in Russian
-- line1: one short factual sentence about what happened (max 120 chars)
-- line1Ru: same but in Russian
-- line2: one conversational sentence that makes people want to discuss it (max 120 chars)
-- line2Ru: same but in Russian
-- topicSuggestion: a discussion topic for a voice room (in English, max 80 chars)
-- topicSuggestionRu: same but in Russian
+- headline: very short headline IN ENGLISH (max 60 chars), catchy, not clickbait. Must be in English even if the source article is in Russian.
+- headlineRu: same headline but IN RUSSIAN
+- line1: one short factual sentence about what happened IN ENGLISH (max 120 chars)
+- line1Ru: same sentence but IN RUSSIAN
+- line2: one conversational sentence that makes people want to discuss it IN ENGLISH (max 120 chars)
+- line2Ru: same sentence but IN RUSSIAN
+- topicSuggestion: a discussion topic for a voice room IN ENGLISH (max 80 chars)
+- topicSuggestionRu: same topic but IN RUSSIAN
 - modeSuggestion: pick one of: debate | chill | confessions | business | funny | advice | deep | night
 
 Style:

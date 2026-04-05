@@ -134,7 +134,6 @@ export function BishkekPulseFeed({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const isAutoScrolling = useRef(false);
   const pauseUntil = useRef(0);
   const activeRef = useRef(0);
 
@@ -158,73 +157,22 @@ export function BishkekPulseFeed({
     fetchFeed();
   }, [fetchFeed]);
 
-  // Items are tripled: [items, items, items] — we keep scroll centered on the middle set.
-  // When scroll drifts into first or third set, we silently jump to the middle set.
   const count = items.length;
 
-  const jumpToMiddle = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el || count === 0) return;
-    // Each card has variable height, so measure the middle set offset
-    // Middle set starts at child index `count`
-    const middleFirst = el.children[count] as HTMLElement | undefined;
-    if (middleFirst) {
-      el.scrollTop = middleFirst.offsetTop - el.offsetTop;
-    }
-  }, [count]);
-
-  // On mount / items change, jump to middle set
-  useEffect(() => {
-    if (count > 0) {
-      // Small delay to let DOM render
-      requestAnimationFrame(() => jumpToMiddle());
-    }
-  }, [count, jumpToMiddle]);
-
-  // Infinite loop: detect when we scroll into first or third copy, silently reset
+  // Pause auto-advance when user scrolls
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || count === 0) return;
 
-    let ticking = false;
     const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        ticking = false;
-        if (isAutoScrolling.current) return;
-
-        const firstOfThird = el.children[count * 2] as HTMLElement | undefined;
-        const firstOfMiddle = el.children[count] as HTMLElement | undefined;
-        if (!firstOfThird || !firstOfMiddle) return;
-
-        const scrollTop = el.scrollTop;
-        const thirdTop = firstOfThird.offsetTop - el.offsetTop;
-        const middleTop = firstOfMiddle.offsetTop - el.offsetTop;
-        const firstTop = 0;
-        const sectionHeight = thirdTop - middleTop;
-
-        // Scrolled past start of third set -> jump back to middle
-        if (scrollTop >= thirdTop) {
-          el.scrollTop = scrollTop - sectionHeight;
-        }
-        // Scrolled above middle set into first set
-        else if (scrollTop < middleTop - sectionHeight * 0.1) {
-          // Only jump if we're well into the first set
-          if (scrollTop < firstTop + sectionHeight * 0.5) {
-            el.scrollTop = scrollTop + sectionHeight;
-          }
-        }
-
-        pauseUntil.current = Date.now() + PAUSE_AFTER_TOUCH_MS;
-      });
+      pauseUntil.current = Date.now() + PAUSE_AFTER_TOUCH_MS;
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
   }, [count]);
 
-  // Auto-advance
+  // Auto-advance: scroll to next card, wrap back to first at the end
   useEffect(() => {
     if (count <= 1) return;
     const id = setInterval(() => {
@@ -232,29 +180,11 @@ export function BishkekPulseFeed({
       const el = scrollRef.current;
       if (!el) return;
 
-      isAutoScrolling.current = true;
-      // Scroll down by one card height
-      const middleIdx = count + activeRef.current;
-      const nextIdx = middleIdx + 1;
-      const nextCard = el.children[nextIdx] as HTMLElement | undefined;
+      activeRef.current = (activeRef.current + 1) % count;
+      const nextCard = el.children[activeRef.current] as HTMLElement | undefined;
       if (nextCard) {
         el.scrollTo({ top: nextCard.offsetTop - el.offsetTop, behavior: "smooth" });
       }
-
-      activeRef.current = (activeRef.current + 1) % count;
-
-      setTimeout(() => {
-        isAutoScrolling.current = false;
-        // If we've looped past the middle set, silently jump
-        const firstOfThird = el.children[count * 2] as HTMLElement | undefined;
-        if (firstOfThird && el.scrollTop >= firstOfThird.offsetTop - el.offsetTop - 10) {
-          const firstOfMiddle = el.children[count] as HTMLElement | undefined;
-          if (firstOfMiddle) {
-            el.scrollTop = firstOfMiddle.offsetTop - el.offsetTop;
-            activeRef.current = 0;
-          }
-        }
-      }, 600);
     }, AUTO_ADVANCE_MS);
     return () => clearInterval(id);
   }, [count]);
@@ -289,21 +219,18 @@ export function BishkekPulseFeed({
     );
   }
 
-  // Triple the items for infinite loop illusion
-  const tripled = [...items, ...items, ...items];
-
   return (
     <div
       ref={scrollRef}
       className="flex flex-col gap-2 overflow-y-auto snap-y snap-mandatory max-h-[220px]"
       style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
     >
-      {tripled.map((item, idx) => {
+      {items.map((item) => {
         const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
         const existingRoom = rooms.find((r) => r.topic === topic);
         return (
           <NewsCard
-            key={`${item.id}-${idx}`}
+            key={item.id}
             item={item}
             isRu={isRu}
             tp={tp}
