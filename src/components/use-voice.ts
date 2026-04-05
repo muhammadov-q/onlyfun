@@ -392,17 +392,15 @@ export function useVoice(party: PartyState) {
     };
   }, [connect, sendSignal, flushCandidates, onSignal]);
 
-  // When a peer joins our room
+  // When a peer joins our room — connection is handled by mic-ready exchange,
+  // not here. Connecting eagerly on peer-join races with mic-ready and can
+  // create stale PeerConnections that block later connection attempts.
   useEffect(() => {
-    onPeerJoin.current = (id: string) => {
-      if (stream.current && myIdRef.current && myIdRef.current < id) {
-        connect(id, true);
-      }
-    };
+    onPeerJoin.current = () => {};
     return () => {
       onPeerJoin.current = undefined;
     };
-  }, [connect, onPeerJoin]);
+  }, [onPeerJoin]);
 
   // When a peer leaves
   useEffect(() => {
@@ -423,17 +421,7 @@ export function useVoice(party: PartyState) {
         return;
       }
 
-      // If we already have a connection, only skip if it's healthy.
-      // A premature connect (from onPeerJoin before the peer's mic was ready)
-      // can leave a stale PeerConnection that blocks the mic-ready path.
-      const existingPc = peers.current.get(from);
-      if (existingPc) {
-        const state = existingPc.iceConnectionState;
-        if (state === "connected" || state === "completed") return;
-        // Stale/failed connection — tear it down and retry
-        disconnect(from);
-      }
-
+      if (peers.current.has(from)) return;
       if (myIdRef.current < from) {
         connect(from, true);
       } else {
