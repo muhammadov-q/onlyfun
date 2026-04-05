@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/i18n";
 import type { SidebarEventItem } from "@/types/events";
 import type { RoomModeId } from "@/types/room";
 import type { Room } from "@/components/use-party";
-
-
-const AUTO_ADVANCE_MS = 8000;
 
 function ExternalLinkIcon() {
   return (
@@ -194,8 +190,6 @@ export function EventsBox({
   const [items, setItems] = useState<SidebarEventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [active, setActive] = useState(0);
-  const dirRef = useRef(1);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -216,18 +210,6 @@ export function EventsBox({
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
-
-  const count = items.length;
-
-  // Auto-advance (pauses after user interaction)
-  useEffect(() => {
-    if (count <= 1) return;
-    const id = setInterval(() => {
-      dirRef.current = 1;
-      setActive((i) => (i + 1) % count);
-    }, AUTO_ADVANCE_MS);
-    return () => clearInterval(id);
-  }, [count]);
 
   const isRu = locale === "ru";
   const tp = (key: string) => t(key as Parameters<typeof t>[0]);
@@ -258,21 +240,14 @@ export function EventsBox({
     );
   }
 
-  const item = items[active];
-  const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
-  const existingRoom = rooms.find((r) => r.topic === topic);
-
   return (
-    <div className="relative overflow-hidden">
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={item.id}
-          initial={{ opacity: 0, y: dirRef.current * 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: dirRef.current * -20 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-        >
+    <div className="flex flex-col gap-2">
+      {items.map((item) => {
+        const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
+        const existingRoom = rooms.find((r) => r.topic === topic);
+        return (
           <EventCard
+            key={item.id}
             item={item}
             isRu={isRu}
             tp={tp}
@@ -280,8 +255,8 @@ export function EventsBox({
             existingRoom={existingRoom}
             onJoinRoom={onJoinRoom}
           />
-        </motion.div>
-      </AnimatePresence>
+        );
+      })}
     </div>
   );
 }
