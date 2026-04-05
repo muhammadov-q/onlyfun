@@ -14,17 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  // RefreshCw removed — using RefreshButton
-  MoreHorizontal,
-  AlertTriangle,
-  Ban,
-  LogOut,
-  X,
-  Pencil,
-  Link2,
-  Unlink,
-} from "lucide-react";
+import { MoreHorizontal, AlertTriangle, Ban, LogOut, X, Pencil, Link2, Unlink } from "lucide-react";
 
 interface UserData {
   id: string;

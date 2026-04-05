@@ -234,6 +234,7 @@ export function CityMap({
 
   useEffect(() => {
     placingRef.current = placing;
+    if (placing) setHoveredId(null);
   }, [placing]);
   useEffect(() => {
     onPlaceRef.current = onPlace;
@@ -357,6 +358,9 @@ export function CityMap({
         div.remove();
       };
       overlay.setMap(map);
+
+      // Click on map (not on a room) clears the selected card
+      map.addListener("click", () => setHoveredId(null));
 
       mapRef.current = map;
     })();

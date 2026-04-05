@@ -1,7 +1,5 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-
 export function PageLoader({ text = "Loading..." }: { text?: string }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">

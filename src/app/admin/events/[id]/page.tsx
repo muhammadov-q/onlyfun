@@ -97,22 +97,34 @@ export default function EditEventPage() {
 
   async function handleDelete() {
     if (!confirm("Delete this event permanently?")) return;
-    await fetch("/api/admin/events", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    router.push("/admin/events");
+    try {
+      const res = await fetch("/api/admin/events", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error();
+      router.push("/admin/events");
+    } catch {
+      setMessage({ type: "error", text: "Failed to delete event" });
+    }
   }
 
   async function handleToggleVisibility() {
-    const newVal = !visible;
+    const prev = visible;
+    const newVal = !prev;
     setVisible(newVal);
-    await fetch("/api/admin/events", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, visible: newVal }),
-    });
+    try {
+      const res = await fetch("/api/admin/events", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, visible: newVal }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setVisible(prev);
+      setMessage({ type: "error", text: "Failed to update visibility" });
+    }
   }
 
   if (loading) {

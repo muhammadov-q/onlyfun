@@ -218,16 +218,16 @@ export default function AdminEventsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="font-medium truncate max-w-[200px]">{item.title}</div>
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        window.open(item.source_url, "_blank");
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mt-0.5 cursor-pointer"
+                    <a
+                      href={item.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mt-0.5"
                     >
                       iticket
                       <ExternalLink className="h-3 w-3" />
-                    </span>
+                    </a>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-xs truncate max-w-[140px]">
                     {item.venue || "—"}

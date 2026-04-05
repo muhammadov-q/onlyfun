@@ -96,22 +96,34 @@ export default function EditNewsPage() {
 
   async function handleDelete() {
     if (!confirm("Delete this news item permanently?")) return;
-    await fetch("/api/admin/news", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    router.push("/admin/news");
+    try {
+      const res = await fetch("/api/admin/news", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error();
+      router.push("/admin/news");
+    } catch {
+      setMessage({ type: "error", text: "Failed to delete news item" });
+    }
   }
 
   async function handleToggleVisibility() {
-    const newVal = !visible;
+    const prev = visible;
+    const newVal = !prev;
     setVisible(newVal);
-    await fetch("/api/admin/news", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, visible: newVal }),
-    });
+    try {
+      const res = await fetch("/api/admin/news", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, visible: newVal }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setVisible(prev);
+      setMessage({ type: "error", text: "Failed to update visibility" });
+    }
   }
 
   if (loading) {

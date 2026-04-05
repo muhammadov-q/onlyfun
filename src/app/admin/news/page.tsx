@@ -220,16 +220,16 @@ export default function AdminNewsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        window.open(item.source_url, "_blank");
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 cursor-pointer"
+                    <a
+                      href={item.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                     >
                       {item.source}
                       <ExternalLink className="h-3 w-3" />
-                    </span>
+                    </a>
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">

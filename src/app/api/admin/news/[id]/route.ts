@@ -7,6 +7,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  if (!id) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+
   const sql = getDb();
   const rows = await sql`SELECT * FROM news_feed_items WHERE id = ${id} LIMIT 1`;
 

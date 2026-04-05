@@ -240,6 +240,8 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
   );
   const [liveCamOpen, setLiveCamOpen] = useState(() => {
     if (typeof window === "undefined") return true;
+    // Default to closed on mobile so onboarding tour is not blocked
+    if (window.innerWidth < 640) return false;
     return localStorage.getItem("onlyfun-livecam") !== "closed";
   });
   const [pulseDraft, setPulseDraft] = useState<{ topic: string; mode: RoomModeId } | null>(null);
@@ -1397,7 +1399,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
       {/* Mobile more sheet */}
       {showMore && (
         <div
-          className="fixed inset-0 z-[500] flex items-start sm:hidden bg-black/60"
+          className="fixed inset-0 z-[500] flex items-start sm:hidden bg-black/60 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowMore(false);
@@ -1406,14 +1408,38 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
           }}
         >
           <div
-            className="w-full bg-zinc-950 rounded-b-3xl border-b border-white/10 shadow-2xl slide-down"
-            style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}
+            className="w-full bg-zinc-950/95 rounded-b-3xl border-b border-white/10 shadow-2xl slide-down"
+            style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
           >
-            <div className="px-4 pb-4 space-y-1">
-              {/* Username row */}
+            {/* Drag handle */}
+            <div className="flex justify-center pt-1 pb-2">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+
+            {/* Header with close */}
+            <div className="flex items-center justify-between px-5 pb-3">
+              <span className="text-xs font-semibold uppercase tracking-widest text-white/30">
+Menu
+              </span>
+              <button
+                onClick={() => {
+                  setShowMore(false);
+                  setEditingName(false);
+                }}
+                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/50 active:bg-white/20 transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-4 pb-5 space-y-1">
+              {/* Username row with inline edit */}
               {editingName ? (
                 <form
-                  className="px-3 py-3 rounded-xl bg-white/5"
+                  className="px-3 py-3 rounded-2xl bg-white/5 border border-white/5"
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (nameInput.trim().length >= 2) {
@@ -1428,7 +1454,8 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                     value={nameInput}
                     onChange={(e) => setNameInput(e.target.value)}
                     maxLength={20}
-                    className="w-full bg-white/10 text-white text-sm px-3 py-2.5 rounded-xl border border-white/20 focus:outline-none focus:border-white/40 placeholder-white/20"
+                    style={{ fontSize: "16px" }}
+                    className="w-full bg-white/10 text-white px-3 py-2.5 rounded-xl border border-white/20 focus:outline-none focus:border-white/40 placeholder-white/20"
                     placeholder={t("profile.namePlaceholder")}
                     onKeyDown={(e) => {
                       if (e.key === "Escape") setEditingName(false);
@@ -1452,41 +1479,37 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                   </div>
                 </form>
               ) : (
-                <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/5">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-black uppercase shrink-0">
+                <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-white/5 border border-white/5">
+                  <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-sm font-bold text-black uppercase shrink-0">
                     {name[0]}
                   </div>
                   <span className="flex-1 text-sm font-medium text-white truncate">{name}</span>
+                  <button
+                    onClick={() => {
+                      setNameInput(name);
+                      setEditingName(true);
+                    }}
+                    className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/40 active:bg-white/20 transition-colors shrink-0"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                    </svg>
+                  </button>
                 </div>
               )}
-              {/* Edit name */}
-              {!editingName && (
-                <button
-                  onClick={() => {
-                    setNameInput(name);
-                    setEditingName(true);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-white/40"
-                  >
-                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                  </svg>
-                  <span className="text-sm text-white/60">{t("profile.editName")}</span>
-                </button>
-              )}
+
+              {/* Divider */}
+              <div className="h-px bg-white/5 mx-2 !my-2" />
+
               {/* Lang */}
-              <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-white/5">
-                <span className="text-sm text-white/60">{t("nav.language")}</span>
+              <div className="flex items-center justify-between px-3 py-3 rounded-xl active:bg-white/5">
+                <div className="flex items-center gap-2.5">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/40">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                  <span className="text-sm text-white/60">{t("nav.language")}</span>
+                </div>
                 <LangSwitcher />
               </div>
               {/* Info */}
@@ -1495,10 +1518,10 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                   setShowMore(false);
                   setShowInfo(true);
                 }}
-                className="w-full flex items-center justify-between px-3 py-3 rounded-xl hover:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl active:bg-white/5 transition-colors"
               >
+                <InfoIcon className="text-white/40 w-[15px] h-[15px]" />
                 <span className="text-sm text-white/60">{t("info.title")}</span>
-                <InfoIcon className="text-white/30" />
               </button>
               {/* Retake tour */}
               <button
@@ -1506,11 +1529,11 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                   setShowMore(false);
                   restartTour();
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl active:bg-white/5 transition-colors"
               >
                 <svg
-                  width="14"
-                  height="14"
+                  width="15"
+                  height="15"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -1524,14 +1547,18 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                 </svg>
                 <span className="text-sm text-white/60">{t("tour.retake")}</span>
               </button>
+
+              {/* Divider */}
+              <div className="h-px bg-white/5 mx-2 !my-2" />
+
               {/* Logout */}
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors text-red-400"
+                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl active:bg-white/5 transition-colors text-red-400"
               >
                 <svg
-                  width="14"
-                  height="14"
+                  width="15"
+                  height="15"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -1545,9 +1572,6 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                 </svg>
                 <span className="text-sm">{t("nav.logout")}</span>
               </button>
-            </div>
-            <div className="flex justify-center pt-1 pb-3">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
           </div>
         </div>
