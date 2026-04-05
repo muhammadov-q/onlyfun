@@ -86,7 +86,7 @@ function PulseSection({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-purple-400 shrink-0"
+            className="shrink-0"
             style={{ animation: "heartbeat 1.4s ease-in-out infinite" }}
           >
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -145,7 +145,7 @@ function EventsSection({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-purple-400 shrink-0"
+            className="shrink-0"
           >
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
             <line x1="16" y1="2" x2="16" y2="6" />

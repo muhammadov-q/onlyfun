@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useI18n } from "@/i18n";
 import type { SidebarEventItem } from "@/types/events";
 import type { RoomModeId } from "@/types/room";
@@ -8,7 +9,6 @@ import type { Room } from "@/components/use-party";
 import { ROOM_MODES_MAP } from "@/config/roomModes";
 
 const AUTO_ADVANCE_MS = 6000;
-const PAUSE_AFTER_TOUCH_MS = 8000;
 
 function ExternalLinkIcon() {
   return (
@@ -49,7 +49,7 @@ function EventCard({
   const mode = ROOM_MODES_MAP[item.modeSuggestion];
 
   return (
-    <div className="snap-start shrink-0 bg-white/[0.07] border border-white/[0.10] rounded-xl overflow-hidden">
+    <div className="snap-start shrink-0 bg-white/[0.12] border border-white/[0.12] rounded-xl overflow-hidden">
       <div className="p-3">
         {/* Title + mode */}
         <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -203,9 +203,8 @@ export function EventsBox({
   const [items, setItems] = useState<SidebarEventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const pauseUntil = useRef(0);
-  const activeRef = useRef(0);
+  const [active, setActive] = useState(0);
+  const dirRef = useRef(1);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -229,32 +228,12 @@ export function EventsBox({
 
   const count = items.length;
 
-  // Pause auto-advance when user scrolls
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || count === 0) return;
-
-    const onScroll = () => {
-      pauseUntil.current = Date.now() + PAUSE_AFTER_TOUCH_MS;
-    };
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [count]);
-
-  // Auto-advance: scroll to next card, wrap back to first at the end
+  // Auto-advance
   useEffect(() => {
     if (count <= 1) return;
     const id = setInterval(() => {
-      if (Date.now() < pauseUntil.current) return;
-      const el = scrollRef.current;
-      if (!el) return;
-
-      activeRef.current = (activeRef.current + 1) % count;
-      const nextCard = el.children[activeRef.current] as HTMLElement | undefined;
-      if (nextCard) {
-        el.scrollTo({ top: nextCard.offsetTop - el.offsetTop, behavior: "smooth" });
-      }
+      dirRef.current = 1;
+      setActive((i) => (i + 1) % count);
     }, AUTO_ADVANCE_MS);
     return () => clearInterval(id);
   }, [count]);
@@ -288,18 +267,21 @@ export function EventsBox({
     );
   }
 
+  const item = items[active];
+  const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
+  const existingRoom = rooms.find((r) => r.topic === topic);
+
   return (
-    <div
-      ref={scrollRef}
-      className="flex flex-col gap-2 overflow-y-auto snap-y snap-mandatory max-h-[220px]"
-      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-    >
-      {items.map((item) => {
-        const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
-        const existingRoom = rooms.find((r) => r.topic === topic);
-        return (
+    <div className="relative overflow-hidden">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={item.id}
+          initial={{ opacity: 0, y: dirRef.current * 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: dirRef.current * -20 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
           <EventCard
-            key={item.id}
             item={item}
             isRu={isRu}
             tp={tp}
@@ -307,8 +289,8 @@ export function EventsBox({
             existingRoom={existingRoom}
             onJoinRoom={onJoinRoom}
           />
-        );
-      })}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

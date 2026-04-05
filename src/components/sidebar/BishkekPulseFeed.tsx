@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useI18n } from "@/i18n";
 import type { FeedItem } from "@/types/news";
 import type { RoomModeId } from "@/types/room";
@@ -8,7 +9,6 @@ import type { Room } from "@/components/use-party";
 import { ROOM_MODES_MAP } from "@/config/roomModes";
 
 const AUTO_ADVANCE_MS = 5000;
-const PAUSE_AFTER_TOUCH_MS = 8000;
 
 function ExternalLinkIcon() {
   return (
@@ -52,7 +52,7 @@ function NewsCard({
   const mode = ROOM_MODES_MAP[item.modeSuggestion];
 
   return (
-    <div className="snap-start shrink-0 bg-white/[0.07] border border-white/[0.10] rounded-xl p-3">
+    <div className="snap-start shrink-0 bg-white/[0.12] border border-white/[0.12] rounded-xl p-3">
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <h4 className="text-xs font-semibold text-white/90 leading-tight">{headline}</h4>
         {mode && (
@@ -133,9 +133,8 @@ export function BishkekPulseFeed({
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const pauseUntil = useRef(0);
-  const activeRef = useRef(0);
+  const [active, setActive] = useState(0);
+  const dirRef = useRef(1);
 
   const fetchFeed = useCallback(async () => {
     try {
@@ -159,32 +158,12 @@ export function BishkekPulseFeed({
 
   const count = items.length;
 
-  // Pause auto-advance when user scrolls
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || count === 0) return;
-
-    const onScroll = () => {
-      pauseUntil.current = Date.now() + PAUSE_AFTER_TOUCH_MS;
-    };
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [count]);
-
-  // Auto-advance: scroll to next card, wrap back to first at the end
+  // Auto-advance
   useEffect(() => {
     if (count <= 1) return;
     const id = setInterval(() => {
-      if (Date.now() < pauseUntil.current) return;
-      const el = scrollRef.current;
-      if (!el) return;
-
-      activeRef.current = (activeRef.current + 1) % count;
-      const nextCard = el.children[activeRef.current] as HTMLElement | undefined;
-      if (nextCard) {
-        el.scrollTo({ top: nextCard.offsetTop - el.offsetTop, behavior: "smooth" });
-      }
+      dirRef.current = 1;
+      setActive((i) => (i + 1) % count);
     }, AUTO_ADVANCE_MS);
     return () => clearInterval(id);
   }, [count]);
@@ -219,18 +198,21 @@ export function BishkekPulseFeed({
     );
   }
 
+  const item = items[active];
+  const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
+  const existingRoom = rooms.find((r) => r.topic === topic);
+
   return (
-    <div
-      ref={scrollRef}
-      className="flex flex-col gap-2 overflow-y-auto snap-y snap-mandatory max-h-[220px]"
-      style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-    >
-      {items.map((item) => {
-        const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
-        const existingRoom = rooms.find((r) => r.topic === topic);
-        return (
+    <div className="relative overflow-hidden">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={item.id}
+          initial={{ opacity: 0, y: dirRef.current * 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: dirRef.current * -20 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
           <NewsCard
-            key={item.id}
             item={item}
             isRu={isRu}
             tp={tp}
@@ -238,8 +220,8 @@ export function BishkekPulseFeed({
             existingRoom={existingRoom}
             onJoinRoom={onJoinRoom}
           />
-        );
-      })}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
