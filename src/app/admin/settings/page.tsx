@@ -29,6 +29,7 @@ import {
   Zap,
   Sparkles,
   CircleDot,
+  Moon,
 } from "lucide-react";
 
 type Msg = { type: "success" | "error"; text: string };
@@ -38,6 +39,7 @@ const TABS = [
   { id: "security", label: "Security", icon: Shield, desc: "Password" },
   { id: "api-keys", label: "API Keys", icon: Key, desc: "Integrations" },
   { id: "ai", label: "AI", icon: Sparkles, desc: "Model & features" },
+  { id: "hours", label: "Hours", icon: Moon, desc: "Operating hours" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -81,6 +83,7 @@ export default function AdminSettingsPage() {
       {activeTab === "security" && <PasswordSection />}
       {activeTab === "api-keys" && <ApiKeysSection />}
       {activeTab === "ai" && <AISettingsSection />}
+      {activeTab === "hours" && <OperatingHoursSection />}
     </div>
   );
 }
@@ -752,6 +755,172 @@ function AISettingsSection() {
             </Select>
           </CardContent>
         </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Operating Hours ─── */
+
+function OperatingHoursSection() {
+  const [enabled, setEnabled] = useState(false);
+  const [startTime, setStartTime] = useState("19:00");
+  const [endTime, setEndTime] = useState("04:00");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<Msg | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/settings/operating-hours")
+      .then((r) => r.json())
+      .then((data) => {
+        setEnabled(data.nightModeEnabled ?? false);
+        setStartTime(data.startTime ?? "19:00");
+        setEndTime(data.endTime ?? "04:00");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/settings/operating-hours", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nightModeEnabled: enabled, startTime, endTime }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage({ type: "error", text: data.error || "Failed to save" });
+        return;
+      }
+      setMessage({ type: "success", text: "Operating hours updated" });
+    } catch {
+      setMessage({ type: "error", text: "Something went wrong" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) return <LoadingSkeleton />;
+
+  return (
+    <div>
+      <SectionHeader
+        title="Operating Hours"
+        description="Restrict the app to specific hours. Outside allowed hours, users see a friendly closed screen."
+      />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Enable/disable toggle */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div
+                  className={`p-2 rounded-xl shrink-0 ${enabled ? "bg-violet-500/10 text-violet-400" : "bg-muted text-muted-foreground"}`}
+                >
+                  <Moon className="size-4" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle>Night Mode</CardTitle>
+                    {enabled ? (
+                      <Badge
+                        variant="outline"
+                        className="text-violet-400 border-violet-500/30 text-[11px] px-1.5 py-0"
+                      >
+                        On
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-muted-foreground text-[11px] px-1.5 py-0"
+                      >
+                        Off
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription>
+                    When enabled, the app is only accessible during the configured hours. Outside
+                    those hours, users see a &quot;come back later&quot; screen.
+                  </CardDescription>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={enabled}
+                onClick={() => setEnabled(!enabled)}
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                  enabled ? "bg-violet-500" : "bg-muted-foreground/30"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block size-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ${
+                    enabled ? "translate-x-[22px]" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Time range */}
+        <Card
+          className={`transition-opacity duration-200 ${!enabled ? "opacity-40 pointer-events-none select-none" : ""}`}
+        >
+          <CardHeader>
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-muted text-muted-foreground shrink-0">
+                <Lock className="size-4" />
+              </div>
+              <div className="space-y-1">
+                <CardTitle>Allowed Hours</CardTitle>
+                <CardDescription>
+                  Supports overnight ranges (e.g. 19:00 to 04:00). Times are in Bishkek local time
+                  (UTC+6).
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startTime">Start time</Label>
+                <Input
+                  id="startTime"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endTime">End time</Label>
+                <Input
+                  id="endTime"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Save button + messages */}
+      <div className="mt-6 flex items-center gap-4">
+        <Button onClick={handleSave} disabled={saving}>
+          {saving && <Loader2 className="size-4 mr-2 animate-spin" />}
+          {saving ? "Saving..." : "Save changes"}
+        </Button>
+        {message && (
+          <div className="flex-1">
+            <Alert msg={message} />
+          </div>
+        )}
       </div>
     </div>
   );

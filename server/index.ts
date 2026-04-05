@@ -438,6 +438,46 @@ async function getAiModelServer(): Promise<string> {
   return "gemini-2.5-flash";
 }
 
+// --- Operating hours enforcement ---
+
+function getBishkekTimeHHMM(): string {
+  return new Date().toLocaleTimeString("en-GB", {
+    timeZone: "Asia/Bishkek",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function isWithinRange(currentHHMM: string, startHHMM: string, endHHMM: string): boolean {
+  const toMin = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const cur = toMin(currentHHMM);
+  const start = toMin(startHHMM);
+  const end = toMin(endHHMM);
+  if (start <= end) return cur >= start && cur < end;
+  return cur >= start || cur < end;
+}
+
+async function isAppClosed(): Promise<boolean> {
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) return false;
+    const sql = neon(dbUrl);
+    const rows = await sql`SELECT key, value FROM app_settings WHERE key IN ('night_mode_enabled', 'operating_start_time', 'operating_end_time')`;
+    const settings: Record<string, string> = {};
+    for (const r of rows) settings[r.key] = r.value;
+    if (settings.night_mode_enabled !== "true") return false;
+    const start = settings.operating_start_time || "19:00";
+    const end = settings.operating_end_time || "04:00";
+    return !isWithinRange(getBishkekTimeHHMM(), start, end);
+  } catch {
+    return false; // fail open
+  }
+}
+
 const MODE_TONES: Record<string, { en: string; ru: string }> = {
   debate: {
     en: "opinionated, controversial, argumentative — push people to pick a side",
@@ -964,7 +1004,7 @@ wss.on("connection", (ws, req) => {
 
   ws.send(JSON.stringify({ type: "sync", rooms: serializeRooms() }));
 
-  ws.on("message", (raw) => {
+  ws.on("message", async (raw) => {
     let msg: Record<string, unknown>;
     try {
       msg = JSON.parse(raw.toString());
@@ -1006,6 +1046,10 @@ wss.on("connection", (ws, req) => {
     if (msg.type === "create") {
       const user = users.get(connId);
       if (!user) return;
+      if (await isAppClosed()) {
+        ws.send(JSON.stringify({ type: "off-hours" }));
+        return;
+      }
       leaveRoom(connId);
 
       const preferLat = Number(msg.lat) || 42.8746;
@@ -1042,6 +1086,10 @@ wss.on("connection", (ws, req) => {
     if (msg.type === "join-room") {
       const user = users.get(connId);
       if (!user) return;
+      if (await isAppClosed()) {
+        ws.send(JSON.stringify({ type: "off-hours" }));
+        return;
+      }
       const room = rooms.get(String(msg.roomId));
       if (!room) return;
       if (seedRoomIds.has(room.id)) return;
@@ -1216,6 +1264,7 @@ wss.on("connection", (ws, req) => {
     if (msg.type === "chat") {
       const user = users.get(connId);
       if (!user?.roomId) return;
+      if (await isAppClosed()) return;
       sendToRoom(user.roomId, {
         type: "chat",
         from: connId,
@@ -1227,6 +1276,10 @@ wss.on("connection", (ws, req) => {
     if (msg.type === "preview") {
       const user = users.get(connId);
       if (!user || user.roomId) return; // can't preview while in a room
+      if (await isAppClosed()) {
+        ws.send(JSON.stringify({ type: "off-hours" }));
+        return;
+      }
 
       const roomId = String(msg.roomId);
       const room = rooms.get(roomId);

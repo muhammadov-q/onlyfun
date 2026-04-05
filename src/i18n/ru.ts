@@ -203,4 +203,15 @@ export default {
     "Актуальные новости и события — нажми чтобы создать комнату на любую тему.",
   "tour.mobile.profile.title": "Меню",
   "tour.mobile.profile.desc": "Измени имя, переключи язык и другое.",
+  // Off-hours / Night mode
+  "offhours.title": "Тсс... OnlyFun спит",
+  "offhours.message1": "Сейчас все делают вид, что работают. Возвращайся ночью.",
+  "offhours.message2": "Дневная смена скучная. Приходи когда начнётся ночь.",
+  "offhours.message3": "Город заговорит позже. OnlyFun просыпается ночью.",
+  "offhours.schedule": "Ежедневно с {start} до {end}",
+  "offhours.comeback": "Возвращайся в {time}",
+  "offhours.opensIn": "Откроется через",
+  "offhours.hours": "ч",
+  "offhours.minutes": "м",
+  "offhours.seconds": "с",
 } as const;

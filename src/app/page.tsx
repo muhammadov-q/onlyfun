@@ -5,12 +5,15 @@ import { PixelCanvas } from "@/components/pixel-canvas";
 import { useI18n } from "@/i18n";
 import { LangSwitcher } from "@/components/lang-switcher";
 import { getDeviceId } from "@/lib/device-id";
+import { useOperatingHours } from "@/hooks/useOperatingHours";
+import { OffHoursScreen } from "@/components/off-hours-screen";
 
 export default function Home() {
   const [name, setName] = useState<string | null>(null);
   const [lockedName, setLockedName] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
   const [loggedOut, setLoggedOut] = useState(false);
+  const { status: opHours, loading: opLoading, remainingMs } = useOperatingHours();
 
   useEffect(() => {
     // Ensure device token exists (creates cookie + localStorage entry)
@@ -46,12 +49,17 @@ export default function Home() {
   const [input, setInput] = useState("");
   const { t } = useI18n();
 
-  if (checking) {
+  if (checking || opLoading) {
     return (
       <div className="flex items-center justify-center bg-black" style={{ height: "100dvh" }}>
         <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
       </div>
     );
+  }
+
+  // Show off-hours screen when night mode is active and app is closed
+  if (opHours?.isRestricted && !opHours.isOpenNow) {
+    return <OffHoursScreen startTime={opHours.startTime} endTime={opHours.endTime} remainingMs={remainingMs} />;
   }
 
   // Welcome back screen after logout or device-token match

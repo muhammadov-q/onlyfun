@@ -203,4 +203,15 @@ export default {
     "Trending news and upcoming events — tap to start a room about anything.",
   "tour.mobile.profile.title": "Your menu",
   "tour.mobile.profile.desc": "Change your name, switch language, and more.",
+  // Off-hours / Night mode
+  "offhours.title": "Shhh... OnlyFun is sleeping",
+  "offhours.message1": "Everyone is busy pretending to work right now. Come back tonight.",
+  "offhours.message2": "Day shift is boring. Come back when the night starts.",
+  "offhours.message3": "The city talks later. OnlyFun wakes up at night.",
+  "offhours.schedule": "Open daily from {start} to {end}",
+  "offhours.comeback": "Come back at {time}",
+  "offhours.opensIn": "Opens in",
+  "offhours.hours": "h",
+  "offhours.minutes": "m",
+  "offhours.seconds": "s",
 } as const;

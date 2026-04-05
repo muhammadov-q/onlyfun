@@ -1,10 +1,23 @@
 import { getDb } from "./db";
 import { encrypt, decrypt } from "./crypto";
 
-export type SettingKey = "gemini_api_key" | "google_maps_key" | "ai_enabled" | "ai_model";
+export type SettingKey =
+  | "gemini_api_key"
+  | "google_maps_key"
+  | "ai_enabled"
+  | "ai_model"
+  | "night_mode_enabled"
+  | "operating_start_time"
+  | "operating_end_time";
 
 /** Keys that are stored as plain text (not encrypted) */
-const PLAIN_KEYS: SettingKey[] = ["ai_enabled", "ai_model"];
+const PLAIN_KEYS: SettingKey[] = [
+  "ai_enabled",
+  "ai_model",
+  "night_mode_enabled",
+  "operating_start_time",
+  "operating_end_time",
+];
 
 export async function getSetting(key: SettingKey): Promise<string | null> {
   const sql = getDb();
