@@ -64,6 +64,14 @@ export async function GET() {
     }
 
     if (rawEvents.length === 0) {
+      // Scrape returned nothing — fall back to existing DB events
+      try {
+        const dbEvents = await loadEventsFromDb();
+        if (dbEvents.length > 0) {
+          setCachedEvents(dbEvents);
+          return NextResponse.json({ items: dbEvents, stale: true });
+        }
+      } catch {}
       return NextResponse.json({ items: [], stale: false });
     }
 

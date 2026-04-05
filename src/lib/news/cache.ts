@@ -29,9 +29,7 @@ export async function getCachedFeed(): Promise<{ items: FeedItem[]; fresh: boole
 export async function setCachedFeed(items: FeedItem[]): Promise<void> {
   const sql = getDb();
 
-  // Clear old items and insert new ones
-  await sql`DELETE FROM news_feed_items`;
-
+  // Upsert new items (don't delete old ones)
   for (const item of items) {
     await sql`
       INSERT INTO news_feed_items (
@@ -40,14 +38,14 @@ export async function setCachedFeed(items: FeedItem[]): Promise<void> {
         line1, line1_ru,
         line2, line2_ru,
         topic_suggestion, topic_suggestion_ru,
-        mode_suggestion, published_at, created_at
+        mode_suggestion, published_at, created_at, visible
       ) VALUES (
         ${item.id}, ${item.source}, ${item.sourceUrl},
         ${item.headline}, ${item.headlineRu},
         ${item.line1}, ${item.line1Ru},
         ${item.line2}, ${item.line2Ru},
         ${item.topicSuggestion}, ${item.topicSuggestionRu},
-        ${item.modeSuggestion}, ${item.publishedAt ?? null}, NOW()
+        ${item.modeSuggestion}, ${item.publishedAt ?? null}, NOW(), TRUE
       )
       ON CONFLICT (id) DO UPDATE SET
         headline = EXCLUDED.headline,
@@ -62,6 +60,18 @@ export async function setCachedFeed(items: FeedItem[]): Promise<void> {
         created_at = NOW()
     `;
   }
+
+  // Keep only the latest 10 visible — hide older ones instead of deleting
+  await sql`
+    UPDATE news_feed_items SET visible = FALSE
+    WHERE visible = TRUE
+    AND id NOT IN (
+      SELECT id FROM news_feed_items
+      WHERE visible = TRUE
+      ORDER BY created_at DESC
+      LIMIT 10
+    )
+  `;
 
   // Log the ingest
   await sql`INSERT INTO news_ingest_log (ran_at, items_count) VALUES (NOW(), ${items.length})`;

@@ -834,6 +834,9 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ server });
 server.listen(PORT, () => {
   console.log(`WebSocket + HTTP server running on port ${PORT}`);
+  console.log(
+    `DATABASE_URL: ${process.env.DATABASE_URL ? "loaded" : "MISSING — name locks and blocking will NOT work"}`
+  );
   getGeminiKey().then((k) =>
     console.log(`Gemini API key: ${k ? "loaded" : "MISSING (set via admin panel)"}`)
   );

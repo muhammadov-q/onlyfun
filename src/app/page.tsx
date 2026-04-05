@@ -122,6 +122,7 @@ export default function Home() {
             onSubmit={(e) => {
               e.preventDefault();
               if (input.trim().length >= 2) {
+                sessionStorage.removeItem("onlyfun-logout");
                 localStorage.setItem("onlyfun-name", input.trim());
                 setName(input.trim());
               }

@@ -75,7 +75,7 @@ function PulseSection({
       <div className="px-3 pt-2 pb-1.5">
         <button
           onClick={() => setOpen((v) => !v)}
-          className="w-full h-9 rounded-xl flex items-center gap-3 px-3 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all group"
+          className={`w-full h-9 rounded-xl flex items-center gap-3 px-3 hover:text-white hover:bg-white/10 transition-all group ${open ? "bg-white/10 text-white" : "bg-white/5 text-white/50"}`}
         >
           <svg
             width="16"
@@ -134,7 +134,7 @@ function EventsSection({
       <div className="px-3 pt-2 pb-1.5">
         <button
           onClick={() => setOpen((v) => !v)}
-          className="w-full h-9 rounded-xl flex items-center gap-3 px-3 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all group"
+          className={`w-full h-9 rounded-xl flex items-center gap-3 px-3 hover:text-white hover:bg-white/10 transition-all group ${open ? "bg-white/10 text-white" : "bg-white/5 text-white/50"}`}
         >
           <svg
             width="16"
@@ -201,7 +201,7 @@ export function DesktopSidebar({
             onClick={onMusicToggle}
             className={`w-full h-9 rounded-xl flex items-center gap-3 px-3 transition-all ${
               musicPlaying
-                ? "bg-white/5 text-white/50"
+                ? "bg-white/10 text-white"
                 : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10"
             }`}
           >
@@ -238,9 +238,9 @@ export function DesktopSidebar({
         <div className="px-3 pb-2" data-tour="live-cam">
           <button
             onClick={onLiveCamToggle}
-            className={`w-full h-9 rounded-xl flex items-center gap-3 px-3 transition-all ${
+            className={`w-full h-9 rounded-xl flex items-center gap-3 px-3 transition-all group ${
               liveCamOpen
-                ? "bg-red-600/15 text-red-400"
+                ? "bg-white/10 text-white"
                 : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10"
             }`}
           >
@@ -260,7 +260,20 @@ export function DesktopSidebar({
               </svg>
               <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
             </span>
-            <span className="text-xs font-semibold uppercase tracking-wider">{liveBadgeText}</span>
+            <span className="text-xs font-medium">{liveBadgeText}</span>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`ml-auto text-white/25 group-hover:text-white/40 transition-transform ${liveCamOpen ? "" : "-rotate-90"}`}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </button>
 
           {liveCamOpen && (
