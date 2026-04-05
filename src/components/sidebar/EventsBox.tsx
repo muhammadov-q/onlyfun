@@ -6,10 +6,9 @@ import { useI18n } from "@/i18n";
 import type { SidebarEventItem } from "@/types/events";
 import type { RoomModeId } from "@/types/room";
 import type { Room } from "@/components/use-party";
-import { ROOM_MODES_MAP } from "@/config/roomModes";
+
 
 const AUTO_ADVANCE_MS = 8000;
-const PAUSE_AFTER_INTERACT_MS = 12000;
 
 function ExternalLinkIcon() {
   return (
@@ -47,24 +46,15 @@ function EventCard({
   onJoinRoom: (roomId: string) => void;
 }) {
   const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
-  const mode = ROOM_MODES_MAP[item.modeSuggestion];
 
   return (
-    <div className="snap-start shrink-0 bg-white/[0.12] border border-white/[0.12] rounded-xl overflow-hidden">
+    <div className="shrink-0 bg-white/[0.12] border border-white/[0.12] rounded-xl overflow-hidden">
       <div className="p-3">
-        {/* Title + mode */}
-        <div className="flex items-start justify-between gap-2 mb-1.5">
+        {/* Title */}
+        <div className="mb-1.5">
           <h4 className="text-xs font-semibold text-white/90 leading-tight line-clamp-2">
             {item.title}
           </h4>
-          {mode && (
-            <span
-              className="shrink-0 text-sm leading-none"
-              title={isRu ? mode.labelRu : mode.label}
-            >
-              {mode.emoji}
-            </span>
-          )}
         </div>
 
         {/* Date */}
@@ -206,7 +196,6 @@ export function EventsBox({
   const [error, setError] = useState(false);
   const [active, setActive] = useState(0);
   const dirRef = useRef(1);
-  const pauseUntil = useRef(0);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -234,25 +223,11 @@ export function EventsBox({
   useEffect(() => {
     if (count <= 1) return;
     const id = setInterval(() => {
-      if (Date.now() < pauseUntil.current) return;
       dirRef.current = 1;
       setActive((i) => (i + 1) % count);
     }, AUTO_ADVANCE_MS);
     return () => clearInterval(id);
   }, [count]);
-
-  function navigate(delta: number) {
-    pauseUntil.current = Date.now() + PAUSE_AFTER_INTERACT_MS;
-    dirRef.current = delta > 0 ? 1 : -1;
-    setActive((i) => (i + delta + count) % count);
-  }
-
-  function handleWheel(e: React.WheelEvent) {
-    if (count <= 1) return;
-    if (Math.abs(e.deltaY) < 5) return;
-    e.stopPropagation();
-    navigate(e.deltaY > 0 ? 1 : -1);
-  }
 
   const isRu = locale === "ru";
   const tp = (key: string) => t(key as Parameters<typeof t>[0]);
@@ -288,7 +263,7 @@ export function EventsBox({
   const existingRoom = rooms.find((r) => r.topic === topic);
 
   return (
-    <div className="relative overflow-hidden" onWheel={handleWheel}>
+    <div className="relative overflow-hidden">
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={item.id}
