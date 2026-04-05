@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Eye, EyeOff, Trash2, ExternalLink, Pencil, X, Check } from "lucide-react";
+import { RefreshCw, Eye, EyeOff, Trash2, ExternalLink, Pencil, X, Check, Zap } from "lucide-react";
 
 interface NewsRow {
   id: string;
@@ -35,6 +35,7 @@ export default function AdminNewsPage() {
   const [editForm, setEditForm] = useState<Partial<NewsRow>>({});
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [scraping, setScraping] = useState(false);
 
   const fetchItems = useCallback(async () => {
     try {
@@ -175,6 +176,27 @@ export default function AdminNewsPage() {
               Delete {selected.size}
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={scraping}
+            onClick={async () => {
+              setScraping(true);
+              setError("");
+              try {
+                const res = await fetch("/api/admin/news", { method: "POST" });
+                if (!res.ok) throw new Error();
+                await fetchItems();
+              } catch {
+                setError("Scrape failed");
+              } finally {
+                setScraping(false);
+              }
+            }}
+          >
+            <Zap className="h-3.5 w-3.5 mr-1.5" />
+            {scraping ? "Scraping..." : "Scrape Now"}
+          </Button>
           <Button variant="outline" size="sm" onClick={fetchItems}>
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
             Refresh

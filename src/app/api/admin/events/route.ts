@@ -1,6 +1,56 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { fetchITicketEventsPage } from "@/lib/events/sources/iticket/fetchEventsPage";
+import {
+  parseITicketEventsPage,
+  extractEventLinks,
+} from "@/lib/events/sources/iticket/parseEventsPage";
+import { fetchITicketEventDetail } from "@/lib/events/sources/iticket/fetchEventDetail";
+import { parseITicketEventDetail } from "@/lib/events/sources/iticket/parseEventDetail";
+import { rankAndTransformEvents } from "@/lib/events/rankEvents";
+import { setCachedEvents, persistEventsToDb, loadEventsFromDb } from "@/lib/events/cache";
+import type { RawEventItem } from "@/types/events";
+
+const MAX_DETAIL_FETCHES = 12;
+
+export async function POST() {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const html = await fetchITicketEventsPage();
+    let rawEvents = parseITicketEventsPage(html);
+
+    if (rawEvents.length === 0) {
+      const links = extractEventLinks(html);
+      const results: RawEventItem[] = [];
+      const batchSize = 4;
+      for (let i = 0; i < Math.min(links.length, MAX_DETAIL_FETCHES); i += batchSize) {
+        const batch = links.slice(i, i + batchSize);
+        const settled = await Promise.allSettled(
+          batch.map(async (l) => {
+            const detailHtml = await fetchITicketEventDetail(l.href);
+            return parseITicketEventDetail(detailHtml, l.href);
+          })
+        );
+        for (const r of settled) {
+          if (r.status === "fulfilled" && r.value) results.push(r.value);
+        }
+      }
+      rawEvents = results;
+    }
+
+    const ranked = rankAndTransformEvents(rawEvents, 8);
+    await persistEventsToDb(ranked);
+    const visible = await loadEventsFromDb().catch(() => ranked);
+    setCachedEvents(visible);
+
+    return NextResponse.json({ ok: true, count: visible.length });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+}
 
 export async function GET() {
   const session = await getSession();

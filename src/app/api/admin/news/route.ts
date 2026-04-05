@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { runIngest } from "@/lib/news/ingest";
+
+export async function POST() {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const result = await runIngest();
+    return NextResponse.json({ ok: true, count: result.items.length, meta: result.meta });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+}
 
 export async function GET() {
   const session = await getSession();
