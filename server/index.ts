@@ -808,6 +808,25 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Name check — uses same IP extraction as WebSocket so IPs always match
+  if (req.url === "/name-check" && req.method === "GET") {
+    const fwd = req.headers["x-forwarded-for"];
+    let ip =
+      (typeof fwd === "string" ? fwd.split(",")[0].trim() : req.socket.remoteAddress) || "unknown";
+    if (ip.startsWith("::ffff:")) ip = ip.slice(7);
+
+    getLockedName(ip)
+      .then((name) => {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ name: name || null }));
+      })
+      .catch(() => {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ name: null }));
+      });
+    return;
+  }
+
   res.writeHead(404);
   res.end();
 });
