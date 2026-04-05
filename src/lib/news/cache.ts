@@ -5,18 +5,10 @@ import type { RoomModeId } from "@/types/room";
 const NEWS_FEED_TTL_MS =
   (parseInt(process.env.NEWS_FEED_TTL_MINUTES ?? "30", 10) || 30) * 60 * 1000;
 
-export async function getCachedFeed(): Promise<FeedItem[] | null> {
+export async function getCachedFeed(): Promise<{ items: FeedItem[]; fresh: boolean }> {
   const sql = getDb();
 
-  // Check if last ingest is still fresh
-  const log = await sql`SELECT ran_at FROM news_ingest_log ORDER BY ran_at DESC LIMIT 1`;
-
-  if (!log[0]?.ran_at) return null;
-
-  const lastRan = new Date(log[0].ran_at).getTime();
-  if (Date.now() - lastRan > NEWS_FEED_TTL_MS) return null;
-
-  // Fetch items created in the most recent ingest batch
+  // Fetch visible items regardless of age
   const rows = await sql`
     SELECT * FROM news_feed_items
     WHERE visible = TRUE
@@ -24,9 +16,14 @@ export async function getCachedFeed(): Promise<FeedItem[] | null> {
     LIMIT 10
   `;
 
-  if (rows.length === 0) return null;
+  const items = rows.map(rowToFeedItem);
 
-  return rows.map(rowToFeedItem);
+  // Check if last ingest is still fresh (controls whether re-ingest is needed)
+  const log = await sql`SELECT ran_at FROM news_ingest_log ORDER BY ran_at DESC LIMIT 1`;
+  const lastRan = log[0]?.ran_at ? new Date(log[0].ran_at).getTime() : 0;
+  const fresh = Date.now() - lastRan <= NEWS_FEED_TTL_MS;
+
+  return { items, fresh };
 }
 
 export async function setCachedFeed(items: FeedItem[]): Promise<void> {

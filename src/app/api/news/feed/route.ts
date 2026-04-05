@@ -7,18 +7,21 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  // Return cached feed if available
   const cached = await getCachedFeed();
-  if (cached) {
-    return NextResponse.json({ items: cached, stale: false });
+
+  // If cache is fresh, return immediately
+  if (cached.fresh && cached.items.length > 0) {
+    return NextResponse.json({ items: cached.items, stale: false });
   }
 
-  // Only scrape once per day, before 7PM Bishkek time
-  if (!shouldScrapeToday("news")) {
-    return NextResponse.json({ items: [], stale: true });
+  // Try to ingest new content if allowed
+  if (shouldScrapeToday("news")) {
+    const result = await runIngest();
+    if (result.items.length > 0) {
+      return NextResponse.json({ items: result.items, stale: false });
+    }
   }
 
-  // No cache — run ingest directly
-  const result = await runIngest();
-  return NextResponse.json({ items: result.items, stale: false });
+  // Always fall back to whatever items exist in the DB
+  return NextResponse.json({ items: cached.items, stale: !cached.fresh });
 }

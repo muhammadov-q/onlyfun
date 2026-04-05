@@ -1,12 +1,12 @@
 /**
- * Ensures scraping happens at most once per day, and only before 7 PM Bishkek time (UTC+6).
+ * Ensures scraping happens at most once per day, only after 7 PM Bishkek time (UTC+6).
  *
  * Uses an in-memory record of the last scrape date per source.
  * On server restart the guard resets, allowing one fresh scrape.
  */
 
 const BISHKEK_OFFSET_HOURS = 6;
-const CUTOFF_HOUR = 19; // 7 PM
+const SCRAPE_HOUR = 19; // 7 PM
 
 // Track last scrape date string per source (e.g. "2026-04-05")
 const lastScrapeDate: Record<string, string> = {};
@@ -22,16 +22,16 @@ function toBishkekDateString(d: Date): string {
 
 /**
  * Returns true if scraping should proceed for the given source.
- * - Only allows one scrape per calendar day (Bishkek time).
- * - Blocks scraping after 7 PM Bishkek time.
+ * - Only allows scraping after 7 PM Bishkek time.
+ * - Only allows one scrape per calendar day.
  */
 export function shouldScrapeToday(source: string): boolean {
   const bishkekNow = getBishkekNow();
   const bishkekHour = bishkekNow.getUTCHours();
   const todayStr = toBishkekDateString(bishkekNow);
 
-  // After 7 PM Bishkek time — no scraping
-  if (bishkekHour >= CUTOFF_HOUR) {
+  // Before 7 PM Bishkek time — not yet time to scrape
+  if (bishkekHour < SCRAPE_HOUR) {
     return false;
   }
 
