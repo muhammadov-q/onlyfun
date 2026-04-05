@@ -12,6 +12,7 @@ import { DesktopSidebar } from "./desktop-sidebar";
 import { BishkekPulseFeed } from "./sidebar/BishkekPulseFeed";
 import { EventsBox } from "./sidebar/EventsBox";
 import { SponsorBox } from "./sidebar/SponsorBox";
+import { OnboardingTour, restartTour } from "./onboarding-tour";
 import type { RoomModeId } from "@/types/room";
 
 function InfoIcon({ className }: { className?: string }) {
@@ -372,6 +373,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
         <div className="flex items-center gap-1.5">
           {/* All rooms */}
           <button
+            data-tour="all-rooms"
             onClick={() => setShowPanel((v) => !v)}
             className={`flex items-center gap-1.5 h-8 px-2 sm:px-2.5 rounded-lg text-xs font-medium border transition-all ${
               showPanel
@@ -463,6 +465,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
           <div className="hidden sm:flex items-center gap-1.5">
             <div className="relative" ref={profileRef}>
               <button
+                data-tour="profile-btn"
                 onClick={() => setShowProfile((v) => !v)}
                 className={`flex items-center gap-1.5 px-2.5 h-8 rounded-lg border transition-all ${
                   showProfile
@@ -583,6 +586,30 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                       <span className="text-sm text-white/60">{t("info.title")}</span>
                       <InfoIcon className="text-white/30 w-4 h-4" />
                     </button>
+                    {/* Retake tour */}
+                    <button
+                      onClick={() => {
+                        setShowProfile(false);
+                        restartTour();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-white/5 transition-colors"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-white/40"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <polygon points="10 8 16 12 10 16 10 8" />
+                      </svg>
+                      <span className="text-sm text-white/60">{t("tour.retake")}</span>
+                    </button>
                     {/* Logout */}
                     <button
                       onClick={handleLogout}
@@ -613,12 +640,14 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
           {/* Mobile-only: sound toggle + more menu */}
           <div className="sm:hidden flex items-center gap-1.5">
             <button
+              data-tour="mobile-music"
               onClick={() => music.toggle()}
               className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${music.playing ? "bg-white/15 border-white/20 text-white" : "bg-white/5 border-white/10 text-white/40 active:text-white"}`}
             >
               {music.playing ? <SpeakerIcon /> : <SpeakerOffIcon />}
             </button>
             <button
+              data-tour="mobile-menu"
               onClick={() => setShowMore(true)}
               className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-white/40 border border-white/10 active:text-white transition-all"
             >
@@ -665,7 +694,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
         />
 
         {/* Map */}
-        <div className="relative flex-1 overflow-hidden flex flex-col">
+        <div data-tour="map" className="relative flex-1 overflow-hidden flex flex-col">
           <CityMap
             rooms={party.rooms}
             onJoin={party.joinRoom}
@@ -912,6 +941,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
               style={{ top: 12, left: 12 }}
             >
               <button
+                data-tour="mobile-livecam"
                 onClick={() => {
                   localStorage.removeItem("onlyfun-livecam");
                   setLiveCamOpen(true);
@@ -936,6 +966,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                 <span className="text-[11px] font-medium">{t("live.button")}</span>
               </button>
               <button
+                data-tour="mobile-pulse"
                 onClick={() => setShowMobilePulse(true)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900/90 border border-white/10 text-white/60 hover:text-white transition-all shadow-lg"
                 style={{ touchAction: "manipulation" }}
@@ -1071,6 +1102,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
           {/* + FAB — hidden while placing */}
           {!placing && (
             <button
+              data-tour="create-fab"
               onClick={() => setPlacing(true)}
               style={{
                 touchAction: "manipulation",
@@ -1098,6 +1130,8 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
         </div>
       </div>
       {/* end sidebar + map wrapper */}
+
+      <OnboardingTour />
 
       {showCreate && (
         <CreateModal
@@ -1460,6 +1494,30 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
               >
                 <span className="text-sm text-white/60">{t("info.title")}</span>
                 <InfoIcon className="text-white/30" />
+              </button>
+              {/* Retake tour */}
+              <button
+                onClick={() => {
+                  setShowMore(false);
+                  restartTour();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-white/40"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polygon points="10 8 16 12 10 16 10 8" />
+                </svg>
+                <span className="text-sm text-white/60">{t("tour.retake")}</span>
               </button>
               {/* Logout */}
               <button

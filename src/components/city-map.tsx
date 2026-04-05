@@ -664,7 +664,7 @@ export function CityMap({
       {overlayEl &&
         createPortal(
           <>
-            {rooms.map((room) => {
+            {rooms.map((room, roomIdx) => {
               if (room.lat == null || room.lng == null) return null;
               // Hide rooms outside the Bishkek border
               if (bishkekRing && !pointInPolygon(room.lat, room.lng, bishkekRing)) return null;
@@ -675,6 +675,7 @@ export function CityMap({
                   key={room.id}
                   data-lat={room.lat}
                   data-lng={room.lng}
+                  {...(roomIdx === 0 ? { "data-tour": "room-card" } : {})}
                   style={{
                     position: "absolute",
                     transform: showCards ? "translate(-8px, -100%)" : "translate(-50%, -50%)",

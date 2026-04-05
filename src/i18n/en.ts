@@ -142,4 +142,60 @@ export default {
 
   // Sponsor
   "sponsor.title": "This Week's Sponsor",
+
+  // Onboarding tour
+  "tour.retake": "take the tour",
+  "tour.skip": "skip",
+  "tour.next": "next",
+  "tour.prev": "back",
+  "tour.done": "got it!",
+  "tour.step": "of",
+
+  // Desktop tour steps
+  "tour.desktop.map.title": "the map",
+  "tour.desktop.map.desc":
+    "this is Bishkek — voice rooms appear as white cards on the map. it's voice only, no video — just talk.",
+  "tour.desktop.roomCard.title": "room cards",
+  "tour.desktop.roomCard.desc":
+    'each card is a live voice room. see the topic, mode, and who\'s inside. tap "join" to talk, or "sneak in" to quietly listen without anyone knowing.',
+  "tour.desktop.create.title": "create a room",
+  "tour.desktop.create.desc":
+    "tap this button to start your own room. pick a spot on the map, choose a topic and vibe, and you're live.",
+  "tour.desktop.allRooms.title": "browse rooms",
+  "tour.desktop.allRooms.desc":
+    "see all active rooms in one list. search, filter, and tap any room to zoom right to it on the map.",
+  "tour.desktop.music.title": "vibe music",
+  "tour.desktop.music.desc": "turn on background music while you browse. a new track every week.",
+  "tour.desktop.liveCam.title": "live cam",
+  "tour.desktop.liveCam.desc": "watch a live stream of Bishkek right from the sidebar.",
+  "tour.desktop.pulse.title": "bishkek pulse",
+  "tour.desktop.pulse.desc":
+    "trending local news — tap any headline to start a room and discuss it.",
+  "tour.desktop.events.title": "events",
+  "tour.desktop.events.desc":
+    "upcoming events in the city. see something cool? create a room about it.",
+  "tour.desktop.profile.title": "your profile",
+  "tour.desktop.profile.desc": "change your name, switch language, or log out from here.",
+
+  // Mobile tour steps
+  "tour.mobile.map.title": "the map",
+  "tour.mobile.map.desc":
+    "voice rooms appear as white cards on the map. it's voice only, no video — just talk. pinch to zoom in.",
+  "tour.mobile.roomCard.title": "room cards",
+  "tour.mobile.roomCard.desc":
+    'each card is a live room. tap "join" to talk, or "sneak in" to quietly listen without anyone knowing.',
+  "tour.mobile.create.title": "create a room",
+  "tour.mobile.create.desc": "tap the + button to create your own room and place it on the map.",
+  "tour.mobile.allRooms.title": "browse rooms",
+  "tour.mobile.allRooms.desc":
+    "all active rooms in one list — search and tap any to zoom to it on the map.",
+  "tour.mobile.music.title": "vibe music",
+  "tour.mobile.music.desc": "tap to play background music while you browse.",
+  "tour.mobile.liveCam.title": "live cam",
+  "tour.mobile.liveCam.desc": "watch a live stream of Bishkek city.",
+  "tour.mobile.pulse.title": "news & events",
+  "tour.mobile.pulse.desc":
+    "trending news and upcoming events — tap to start a room about anything.",
+  "tour.mobile.profile.title": "your menu",
+  "tour.mobile.profile.desc": "change your name, switch language, and more.",
 } as const;

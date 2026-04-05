@@ -196,7 +196,7 @@ export function DesktopSidebar({
       {/* === Top: Sound + Live cam (compact) === */}
       <div className="shrink-0">
         {/* Sound toggle */}
-        <div className="p-3 pb-2">
+        <div className="p-3 pb-2" data-tour="music-toggle">
           <button
             onClick={onMusicToggle}
             className={`w-full h-9 rounded-xl flex items-center gap-3 px-3 transition-all ${
@@ -235,7 +235,7 @@ export function DesktopSidebar({
         </div>
 
         {/* Live cam */}
-        <div className="px-3 pb-2">
+        <div className="px-3 pb-2" data-tour="live-cam">
           <button
             onClick={onLiveCamToggle}
             className={`w-full h-9 rounded-xl flex items-center gap-3 px-3 transition-all ${
@@ -283,12 +283,16 @@ export function DesktopSidebar({
       <div className="border-t border-white/5 mx-3" />
 
       {/* === Middle: Bishkek Pulse (collapsible, open by default) === */}
-      <PulseSection tp={tp} onTalkAbout={onTalkAbout} rooms={rooms} onJoinRoom={onJoinRoom} />
+      <div data-tour="pulse-section">
+        <PulseSection tp={tp} onTalkAbout={onTalkAbout} rooms={rooms} onJoinRoom={onJoinRoom} />
+      </div>
 
       <div className="border-t border-white/5 mx-3" />
 
       {/* === Events section === */}
-      <EventsSection tp={tp} onTalkAbout={onTalkAbout} rooms={rooms} onJoinRoom={onJoinRoom} />
+      <div data-tour="events-section">
+        <EventsSection tp={tp} onTalkAbout={onTalkAbout} rooms={rooms} onJoinRoom={onJoinRoom} />
+      </div>
 
       <div className="border-t border-white/5 mx-3" />
 

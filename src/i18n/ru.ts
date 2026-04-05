@@ -143,4 +143,59 @@ export default {
 
   // Sponsor
   "sponsor.title": "Спонсор недели",
+
+  // Onboarding tour
+  "tour.retake": "обзор",
+  "tour.skip": "пропустить",
+  "tour.next": "дальше",
+  "tour.prev": "назад",
+  "tour.done": "понятно!",
+  "tour.step": "из",
+
+  // Desktop tour steps
+  "tour.desktop.map.title": "карта",
+  "tour.desktop.map.desc":
+    "это Бишкек — комнаты появляются как белые карточки на карте. только голос, без видео — просто общайся.",
+  "tour.desktop.roomCard.title": "карточки комнат",
+  "tour.desktop.roomCard.desc":
+    "каждая карточка — живая голосовая комната. видна тема, режим и кто внутри. нажми «войти» чтобы говорить, или «слушок» чтобы тихо послушать — никто не узнает.",
+  "tour.desktop.create.title": "создай комнату",
+  "tour.desktop.create.desc":
+    "нажми эту кнопку чтобы создать свою комнату. выбери место на карте, тему и настроение — и ты в эфире.",
+  "tour.desktop.allRooms.title": "все комнаты",
+  "tour.desktop.allRooms.desc":
+    "все активные комнаты в одном списке. ищи, фильтруй и нажми на любую чтобы увидеть на карте.",
+  "tour.desktop.music.title": "музыка",
+  "tour.desktop.music.desc": "включи фоновую музыку пока листаешь. новый трек каждую неделю.",
+  "tour.desktop.liveCam.title": "камера",
+  "tour.desktop.liveCam.desc": "смотри прямой эфир Бишкека прямо в сайдбаре.",
+  "tour.desktop.pulse.title": "пульс бишкека",
+  "tour.desktop.pulse.desc":
+    "актуальные новости города — нажми на заголовок чтобы создать комнату и обсудить.",
+  "tour.desktop.events.title": "события",
+  "tour.desktop.events.desc": "ближайшие события города. видишь что-то интересное? создай комнату.",
+  "tour.desktop.profile.title": "твой профиль",
+  "tour.desktop.profile.desc": "измени имя, переключи язык или выйди из аккаунта.",
+
+  // Mobile tour steps
+  "tour.mobile.map.title": "карта",
+  "tour.mobile.map.desc":
+    "комнаты появляются как белые карточки на карте. только голос, без видео — просто общайся. щипни чтобы приблизить.",
+  "tour.mobile.roomCard.title": "карточки комнат",
+  "tour.mobile.roomCard.desc":
+    "каждая карточка — живая комната. нажми «войти» чтобы говорить, или «слушок» чтобы тихо послушать — никто не узнает.",
+  "tour.mobile.create.title": "создай комнату",
+  "tour.mobile.create.desc": "нажми кнопку + чтобы создать свою комнату и разместить на карте.",
+  "tour.mobile.allRooms.title": "все комнаты",
+  "tour.mobile.allRooms.desc":
+    "все активные комнаты в одном списке — ищи и нажми чтобы увидеть на карте.",
+  "tour.mobile.music.title": "музыка",
+  "tour.mobile.music.desc": "нажми чтобы включить фоновую музыку.",
+  "tour.mobile.liveCam.title": "камера",
+  "tour.mobile.liveCam.desc": "прямой эфир Бишкека.",
+  "tour.mobile.pulse.title": "новости и события",
+  "tour.mobile.pulse.desc":
+    "актуальные новости и события — нажми чтобы создать комнату на любую тему.",
+  "tour.mobile.profile.title": "меню",
+  "tour.mobile.profile.desc": "измени имя, переключи язык и другое.",
 } as const;
