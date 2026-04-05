@@ -49,7 +49,7 @@ function EventCard({
   const mode = ROOM_MODES_MAP[item.modeSuggestion];
 
   return (
-    <div className="snap-start shrink-0 bg-white/[0.03] border border-white/[0.06] rounded-xl overflow-hidden">
+    <div className="snap-start shrink-0 bg-white/[0.07] border border-white/[0.10] rounded-xl overflow-hidden">
       <div className="p-3">
         {/* Title + mode */}
         <div className="flex items-start justify-between gap-2 mb-1.5">

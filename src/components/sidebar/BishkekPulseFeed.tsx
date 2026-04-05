@@ -52,7 +52,7 @@ function NewsCard({
   const mode = ROOM_MODES_MAP[item.modeSuggestion];
 
   return (
-    <div className="snap-start shrink-0 bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
+    <div className="snap-start shrink-0 bg-white/[0.07] border border-white/[0.10] rounded-xl p-3">
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <h4 className="text-xs font-semibold text-white/90 leading-tight">{headline}</h4>
         {mode && (

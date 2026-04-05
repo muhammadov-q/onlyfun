@@ -192,7 +192,7 @@ export function DesktopSidebar({
   const tp = (key: string) => t(key as Parameters<typeof t>[0]);
 
   return (
-    <div className="hidden sm:flex flex-col w-[320px] bg-black border-r border-white/10 shrink-0 overflow-y-auto">
+    <div className="hidden sm:flex flex-col w-[320px] bg-black border-r border-white/10 shrink-0 overflow-y-auto hide-scrollbar">
       {/* === Top: Sound + Live cam (compact) === */}
       <div className="shrink-0">
         {/* Sound toggle */}
