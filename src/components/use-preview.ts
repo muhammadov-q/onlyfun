@@ -119,7 +119,16 @@ export function usePreview(party: PartyState) {
           audios.current.set(targetId, audio);
         }
         audio.srcObject = e.streams[0];
-        audio.play().catch(() => {});
+        audio.play().catch(() => {
+          // Autoplay blocked on mobile — retry on next user interaction
+          const resume = () => {
+            audio?.play().catch(() => {});
+            document.removeEventListener("click", resume);
+            document.removeEventListener("touchstart", resume);
+          };
+          document.addEventListener("click", resume, { once: true });
+          document.addEventListener("touchstart", resume, { once: true });
+        });
       };
 
       if (initiator) {

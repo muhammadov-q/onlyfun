@@ -216,12 +216,16 @@ const users = new Map<
   { ws: WebSocket; name: string; roomId: string | null; ip: string; deviceId: string | null }
 >();
 const previewers = new Map<string, { roomId: string; timeout: NodeJS.Timeout }>();
-// Server-side preview cooldown: keyed by "deviceId|roomId" or "ip|roomId" → expiry timestamp
+// Server-side preview cooldown: keyed by "deviceId|roomId" → expiry timestamp
+// deviceId is required — each device gets its own cooldown even on shared WiFi
 const previewCooldowns = new Map<string, number>();
 const PREVIEW_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes per room
 
 function getPreviewKey(user: { ip: string; deviceId: string | null }, roomId: string): string {
-  return `${user.deviceId || user.ip}|${roomId}`;
+  // Always prefer deviceId so two phones on the same WiFi get separate cooldowns
+  if (user.deviceId) return `${user.deviceId}|${roomId}`;
+  // Fallback to IP only if no deviceId (shouldn't normally happen)
+  return `${user.ip}|${roomId}`;
 }
 
 function isPreviewOnCooldown(
