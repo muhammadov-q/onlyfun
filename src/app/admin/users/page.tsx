@@ -12,7 +12,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { RefreshCw, MoreHorizontal, AlertTriangle, Ban, LogOut, X, Pencil } from "lucide-react";
+import {
+  RefreshCw,
+  MoreHorizontal,
+  AlertTriangle,
+  Ban,
+  LogOut,
+  X,
+  Pencil,
+  Link2,
+  Unlink,
+} from "lucide-react";
 
 interface UserData {
   id: string;
@@ -36,17 +46,27 @@ interface BlockedUser {
   created_at: string;
 }
 
+interface NameLock {
+  id: number;
+  ip: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [blocked, setBlocked] = useState<BlockedUser[]>([]);
+  const [nameLocks, setNameLocks] = useState<NameLock[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal state
   const [modal, setModal] = useState<{
-    type: "warn" | "block" | "rename" | null;
+    type: "warn" | "block" | "rename" | "edit-lock" | null;
     user: UserData | null;
-  }>({ type: null, user: null });
+    lock: NameLock | null;
+  }>({ type: null, user: null, lock: null });
   const [warnMessage, setWarnMessage] = useState("");
   const [blockMinutes, setBlockMinutes] = useState("30");
   const [blockReason, setBlockReason] = useState("");
@@ -55,9 +75,10 @@ export default function AdminUsersPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, blockedRes] = await Promise.all([
+      const [statsRes, blockedRes, locksRes] = await Promise.all([
         fetch("/api/admin/stats"),
         fetch("/api/admin/blocked"),
+        fetch("/api/admin/name-locks"),
       ]);
       if (statsRes.ok) {
         const stats = await statsRes.json();
@@ -67,6 +88,10 @@ export default function AdminUsersPage() {
       if (blockedRes.ok) {
         const data = await blockedRes.json();
         setBlocked(data.blocked);
+      }
+      if (locksRes.ok) {
+        const data = await locksRes.json();
+        setNameLocks(data.locks);
       }
     } finally {
       setLoading(false);
@@ -97,7 +122,7 @@ export default function AdminUsersPage() {
         alert(`Failed to warn: ${data.error || res.statusText}`);
         return;
       }
-      setModal({ type: null, user: null });
+      setModal({ type: null, user: null, lock: null });
       setWarnMessage("");
     } finally {
       setActionLoading(false);
@@ -129,7 +154,7 @@ export default function AdminUsersPage() {
           minutes: parseInt(blockMinutes) || 30,
         }),
       });
-      setModal({ type: null, user: null });
+      setModal({ type: null, user: null, lock: null });
       setBlockMinutes("30");
       setBlockReason("");
       fetchData();
@@ -151,7 +176,7 @@ export default function AdminUsersPage() {
           message: renameTo.trim(),
         }),
       });
-      setModal({ type: null, user: null });
+      setModal({ type: null, user: null, lock: null });
       setRenameTo("");
       fetchData();
     } finally {
@@ -170,6 +195,34 @@ export default function AdminUsersPage() {
 
   async function handleUnblock(id: number) {
     await fetch("/api/admin/blocked", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    fetchData();
+  }
+
+  const [editLockName, setEditLockName] = useState("");
+
+  async function handleEditLock() {
+    if (!modal.lock || !editLockName.trim()) return;
+    setActionLoading(true);
+    try {
+      await fetch("/api/admin/name-locks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: modal.lock.id, name: editLockName.trim() }),
+      });
+      setModal({ type: null, user: null, lock: null });
+      setEditLockName("");
+      fetchData();
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleDeleteLock(id: number) {
+    await fetch("/api/admin/name-locks", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
@@ -262,7 +315,7 @@ export default function AdminUsersPage() {
                         <DropdownMenuContent align="end" className="w-44">
                           <DropdownMenuItem
                             onClick={() => {
-                              setModal({ type: "warn", user });
+                              setModal({ type: "warn", user, lock: null });
                               setWarnMessage("");
                             }}
                           >
@@ -271,7 +324,7 @@ export default function AdminUsersPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
-                              setModal({ type: "rename", user });
+                              setModal({ type: "rename", user, lock: null });
                               setRenameTo(user.name);
                             }}
                           >
@@ -287,7 +340,7 @@ export default function AdminUsersPage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => {
-                              setModal({ type: "block", user });
+                              setModal({ type: "block", user, lock: null });
                               setBlockMinutes("30");
                               setBlockReason("");
                             }}
@@ -367,9 +420,83 @@ export default function AdminUsersPage() {
         )}
       </div>
 
+      <Separator className="my-8" />
+
+      {/* Name locks */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Link2 className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-base font-medium">
+            Name locks
+            <span className="text-muted-foreground font-normal text-sm ml-2">
+              {nameLocks.length} {nameLocks.length === 1 ? "entry" : "entries"}
+            </span>
+          </h3>
+        </div>
+        <p className="text-xs text-muted-foreground mb-4">
+          Each IP is locked to the first name used. Users cannot change their name from a different
+          browser. Remove a lock to let the user pick a new name.
+        </p>
+
+        {nameLocks.length > 0 && (
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground text-xs text-left">
+                  <th className="px-4 py-3 font-medium">IP</th>
+                  <th className="px-4 py-3 font-medium">Locked name</th>
+                  <th className="px-4 py-3 font-medium">Since</th>
+                  <th className="px-4 py-3 font-medium">Updated</th>
+                  <th className="px-4 py-3 font-medium w-24">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {nameLocks.map((lock) => (
+                  <tr key={lock.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 text-muted-foreground text-xs font-mono">{lock.ip}</td>
+                    <td className="px-4 py-3 font-medium">{lock.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {new Date(lock.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {new Date(lock.updated_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          title="Edit name"
+                          onClick={() => {
+                            setModal({ type: "edit-lock", user: null, lock });
+                            setEditLockName(lock.name);
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                          title="Remove lock"
+                          onClick={() => handleDeleteLock(lock.id)}
+                        >
+                          <Unlink className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Warn modal */}
       {modal.type === "warn" && modal.user && (
-        <Modal onClose={() => setModal({ type: null, user: null })}>
+        <Modal onClose={() => setModal({ type: null, user: null, lock: null })}>
           <h3 className="text-base font-semibold mb-1">Warn {modal.user.name}</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Send a warning message. The user will see it as a popup.
@@ -384,7 +511,10 @@ export default function AdminUsersPage() {
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setModal({ type: null, user: null })}>
+              <Button
+                variant="outline"
+                onClick={() => setModal({ type: null, user: null, lock: null })}
+              >
                 Cancel
               </Button>
               <Button onClick={handleWarn} disabled={actionLoading}>
@@ -397,7 +527,7 @@ export default function AdminUsersPage() {
 
       {/* Rename modal */}
       {modal.type === "rename" && modal.user && (
-        <Modal onClose={() => setModal({ type: null, user: null })}>
+        <Modal onClose={() => setModal({ type: null, user: null, lock: null })}>
           <h3 className="text-base font-semibold mb-1">Rename {modal.user.name}</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Change the user&apos;s display name. They will be notified.
@@ -413,7 +543,10 @@ export default function AdminUsersPage() {
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setModal({ type: null, user: null })}>
+              <Button
+                variant="outline"
+                onClick={() => setModal({ type: null, user: null, lock: null })}
+              >
                 Cancel
               </Button>
               <Button onClick={handleRename} disabled={actionLoading || !renameTo.trim()}>
@@ -426,7 +559,7 @@ export default function AdminUsersPage() {
 
       {/* Block modal */}
       {modal.type === "block" && modal.user && (
-        <Modal onClose={() => setModal({ type: null, user: null })}>
+        <Modal onClose={() => setModal({ type: null, user: null, lock: null })}>
           <h3 className="text-base font-semibold mb-1">Block {modal.user.name}</h3>
           <p className="text-sm text-muted-foreground mb-4">
             The user will be disconnected and shown a &ldquo;blocked&rdquo; screen with a countdown.
@@ -450,11 +583,47 @@ export default function AdminUsersPage() {
               />
             </div>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setModal({ type: null, user: null })}>
+              <Button
+                variant="outline"
+                onClick={() => setModal({ type: null, user: null, lock: null })}
+              >
                 Cancel
               </Button>
               <Button variant="destructive" onClick={handleBlock} disabled={actionLoading}>
                 {actionLoading ? "Blocking..." : "Block user"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit name lock modal */}
+      {modal.type === "edit-lock" && modal.lock && (
+        <Modal onClose={() => setModal({ type: null, user: null, lock: null })}>
+          <h3 className="text-base font-semibold mb-1">Edit name lock</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Change the locked name for IP <span className="font-mono">{modal.lock.ip}</span>. The
+            user will use this name on their next connection.
+          </p>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Locked name</Label>
+              <Input
+                placeholder="New locked name"
+                value={editLockName}
+                onChange={(e) => setEditLockName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleEditLock()}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setModal({ type: null, user: null, lock: null })}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleEditLock} disabled={actionLoading || !editLockName.trim()}>
+                {actionLoading ? "Saving..." : "Save"}
               </Button>
             </div>
           </div>

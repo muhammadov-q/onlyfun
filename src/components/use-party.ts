@@ -28,6 +28,7 @@ export function useParty(name: string) {
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
   const [onlineCount, setOnlineCount] = useState(0);
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
+  const [effectiveName, setEffectiveName] = useState(name);
 
   const onSignal = useRef<((from: string, signal: unknown) => void) | undefined>(undefined);
   const onPeerJoin = useRef<((id: string, name: string) => void) | undefined>(undefined);
@@ -40,6 +41,7 @@ export function useParty(name: string) {
   const onKicked = useRef<(() => void) | undefined>(undefined);
   const onBanned = useRef<((minutes: number) => void) | undefined>(undefined);
   const onAdminWarn = useRef<((message: string) => void) | undefined>(undefined);
+  const onAdminRename = useRef<((newName: string) => void) | undefined>(undefined);
   const onAdminBlock = useRef<((minutes: number, message: string) => void) | undefined>(undefined);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -127,7 +129,17 @@ export function useParty(name: string) {
         if (msg.type === "admin-rename") {
           // Update localStorage with new name so it persists
           localStorage.setItem("onlyfun-name", msg.newName);
-          onAdminWarn.current?.(`Your name has been changed to "${msg.newName}"`);
+          setEffectiveName(msg.newName);
+          onAdminRename.current?.(msg.newName);
+        }
+        if (msg.type === "name-locked") {
+          // Server enforced IP-locked name — update localStorage and state
+          localStorage.setItem("onlyfun-name", msg.name);
+          setEffectiveName(msg.name);
+        }
+        if (msg.type === "name-changed") {
+          localStorage.setItem("onlyfun-name", msg.newName);
+          setEffectiveName(msg.newName);
         }
       };
 
@@ -146,6 +158,11 @@ export function useParty(name: string) {
       wsRef.current?.close();
     };
   }, []);
+
+  const changeName = useCallback(
+    (newName: string) => send({ type: "change-name", name: newName }),
+    [send]
+  );
 
   const createRoom = useCallback(
     (topic: string, max: number, lat: number, lng: number, mode: string, lang: string) => {
@@ -178,6 +195,8 @@ export function useParty(name: string) {
 
   return {
     myId,
+    effectiveName,
+    changeName,
     rooms,
     currentRoom,
     currentRoomId,
@@ -205,6 +224,7 @@ export function useParty(name: string) {
     onKicked,
     onBanned,
     onAdminWarn,
+    onAdminRename,
     onAdminBlock,
   };
 }

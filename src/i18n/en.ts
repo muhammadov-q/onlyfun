@@ -130,6 +130,16 @@ export default {
   "events.retry": "try again",
   "events.button": "Events",
 
+  // Profile / Edit name
+  "profile.editName": "Edit name",
+  "profile.editNameHint": "Edit your name",
+  "profile.namePlaceholder": "Your name",
+  "profile.save": "Save",
+  "profile.cancel": "Cancel",
+  "profile.nameChanged": "Your name has been changed to",
+  "profile.welcomeBack": "Welcome back",
+  "profile.renameHint": "Want a different name? You can change it in your profile menu.",
+
   // Sponsor
   "sponsor.title": "This Week's Sponsor",
 } as const;

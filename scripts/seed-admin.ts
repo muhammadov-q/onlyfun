@@ -51,6 +51,19 @@ async function seed() {
   await sql`CREATE INDEX IF NOT EXISTS idx_blocked_users_ip ON blocked_users (ip)`;
   console.log("blocked_users table created");
 
+  // Create user_names table (IP → name lock)
+  await sql`
+    CREATE TABLE IF NOT EXISTS user_names (
+      id SERIAL PRIMARY KEY,
+      ip VARCHAR(100) NOT NULL UNIQUE,
+      name VARCHAR(100) NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_user_names_ip ON user_names (ip)`;
+  console.log("user_names table created");
+
   // Create app_settings table
   await sql`
     CREATE TABLE IF NOT EXISTS app_settings (

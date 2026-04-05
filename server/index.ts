@@ -289,6 +289,43 @@ async function checkBlocked(ip: string): Promise<{ minutes: number } | null> {
   }
 }
 
+// --- IP → Name lock via DB ---
+async function getLockedName(ip: string): Promise<string | null> {
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      console.log("[name-lock] No DATABASE_URL");
+      return null;
+    }
+    const sql = neon(dbUrl);
+    const rows = await sql`SELECT name FROM user_names WHERE ip = ${ip} LIMIT 1`;
+    console.log(`[name-lock] lookup ip=${ip} => ${rows[0]?.name ?? "(none)"}`);
+    return rows[0]?.name ?? null;
+  } catch (e) {
+    console.error("[name-lock] getLockedName error:", e);
+    return null;
+  }
+}
+
+async function saveNameLock(ip: string, name: string): Promise<void> {
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      console.log("[name-lock] No DATABASE_URL");
+      return;
+    }
+    const sql = neon(dbUrl);
+    await sql`
+      INSERT INTO user_names (ip, name)
+      VALUES (${ip}, ${name})
+      ON CONFLICT (ip) DO NOTHING
+    `;
+    console.log(`[name-lock] saved ip=${ip} => name=${name}`);
+  } catch (e) {
+    console.error("[name-lock] saveNameLock error:", e);
+  }
+}
+
 // --- Decrypt helper (matches src/lib/crypto.ts) ---
 function decryptSetting(encoded: string): string {
   const secret = process.env.JWT_SECRET || "";
@@ -739,6 +776,16 @@ const server = http.createServer((req, res) => {
             }
           }
           user.ws.send(JSON.stringify({ type: "admin-rename", oldName, newName }));
+          // Update name lock in DB
+          if (user.ip) {
+            const dbUrl = process.env.DATABASE_URL;
+            if (dbUrl) {
+              const sql = neon(dbUrl);
+              sql`UPDATE user_names SET name = ${newName}, updated_at = NOW() WHERE ip = ${user.ip}`.catch(
+                () => {}
+              );
+            }
+          }
         } else if (action === "kick") {
           const result = leaveRoom(userId);
           user.ws.send(JSON.stringify({ type: "admin-kick" }));
@@ -794,9 +841,9 @@ wss.on("connection", (ws, req) => {
     }
 
     if (msg.type === "join") {
-      const name = String(msg.name);
+      let name = String(msg.name);
       // Check if IP is blocked
-      checkBlocked(connIp).then((block) => {
+      checkBlocked(connIp).then(async (block) => {
         if (block) {
           ws.send(
             JSON.stringify({
@@ -807,6 +854,15 @@ wss.on("connection", (ws, req) => {
           );
           setTimeout(() => ws.close(), 500);
           return;
+        }
+        // Enforce IP → name lock
+        const lockedName = await getLockedName(connIp);
+        if (lockedName) {
+          name = lockedName;
+          ws.send(JSON.stringify({ type: "name-locked", name: lockedName }));
+        } else {
+          // First time from this IP — save the name
+          await saveNameLock(connIp, name);
         }
         users.set(connId, { ws, name, roomId: null, ip: connIp });
         ws.send(JSON.stringify({ type: "id", id: connId }));
@@ -912,6 +968,36 @@ wss.on("connection", (ws, req) => {
           if (r) broadcastRoomUpsert(r);
         }
       }
+    }
+
+    if (msg.type === "change-name") {
+      const user = users.get(connId);
+      if (!user) return;
+      const newName = String(msg.name || "").trim();
+      if (newName.length < 2 || newName.length > 20) return;
+      const oldName = user.name;
+      user.name = newName;
+      // Update in any room
+      if (user.roomId) {
+        const room = rooms.get(user.roomId);
+        if (room) {
+          const person = room.people.find((p) => p.id === connId);
+          if (person) person.name = newName;
+          if (room.hostId === connId) room.hostName = newName;
+          broadcastRoomUpsert(room);
+        }
+      }
+      // Update name lock in DB
+      if (user.ip) {
+        const dbUrl = process.env.DATABASE_URL;
+        if (dbUrl) {
+          const sql = neon(dbUrl);
+          sql`UPDATE user_names SET name = ${newName}, updated_at = NOW() WHERE ip = ${user.ip}`.catch(
+            () => {}
+          );
+        }
+      }
+      ws.send(JSON.stringify({ type: "name-changed", oldName, newName }));
     }
 
     if (msg.type === "signal") {

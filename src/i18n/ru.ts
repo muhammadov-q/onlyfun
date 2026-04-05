@@ -131,6 +131,16 @@ export default {
   "events.retry": "попробовать снова",
   "events.button": "События",
 
+  // Profile / Edit name
+  "profile.editName": "Изменить имя",
+  "profile.editNameHint": "Изменить своё имя",
+  "profile.namePlaceholder": "Твоё имя",
+  "profile.save": "Сохранить",
+  "profile.cancel": "Отмена",
+  "profile.nameChanged": "Твоё имя изменено на",
+  "profile.welcomeBack": "С возвращением",
+  "profile.renameHint": "Хочешь другое имя? Можешь изменить его в меню профиля.",
+
   // Sponsor
   "sponsor.title": "Спонсор недели",
 } as const;

@@ -219,15 +219,18 @@ function useMusic() {
   return { playing, toggle, pause, duck, unduck };
 }
 
-export function PixelCanvas({ name }: { name: string }) {
+export function PixelCanvas({ name: initialName }: { name: string }) {
   const { t, locale } = useI18n();
-  const party = useParty(name);
+  const party = useParty(initialName);
+  const name = party.effectiveName;
   const [showCreate, setShowCreate] = useState<{ lat: number; lng: number } | null>(null);
   const [placing, setPlacing] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showWeather, setShowWeather] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
   const [showPanel, setShowPanel] = useState(false);
   const [banToast, setBanToast] = useState<string | null>(null);
   const [warnOverlay, setWarnOverlay] = useState<string | null>(null);
@@ -275,6 +278,16 @@ export function PixelCanvas({ name }: { name: string }) {
     };
   }, [party.onAdminWarn]);
 
+  // Admin rename overlay
+  useEffect(() => {
+    party.onAdminRename.current = (newName: string) => {
+      setWarnOverlay(`${t("profile.nameChanged")} "${newName}"`);
+    };
+    return () => {
+      party.onAdminRename.current = undefined;
+    };
+  }, [party.onAdminRename, t]);
+
   // Admin block overlay
   useEffect(() => {
     party.onAdminBlock.current = (minutes: number, message: string) => {
@@ -317,6 +330,7 @@ export function PixelCanvas({ name }: { name: string }) {
     const handler = (e: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setShowProfile(false);
+        setEditingName(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -325,6 +339,7 @@ export function PixelCanvas({ name }: { name: string }) {
 
   const handleLogout = () => {
     localStorage.removeItem("onlyfun-name");
+    sessionStorage.setItem("onlyfun-logout", "1");
     window.location.reload();
   };
 
@@ -340,7 +355,7 @@ export function PixelCanvas({ name }: { name: string }) {
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-black">
       {/* Header */}
       <div
-        className="flex items-center justify-between px-3 sm:px-5 border-b border-white/10 shrink-0 z-10 bg-black"
+        className="flex items-center justify-between px-3 sm:px-5 border-b border-white/10 shrink-0 z-[450] bg-black"
         style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top))", paddingBottom: "0.625rem" }}
       >
         <div className="flex items-center gap-3">
@@ -396,7 +411,7 @@ export function PixelCanvas({ name }: { name: string }) {
                 <span className="text-xs text-white font-medium">{weather.temp}°</span>
               </button>
               {showWeather && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 rounded-2xl border border-white/10 shadow-2xl p-4 z-50 animate-in">
+                <div className="absolute right-0 top-full mt-2 w-64 bg-zinc-900 rounded-2xl border border-white/10 shadow-2xl p-4 z-[460] animate-in">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-1.5">
@@ -476,15 +491,82 @@ export function PixelCanvas({ name }: { name: string }) {
                 </svg>
               </button>
               {showProfile && (
-                <div className="absolute right-0 top-full mt-2 w-52 bg-zinc-900 rounded-2xl border border-white/10 shadow-2xl z-50 animate-in overflow-hidden">
-                  {/* User info */}
-                  <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5">
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-black uppercase shrink-0">
-                      {name[0]}
+                <div className="absolute right-0 top-full mt-2 w-56 bg-zinc-900 rounded-2xl border border-white/10 shadow-2xl z-[460] animate-in overflow-hidden">
+                  {/* User info / edit name */}
+                  {editingName ? (
+                    <form
+                      className="px-4 py-3 border-b border-white/5"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (nameInput.trim().length >= 2) {
+                          party.changeName(nameInput.trim());
+                          setEditingName(false);
+                        }
+                      }}
+                    >
+                      <p className="text-[11px] text-white/40 mb-2">{t("profile.editNameHint")}</p>
+                      <input
+                        autoFocus
+                        value={nameInput}
+                        onChange={(e) => setNameInput(e.target.value)}
+                        maxLength={20}
+                        className="w-full bg-white/10 text-white text-sm px-3 py-2 rounded-xl border border-white/20 focus:outline-none focus:border-white/40 placeholder-white/20"
+                        placeholder={t("profile.namePlaceholder")}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setEditingName(false);
+                        }}
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingName(false)}
+                          className="flex-1 text-xs text-white/50 hover:text-white py-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                        >
+                          {t("profile.cancel")}
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={nameInput.trim().length < 2 || nameInput.trim() === name}
+                          className="flex-1 text-xs text-white font-medium py-1.5 rounded-lg bg-white/10 hover:bg-white/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          {t("profile.save")}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5">
+                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-black uppercase shrink-0">
+                        {name[0]}
+                      </div>
+                      <span className="text-sm font-medium text-white truncate">{name}</span>
                     </div>
-                    <span className="text-sm font-medium text-white truncate">{name}</span>
-                  </div>
+                  )}
                   <div className="py-1">
+                    {/* Edit name */}
+                    {!editingName && (
+                      <button
+                        onClick={() => {
+                          setNameInput(name);
+                          setEditingName(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-white/5 transition-colors"
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="text-white/40"
+                        >
+                          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                        </svg>
+                        <span className="text-sm text-white/60">{t("profile.editName")}</span>
+                      </button>
+                    )}
                     {/* Language */}
                     <div className="flex items-center justify-between px-4 py-2.5 hover:bg-white/5 transition-colors">
                       <span className="text-sm text-white/60">{t("nav.language")}</span>
@@ -504,7 +586,7 @@ export function PixelCanvas({ name }: { name: string }) {
                     {/* Logout */}
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-white/5 transition-colors text-red-400"
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-white/5 transition-colors text-red-400"
                     >
                       <svg
                         width="14"
@@ -1278,7 +1360,10 @@ export function PixelCanvas({ name }: { name: string }) {
         <div
           className="fixed inset-0 z-[500] flex items-start sm:hidden bg-black/60"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setShowMore(false);
+            if (e.target === e.currentTarget) {
+              setShowMore(false);
+              setEditingName(false);
+            }
           }}
         >
           <div
@@ -1287,12 +1372,79 @@ export function PixelCanvas({ name }: { name: string }) {
           >
             <div className="px-4 pb-4 space-y-1">
               {/* Username row */}
-              <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/5">
-                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-black uppercase shrink-0">
-                  {name[0]}
+              {editingName ? (
+                <form
+                  className="px-3 py-3 rounded-xl bg-white/5"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (nameInput.trim().length >= 2) {
+                      party.changeName(nameInput.trim());
+                      setEditingName(false);
+                    }
+                  }}
+                >
+                  <p className="text-[11px] text-white/40 mb-2">{t("profile.editNameHint")}</p>
+                  <input
+                    autoFocus
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    maxLength={20}
+                    className="w-full bg-white/10 text-white text-sm px-3 py-2.5 rounded-xl border border-white/20 focus:outline-none focus:border-white/40 placeholder-white/20"
+                    placeholder={t("profile.namePlaceholder")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setEditingName(false);
+                    }}
+                  />
+                  <div className="flex gap-2 mt-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditingName(false)}
+                      className="flex-1 text-sm text-white/50 py-2 rounded-xl hover:bg-white/5 transition-colors"
+                    >
+                      {t("profile.cancel")}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={nameInput.trim().length < 2 || nameInput.trim() === name}
+                      className="flex-1 text-sm text-white font-medium py-2 rounded-xl bg-white/10 hover:bg-white/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      {t("profile.save")}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/5">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-black uppercase shrink-0">
+                    {name[0]}
+                  </div>
+                  <span className="flex-1 text-sm font-medium text-white truncate">{name}</span>
                 </div>
-                <span className="text-sm font-medium text-white truncate">{name}</span>
-              </div>
+              )}
+              {/* Edit name */}
+              {!editingName && (
+                <button
+                  onClick={() => {
+                    setNameInput(name);
+                    setEditingName(true);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-white/40"
+                  >
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                  </svg>
+                  <span className="text-sm text-white/60">{t("profile.editName")}</span>
+                </button>
+              )}
               {/* Lang */}
               <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-white/5">
                 <span className="text-sm text-white/60">{t("nav.language")}</span>
@@ -1312,7 +1464,7 @@ export function PixelCanvas({ name }: { name: string }) {
               {/* Logout */}
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors text-red-400"
+                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors text-red-400"
               >
                 <svg
                   width="14"
