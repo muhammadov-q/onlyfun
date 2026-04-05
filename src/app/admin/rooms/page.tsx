@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { RefreshCw } from "lucide-react";
+import { RefreshButton } from "@/components/admin/refresh-button";
+import { PageLoader } from "@/components/admin/page-loader";
 
 interface RoomData {
   id: string;
@@ -52,7 +52,7 @@ export default function AdminRoomsPage() {
   }, [fetchRooms]);
 
   if (loading) {
-    return <div className="p-8 text-muted-foreground text-sm">Loading rooms...</div>;
+    return <PageLoader text="Loading rooms..." />;
   }
 
   return (
@@ -64,14 +64,11 @@ export default function AdminRoomsPage() {
             {rooms.length} real rooms &middot; {seedCount} seed rooms &middot; auto-refresh 10s
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchRooms}>
-          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-          Refresh
-        </Button>
+        <RefreshButton onRefresh={fetchRooms} />
       </div>
 
       {error && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-destructive text-sm mb-6">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 text-destructive text-sm mb-6">
           {error}
         </div>
       )}
@@ -81,7 +78,7 @@ export default function AdminRoomsPage() {
           No real rooms active right now
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-muted-foreground text-xs text-left">

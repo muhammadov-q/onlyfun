@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { RefreshCw, Eye, EyeOff, Trash2, ExternalLink, Pencil, X, Check, Zap } from "lucide-react";
+import { Eye, EyeOff, Trash2, ExternalLink, Pencil, Zap } from "lucide-react";
+import { RefreshButton } from "@/components/admin/refresh-button";
+import { PageLoader } from "@/components/admin/page-loader";
 
 interface NewsRow {
   id: string;
@@ -27,13 +29,11 @@ function timeAgo(iso: string) {
 }
 
 export default function AdminNewsPage() {
+  const router = useRouter();
   const [items, setItems] = useState<NewsRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<NewsRow>>({});
-  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [scraping, setScraping] = useState(false);
 
@@ -112,51 +112,8 @@ export default function AdminNewsPage() {
     });
   }
 
-  function startEdit(item: NewsRow) {
-    setEditingId(item.id);
-    setEditForm({
-      headline: item.headline,
-      headline_ru: item.headline_ru,
-      line1: item.line1,
-      line1_ru: item.line1_ru,
-      mode_suggestion: item.mode_suggestion,
-    });
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
-    setEditForm({});
-  }
-
-  async function saveEdit() {
-    if (!editingId) return;
-    setSaving(true);
-    await fetch("/api/admin/news", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editingId, ...editForm }),
-    });
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === editingId
-          ? {
-              ...i,
-              headline: editForm.headline ?? i.headline,
-              headline_ru: editForm.headline_ru ?? i.headline_ru,
-              line1: editForm.line1 ?? i.line1,
-              line1_ru: editForm.line1_ru ?? i.line1_ru,
-              mode_suggestion: editForm.mode_suggestion ?? i.mode_suggestion,
-            }
-          : i
-      )
-    );
-    setEditingId(null);
-    setEditForm({});
-    setSaving(false);
-  }
-
   if (loading) {
-    return <div className="p-8 text-muted-foreground text-sm">Loading news...</div>;
+    return <PageLoader text="Loading news..." />;
   }
 
   return (
@@ -197,82 +154,13 @@ export default function AdminNewsPage() {
             <Zap className="h-3.5 w-3.5 mr-1.5" />
             {scraping ? "Scraping..." : "Scrape Now"}
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchItems}>
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-            Refresh
-          </Button>
+          <RefreshButton onRefresh={fetchItems} />
         </div>
       </div>
 
       {error && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-destructive text-sm mb-6">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 text-destructive text-sm mb-6">
           {error}
-        </div>
-      )}
-
-      {/* Edit modal */}
-      {editingId && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={cancelEdit}
-        >
-          <div
-            className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Edit News Item</h3>
-              <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Headline (EN)</label>
-                <Input
-                  value={editForm.headline ?? ""}
-                  onChange={(e) => setEditForm((f) => ({ ...f, headline: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Headline (RU)</label>
-                <Input
-                  value={editForm.headline_ru ?? ""}
-                  onChange={(e) => setEditForm((f) => ({ ...f, headline_ru: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Summary (EN)</label>
-                <Input
-                  value={editForm.line1 ?? ""}
-                  onChange={(e) => setEditForm((f) => ({ ...f, line1: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Summary (RU)</label>
-                <Input
-                  value={editForm.line1_ru ?? ""}
-                  onChange={(e) => setEditForm((f) => ({ ...f, line1_ru: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Mode Suggestion</label>
-                <Input
-                  value={editForm.mode_suggestion ?? ""}
-                  onChange={(e) => setEditForm((f) => ({ ...f, mode_suggestion: e.target.value }))}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-5">
-              <Button variant="outline" size="sm" onClick={cancelEdit}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={saveEdit} disabled={saving}>
-                <Check className="h-3.5 w-3.5 mr-1.5" />
-                {saving ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          </div>
         </div>
       )}
 
@@ -281,7 +169,7 @@ export default function AdminNewsPage() {
           No news items in database
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-muted-foreground text-xs text-left">
@@ -305,11 +193,12 @@ export default function AdminNewsPage() {
               {items.map((item) => (
                 <tr
                   key={item.id}
-                  className={`border-b border-border last:border-0 hover:bg-accent/30 transition-colors ${
+                  onClick={() => router.push(`/admin/news/${item.id}`)}
+                  className={`border-b border-border last:border-0 hover:bg-accent/30 transition-colors cursor-pointer ${
                     !item.visible ? "opacity-50" : ""
                   } ${selected.has(item.id) ? "bg-accent/20" : ""}`}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selected.has(item.id)}
@@ -331,15 +220,16 @@ export default function AdminNewsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <a
-                      href={item.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(item.source_url, "_blank");
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 cursor-pointer"
                     >
                       {item.source}
                       <ExternalLink className="h-3 w-3" />
-                    </a>
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
@@ -349,13 +239,13 @@ export default function AdminNewsPage() {
                   <td className="px-4 py-3 text-muted-foreground text-xs">
                     {timeAgo(item.created_at)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0"
-                        onClick={() => startEdit(item)}
+                        onClick={() => router.push(`/admin/news/${item.id}`)}
                         title="Edit"
                       >
                         <Pencil className="h-3.5 w-3.5" />

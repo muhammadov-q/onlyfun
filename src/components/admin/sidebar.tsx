@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -57,6 +58,7 @@ export function AdminSidebar({ user }: { user: AdminUser }) {
     <aside className="fixed inset-y-0 left-0 w-56 border-r border-border bg-card flex flex-col z-30">
       {/* Logo */}
       <div className="h-14 flex items-center gap-2 px-5">
+        <Image src="/logo.svg" alt="onlyfun" width={28} height={28} className="invert" />
         <span className="text-base font-bold text-foreground">onlyfun</span>
         <span className="text-muted-foreground text-[10px] bg-muted px-1.5 py-0.5 rounded-full">
           admin
@@ -75,7 +77,7 @@ export function AdminSidebar({ user }: { user: AdminUser }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors ${
                 isActive
                   ? "bg-accent text-accent-foreground font-medium"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
@@ -91,7 +93,7 @@ export function AdminSidebar({ user }: { user: AdminUser }) {
       {/* User footer */}
       <div className="p-3 border-t border-border">
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors outline-none cursor-pointer">
+          <DropdownMenuTrigger className="flex items-center gap-3 w-full px-3 py-2 rounded-xl hover:bg-accent/50 transition-colors outline-none cursor-pointer">
             <Avatar className="h-7 w-7">
               <AvatarFallback className="bg-accent text-accent-foreground text-[10px]">
                 {initials}

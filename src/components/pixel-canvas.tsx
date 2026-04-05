@@ -362,7 +362,10 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
         style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top))", paddingBottom: "0.625rem" }}
       >
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold text-white tracking-tight">onlyfun</h1>
+          <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-1.5">
+            <img src="/logo.svg" alt="" className="h-6 w-6 invert" />
+            onlyfun
+          </h1>
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-white/40 text-xs hidden sm:inline">

@@ -3,32 +3,118 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageLoader } from "@/components/admin/page-loader";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+// Switch unused — using custom toggle
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  User,
+  Lock,
+  Key,
+  Bot,
+  Check,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Trash2,
+  Loader2,
+  Shield,
+  Zap,
+  Sparkles,
+  CircleDot,
+} from "lucide-react";
 
 type Msg = { type: "success" | "error"; text: string };
 
+const TABS = [
+  { id: "profile", label: "Profile", icon: User, desc: "Account details" },
+  { id: "security", label: "Security", icon: Shield, desc: "Password" },
+  { id: "api-keys", label: "API Keys", icon: Key, desc: "Integrations" },
+  { id: "ai", label: "AI", icon: Sparkles, desc: "Model & features" },
+] as const;
+
+type TabId = (typeof TABS)[number]["id"];
+
 export default function AdminSettingsPage() {
+  const [activeTab, setActiveTab] = useState<TabId>("profile");
+
   return (
-    <div className="p-8">
-      <h2 className="text-xl font-semibold">Settings</h2>
-      <p className="text-sm text-muted-foreground mt-1">Manage account and API keys</p>
+    <div className="p-6 md:p-8">
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold">Settings</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Manage your account, security, and integrations
+        </p>
+      </div>
 
-      <Separator className="my-6" />
+      {/* Tab navigation */}
+      <div className="flex gap-1 mb-8 border-b border-border/50">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors relative -mb-px ${
+                isActive
+                  ? "text-foreground border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="size-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
-      <ProfileSection />
+      {/* Tab content */}
+      {activeTab === "profile" && <ProfileSection />}
+      {activeTab === "security" && <PasswordSection />}
+      {activeTab === "api-keys" && <ApiKeysSection />}
+      {activeTab === "ai" && <AISettingsSection />}
+    </div>
+  );
+}
 
-      <Separator className="my-6" />
+/* ─── Alert ─── */
 
-      <PasswordSection />
+function Alert({ msg }: { msg: Msg | null }) {
+  if (!msg) return null;
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${
+        msg.type === "success"
+          ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+          : "bg-red-500/10 border border-red-500/20 text-red-400"
+      }`}
+    >
+      {msg.type === "success" ? (
+        <Check className="size-4 shrink-0" />
+      ) : (
+        <AlertCircle className="size-4 shrink-0" />
+      )}
+      {msg.text}
+    </div>
+  );
+}
 
-      <Separator className="my-6" />
+/* ─── Section header helper ─── */
 
-      <ApiKeysSection />
-
-      <Separator className="my-6" />
-
-      <AISettingsSection />
+function SectionHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="mb-6">
+      <h3 className="text-xl font-semibold tracking-tight">{title}</h3>
+      <p className="text-sm text-muted-foreground mt-1">{description}</p>
     </div>
   );
 }
@@ -72,7 +158,10 @@ function ProfileSection() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage({ type: "error", text: data.error || "Failed to update profile" });
+        setMessage({
+          type: "error",
+          text: data.error || "Failed to update profile",
+        });
         return;
       }
       setMessage({
@@ -86,28 +175,54 @@ function ProfileSection() {
     }
   }
 
-  if (loading) {
-    return <div className="text-sm text-muted-foreground">Loading profile...</div>;
-  }
+  if (loading) return <LoadingSkeleton />;
 
   return (
     <div>
-      <h3 className="text-base font-medium mb-4">Profile</h3>
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-        <Alert msg={message} />
-        <Field label="Name" id="profileName" value={name} onChange={setName} required />
-        <Field
-          label="Email"
-          id="profileEmail"
-          type="email"
-          value={email}
-          onChange={setEmail}
-          required
-        />
-        <Button type="submit" disabled={saving}>
-          {saving ? "Saving..." : "Save profile"}
-        </Button>
-      </form>
+      <SectionHeader title="Profile" description="Manage your admin account details" />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Personal information</CardTitle>
+          <CardDescription>
+            This is displayed in the admin sidebar and used for notifications
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Alert msg={message} />
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="profileName">Display name</Label>
+                <Input
+                  id="profileName"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profileEmail">Email address</Label>
+                <Input
+                  id="profileEmail"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@example.com"
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button type="submit" disabled={saving}>
+                {saving && <Loader2 className="size-4 mr-2 animate-spin" />}
+                {saving ? "Saving..." : "Save changes"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -120,6 +235,8 @@ function PasswordSection() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Msg | null>(null);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -130,7 +247,10 @@ function PasswordSection() {
       return;
     }
     if (newPassword.length < 6) {
-      setMessage({ type: "error", text: "New password must be at least 6 characters" });
+      setMessage({
+        type: "error",
+        text: "New password must be at least 6 characters",
+      });
       return;
     }
 
@@ -143,7 +263,10 @@ function PasswordSection() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage({ type: "error", text: data.error || "Failed to update password" });
+        setMessage({
+          type: "error",
+          text: data.error || "Failed to update password",
+        });
         return;
       }
       setMessage({ type: "success", text: "Password updated successfully" });
@@ -159,39 +282,79 @@ function PasswordSection() {
 
   return (
     <div>
-      <h3 className="text-base font-medium mb-4">Change password</h3>
-      <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-        <Alert msg={message} />
-        <Field
-          label="Current password"
-          id="currentPassword"
-          type="password"
-          value={currentPassword}
-          onChange={setCurrentPassword}
-          required
-        />
-        <Field
-          label="New password"
-          id="newPassword"
-          type="password"
-          value={newPassword}
-          onChange={setNewPassword}
-          required
-          minLength={6}
-        />
-        <Field
-          label="Confirm new password"
-          id="confirmPassword"
-          type="password"
-          value={confirmPassword}
-          onChange={setConfirmPassword}
-          required
-          minLength={6}
-        />
-        <Button type="submit" disabled={loading}>
-          {loading ? "Updating..." : "Update password"}
-        </Button>
-      </form>
+      <SectionHeader title="Security" description="Manage your password and account security" />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Change password</CardTitle>
+          <CardDescription>Minimum 6 characters. Use a strong, unique password.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Alert msg={message} />
+            <div className="space-y-2 max-w-md">
+              <Label htmlFor="currentPassword">Current password</Label>
+              <div className="relative">
+                <Input
+                  id="currentPassword"
+                  type={showCurrent ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent(!showCurrent)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showCurrent ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New password</Label>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showNew ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNew(!showNew)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showNew ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm new password</Label>
+                <Input
+                  id="confirmPassword"
+                  type={showNew ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="size-4 mr-2 animate-spin" />}
+                {loading ? "Updating..." : "Update password"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -202,6 +365,21 @@ interface KeyState {
   masked: string;
   isSet: boolean;
 }
+
+const API_KEY_CONFIG = [
+  {
+    key: "gemini_api_key",
+    label: "Gemini API Key",
+    description: "Powers AI features like ice-breakers and topic suggestions",
+    icon: Sparkles,
+  },
+  {
+    key: "google_maps_key",
+    label: "Google Maps Key",
+    description: "Used for map embeds and location services",
+    icon: CircleDot,
+  },
+] as const;
 
 function ApiKeysSection() {
   const [keys, setKeys] = useState<Record<string, KeyState>>({});
@@ -222,48 +400,50 @@ function ApiKeysSection() {
     fetchKeys();
   }, [fetchKeys]);
 
-  if (loading) {
-    return <div className="text-sm text-muted-foreground">Loading keys...</div>;
-  }
+  if (loading) return <LoadingSkeleton />;
 
   return (
     <div>
-      <h3 className="text-base font-medium mb-1">API Keys</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        Keys are encrypted at rest. Saved values are never shown in full.
-      </p>
+      <SectionHeader
+        title="API Keys"
+        description="Manage third-party API keys. All keys are encrypted at rest."
+      />
 
-      <div className="space-y-6 max-w-md">
-        <ApiKeyField
-          label="Gemini API Key"
-          settingKey="gemini_api_key"
-          current={keys.gemini_api_key}
-          onSaved={fetchKeys}
-        />
-        <ApiKeyField
-          label="Google Maps Key"
-          settingKey="google_maps_key"
-          current={keys.google_maps_key}
-          onSaved={fetchKeys}
-        />
+      <div className="grid gap-4 lg:grid-cols-2">
+        {API_KEY_CONFIG.map((cfg) => (
+          <ApiKeyCard
+            key={cfg.key}
+            label={cfg.label}
+            description={cfg.description}
+            icon={cfg.icon}
+            settingKey={cfg.key}
+            current={keys[cfg.key]}
+            onSaved={fetchKeys}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-function ApiKeyField({
+function ApiKeyCard({
   label,
+  description,
+  icon: Icon,
   settingKey,
   current,
   onSaved,
 }: {
   label: string;
+  description: string;
+  icon: typeof Sparkles;
   settingKey: string;
   current?: KeyState;
   onSaved: () => void;
 }) {
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [message, setMessage] = useState<Msg | null>(null);
 
   async function handleSave() {
@@ -280,7 +460,7 @@ function ApiKeyField({
         setMessage({ type: "error", text: data.error || "Failed to save" });
         return;
       }
-      setMessage({ type: "success", text: value ? "Key saved" : "Key removed" });
+      setMessage({ type: "success", text: "Key saved" });
       setValue("");
       onSaved();
     } catch {
@@ -290,53 +470,117 @@ function ApiKeyField({
     }
   }
 
+  async function handleRemove() {
+    setRemoving(true);
+    setMessage(null);
+    try {
+      await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: settingKey, value: "" }),
+      });
+      setMessage({ type: "success", text: "Key removed" });
+      setValue("");
+      onSaved();
+    } catch {
+      setMessage({ type: "error", text: "Something went wrong" });
+    } finally {
+      setRemoving(false);
+    }
+  }
+
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      {current?.isSet && (
-        <p className="text-xs text-muted-foreground font-mono">Current: {current.masked}</p>
-      )}
-      <div className="flex gap-2">
-        <Input
-          type="password"
-          placeholder={current?.isSet ? "Enter new key to replace" : "Paste API key"}
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        />
-        <Button variant="outline" disabled={saving || !value.trim()} onClick={handleSave}>
-          {saving ? "..." : "Save"}
-        </Button>
-      </div>
-      {current?.isSet && (
-        <button
-          type="button"
-          onClick={() => {
-            setValue("");
-            setSaving(true);
-            fetch("/api/admin/settings", {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ key: settingKey, value: "" }),
-            })
-              .then(() => onSaved())
-              .finally(() => setSaving(false));
-          }}
-          className="text-xs text-destructive hover:underline"
-        >
-          Remove key
-        </button>
-      )}
-      <Alert msg={message} />
-    </div>
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div
+              className={`p-2 rounded-xl shrink-0 ${current?.isSet ? "bg-emerald-500/10 text-emerald-400" : "bg-muted text-muted-foreground"}`}
+            >
+              <Icon className="size-4" />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-sm font-semibold">{label}</CardTitle>
+                {current?.isSet ? (
+                  <Badge
+                    variant="outline"
+                    className="text-emerald-400 border-emerald-500/30 text-[11px] px-1.5 py-0"
+                  >
+                    Active
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="text-muted-foreground text-[11px] px-1.5 py-0"
+                  >
+                    Not set
+                  </Badge>
+                )}
+              </div>
+              <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
+            </div>
+          </div>
+          {current?.isSet && (
+            <button
+              type="button"
+              onClick={handleRemove}
+              disabled={removing}
+              className="shrink-0 p-1.5 rounded-xl text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              title="Remove key"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <Alert msg={message} />
+          {current?.isSet && (
+            <div className="font-mono text-xs text-muted-foreground bg-muted/30 rounded-xl px-3 py-2 border border-border/30">
+              {current.masked}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Input
+              type="password"
+              placeholder={current?.isSet ? "Enter new key to replace" : "Paste API key"}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              className="flex-1"
+            />
+            <Button disabled={saving || !value.trim()} onClick={handleSave}>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : "Save"}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
 /* ─── AI Settings ─── */
 
 const AI_MODELS = [
-  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (fast, cheap)" },
-  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro (smarter, costly)" },
-  { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash (legacy)" },
+  {
+    value: "gemini-2.5-flash",
+    label: "Gemini 2.5 Flash",
+    description: "Fast & affordable",
+    icon: Zap,
+  },
+  {
+    value: "gemini-2.5-pro",
+    label: "Gemini 2.5 Pro",
+    description: "Higher quality, higher cost",
+    icon: Sparkles,
+  },
+  {
+    value: "gemini-2.0-flash",
+    label: "Gemini 2.0 Flash",
+    description: "Legacy model",
+    icon: Bot,
+  },
 ];
 
 function AISettingsSection() {
@@ -395,8 +639,8 @@ function AISettingsSection() {
     }
   }
 
-  async function handleModelChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const newModel = e.target.value;
+  async function handleModelChange(newModel: string | null) {
+    if (!newModel) return;
     const ok = await saveSetting("ai_model", newModel);
     if (ok) {
       setModel(newModel);
@@ -404,117 +648,118 @@ function AISettingsSection() {
     }
   }
 
-  if (loading) {
-    return <div className="text-sm text-muted-foreground">Loading AI settings...</div>;
-  }
+  if (loading) return <LoadingSkeleton />;
 
   return (
     <div>
-      <h3 className="text-base font-medium mb-1">AI Settings</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        Control AI usage across the platform. Disabling AI will use fallback/template-based content
-        instead.
-      </p>
+      <SectionHeader
+        title="AI Configuration"
+        description="Control AI-powered features across the platform"
+      />
 
-      <div className="space-y-5 max-w-md">
-        <Alert msg={message} />
-
-        {/* Toggle */}
-        <div className="flex items-center justify-between rounded-lg border p-4">
-          <div>
-            <Label className="text-sm font-medium">Enable AI features</Label>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Ice-breakers, topics, news summaries
-            </p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            disabled={saving}
-            onClick={handleToggle}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-              enabled ? "bg-primary" : "bg-muted"
-            }`}
-          >
-            <span
-              className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 ease-in-out ${
-                enabled ? "translate-x-5" : "translate-x-0"
-              }`}
-            />
-          </button>
-        </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Master toggle */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div
+                  className={`p-2 rounded-xl shrink-0 ${enabled ? "bg-emerald-500/10 text-emerald-400" : "bg-muted text-muted-foreground"}`}
+                >
+                  <Sparkles className="size-4" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle>AI Features</CardTitle>
+                    {enabled ? (
+                      <Badge
+                        variant="outline"
+                        className="text-emerald-400 border-emerald-500/30 text-[11px] px-1.5 py-0"
+                      >
+                        On
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-muted-foreground text-[11px] px-1.5 py-0"
+                      >
+                        Off
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription>
+                    Ice-breakers, topic suggestions, and news summaries. Disabling falls back to
+                    templates.
+                  </CardDescription>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={enabled}
+                disabled={saving}
+                onClick={handleToggle}
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${
+                  enabled ? "bg-emerald-500" : "bg-muted-foreground/30"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block size-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ${
+                    enabled ? "translate-x-[22px]" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          </CardHeader>
+          {message && (
+            <CardContent>
+              <Alert msg={message} />
+            </CardContent>
+          )}
+        </Card>
 
         {/* Model selector */}
-        <div className="space-y-2">
-          <Label htmlFor="aiModel">AI Model</Label>
-          <select
-            id="aiModel"
-            value={model}
-            onChange={handleModelChange}
-            disabled={saving || !enabled}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {AI_MODELS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-muted-foreground">
-            Flash models are faster and cheaper. Pro models produce better quality but cost more.
-          </p>
-        </div>
+        <Card
+          className={`transition-opacity duration-200 ${!enabled ? "opacity-40 pointer-events-none select-none" : ""}`}
+        >
+          <CardHeader>
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-muted text-muted-foreground shrink-0">
+                <Bot className="size-4" />
+              </div>
+              <div className="space-y-1">
+                <CardTitle>Model</CardTitle>
+                <CardDescription>
+                  Flash is faster and cheaper. Pro produces better quality.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Select value={model} onValueChange={handleModelChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {AI_MODELS.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    <span className="flex items-center gap-2">
+                      {m.label}
+                      <span className="text-muted-foreground text-xs">— {m.description}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
 
-/* ─── Shared ─── */
+/* ─── Loading skeleton ─── */
 
-function Field({
-  label,
-  id,
-  type = "text",
-  value,
-  onChange,
-  required,
-  minLength,
-}: {
-  label: string;
-  id: string;
-  type?: string;
-  value: string;
-  onChange: (v: string) => void;
-  required?: boolean;
-  minLength?: number;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-        minLength={minLength}
-      />
-    </div>
-  );
-}
-
-function Alert({ msg }: { msg: Msg | null }) {
-  if (!msg) return null;
-  return (
-    <div
-      className={`rounded-lg px-4 py-3 text-sm ${
-        msg.type === "success"
-          ? "bg-green-500/10 border border-green-500/20 text-green-400"
-          : "bg-destructive/10 border border-destructive/20 text-destructive"
-      }`}
-    >
-      {msg.text}
-    </div>
-  );
+function LoadingSkeleton() {
+  return <PageLoader />;
 }

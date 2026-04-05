@@ -61,7 +61,10 @@ export default function Home() {
         </div>
         <div className="w-full max-w-sm px-6 text-center">
           <div className="mb-8">
-            <h1 className="text-5xl font-bold text-white mb-3 tracking-tight">onlyfun</h1>
+            <h1 className="text-5xl font-bold text-white mb-3 tracking-tight flex items-center justify-center gap-3">
+              <img src="/logo.svg" alt="" className="h-12 w-12 invert" />
+              onlyfun
+            </h1>
             <p className="text-white/40 text-sm leading-relaxed">
               {t("landing.tagline1")}
               <br />
@@ -108,7 +111,10 @@ export default function Home() {
 
         <div className="w-full max-w-sm px-6 text-center">
           <div className="mb-10">
-            <h1 className="text-5xl font-bold text-white mb-3 tracking-tight">onlyfun</h1>
+            <h1 className="text-5xl font-bold text-white mb-3 tracking-tight flex items-center justify-center gap-3">
+              <img src="/logo.svg" alt="" className="h-12 w-12 invert" />
+              onlyfun
+            </h1>
             <p className="text-white/40 text-sm leading-relaxed">
               {t("landing.tagline1")}
               <br />

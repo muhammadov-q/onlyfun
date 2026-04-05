@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { RefreshCw, Eye, EyeOff, Trash2, ExternalLink, Pencil, X, Check, Zap } from "lucide-react";
+import { Eye, EyeOff, Trash2, ExternalLink, Pencil, Zap } from "lucide-react";
+import { RefreshButton } from "@/components/admin/refresh-button";
+import { PageLoader } from "@/components/admin/page-loader";
 
 interface EventRow {
   id: string;
@@ -28,13 +30,11 @@ function timeAgo(iso: string) {
 }
 
 export default function AdminEventsPage() {
+  const router = useRouter();
   const [items, setItems] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<EventRow>>({});
-  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [scraping, setScraping] = useState(false);
 
@@ -113,51 +113,8 @@ export default function AdminEventsPage() {
     });
   }
 
-  function startEdit(item: EventRow) {
-    setEditingId(item.id);
-    setEditForm({
-      title: item.title,
-      venue: item.venue,
-      date_text: item.date_text,
-      price: item.price,
-      category: item.category,
-    });
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
-    setEditForm({});
-  }
-
-  async function saveEdit() {
-    if (!editingId) return;
-    setSaving(true);
-    await fetch("/api/admin/events", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editingId, ...editForm }),
-    });
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === editingId
-          ? {
-              ...i,
-              title: editForm.title ?? i.title,
-              venue: editForm.venue ?? i.venue,
-              date_text: editForm.date_text ?? i.date_text,
-              price: editForm.price ?? i.price,
-              category: editForm.category ?? i.category,
-            }
-          : i
-      )
-    );
-    setEditingId(null);
-    setEditForm({});
-    setSaving(false);
-  }
-
   if (loading) {
-    return <div className="p-8 text-muted-foreground text-sm">Loading events...</div>;
+    return <PageLoader text="Loading events..." />;
   }
 
   return (
@@ -198,84 +155,13 @@ export default function AdminEventsPage() {
             <Zap className="h-3.5 w-3.5 mr-1.5" />
             {scraping ? "Scraping..." : "Scrape Now"}
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchItems}>
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-            Refresh
-          </Button>
+          <RefreshButton onRefresh={fetchItems} />
         </div>
       </div>
 
       {error && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-3 text-destructive text-sm mb-6">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 text-destructive text-sm mb-6">
           {error}
-        </div>
-      )}
-
-      {/* Edit modal */}
-      {editingId && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={cancelEdit}
-        >
-          <div
-            className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Edit Event</h3>
-              <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Title</label>
-                <Input
-                  value={editForm.title ?? ""}
-                  onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Venue</label>
-                <Input
-                  value={editForm.venue ?? ""}
-                  onChange={(e) => setEditForm((f) => ({ ...f, venue: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Date</label>
-                <Input
-                  value={editForm.date_text ?? ""}
-                  onChange={(e) => setEditForm((f) => ({ ...f, date_text: e.target.value }))}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Price</label>
-                  <Input
-                    value={editForm.price ?? ""}
-                    onChange={(e) => setEditForm((f) => ({ ...f, price: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Category</label>
-                  <Input
-                    value={editForm.category ?? ""}
-                    onChange={(e) => setEditForm((f) => ({ ...f, category: e.target.value }))}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-5">
-              <Button variant="outline" size="sm" onClick={cancelEdit}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={saveEdit} disabled={saving}>
-                <Check className="h-3.5 w-3.5 mr-1.5" />
-                {saving ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          </div>
         </div>
       )}
 
@@ -284,7 +170,7 @@ export default function AdminEventsPage() {
           No events in database yet. Events will appear after the first scrape.
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-muted-foreground text-xs text-left">
@@ -310,11 +196,12 @@ export default function AdminEventsPage() {
               {items.map((item) => (
                 <tr
                   key={item.id}
-                  className={`border-b border-border last:border-0 hover:bg-accent/30 transition-colors ${
+                  onClick={() => router.push(`/admin/events/${item.id}`)}
+                  className={`border-b border-border last:border-0 hover:bg-accent/30 transition-colors cursor-pointer ${
                     !item.visible ? "opacity-50" : ""
                   } ${selected.has(item.id) ? "bg-accent/20" : ""}`}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selected.has(item.id)}
@@ -331,15 +218,16 @@ export default function AdminEventsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="font-medium truncate max-w-[200px]">{item.title}</div>
-                    <a
-                      href={item.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mt-0.5"
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(item.source_url, "_blank");
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mt-0.5 cursor-pointer"
                     >
                       iticket
                       <ExternalLink className="h-3 w-3" />
-                    </a>
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-xs truncate max-w-[140px]">
                     {item.venue || "—"}
@@ -366,13 +254,13 @@ export default function AdminEventsPage() {
                   <td className="px-4 py-3 text-muted-foreground text-xs">
                     {timeAgo(item.created_at)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0"
-                        onClick={() => startEdit(item)}
+                        onClick={() => router.push(`/admin/events/${item.id}`)}
                         title="Edit"
                       >
                         <Pencil className="h-3.5 w-3.5" />

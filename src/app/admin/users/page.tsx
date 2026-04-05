@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { RefreshButton } from "@/components/admin/refresh-button";
+import { PageLoader } from "@/components/admin/page-loader";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  RefreshCw,
+  // RefreshCw removed — using RefreshButton
   MoreHorizontal,
   AlertTriangle,
   Ban,
@@ -249,7 +251,7 @@ export default function AdminUsersPage() {
   }
 
   if (loading) {
-    return <div className="p-8 text-muted-foreground text-sm">Loading users...</div>;
+    return <PageLoader text="Loading users..." />;
   }
 
   return (
@@ -262,10 +264,7 @@ export default function AdminUsersPage() {
             {users.length} online &middot; auto-refresh 10s
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchData}>
-          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-          Refresh
-        </Button>
+        <RefreshButton onRefresh={fetchData} />
       </div>
 
       {/* Connected users table */}
@@ -274,7 +273,7 @@ export default function AdminUsersPage() {
           No users connected right now
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-muted-foreground text-xs text-left">
@@ -309,7 +308,7 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <DropdownMenu>
-                        <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors cursor-pointer">
+                        <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 w-7 rounded-xl hover:bg-accent transition-colors cursor-pointer">
                           <MoreHorizontal className="h-4 w-4" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44">
@@ -372,7 +371,7 @@ export default function AdminUsersPage() {
         </h3>
 
         {blocked.length > 0 && (
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground text-xs text-left">
@@ -439,7 +438,7 @@ export default function AdminUsersPage() {
         </p>
 
         {nameLocks.length > 0 && (
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground text-xs text-left">
