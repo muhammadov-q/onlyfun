@@ -200,7 +200,10 @@ export function BishkekPulseFeed({
   }
 
   return (
-    <div ref={scrollRef} className="flex flex-col gap-2 overflow-y-auto snap-y snap-mandatory h-[200px] hide-scrollbar">
+    <div
+      ref={scrollRef}
+      className="flex flex-col gap-2 overflow-y-auto snap-y snap-mandatory h-[200px] hide-scrollbar"
+    >
       {items.map((item) => {
         const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
         const existingRoom = rooms.find((r) => r.topic === topic);
