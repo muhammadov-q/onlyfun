@@ -49,7 +49,7 @@ function NewsCard({
   const mode = ROOM_MODES_MAP[item.modeSuggestion];
 
   return (
-    <div className="snap-start shrink-0 bg-white/[0.12] border border-white/[0.12] rounded-xl p-3">
+    <div className="snap-start shrink-0 h-full bg-white/[0.12] border border-white/[0.12] rounded-xl p-3">
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <h4 className="text-xs font-semibold text-white/90 leading-tight">{headline}</h4>
         {mode && (
@@ -182,7 +182,9 @@ export function BishkekPulseFeed({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      className="flex flex-col gap-2 overflow-y-auto snap-y snap-mandatory h-[170px] hide-scrollbar"
+    >
       {items.map((item) => {
         const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
         const existingRoom = rooms.find((r) => r.topic === topic);

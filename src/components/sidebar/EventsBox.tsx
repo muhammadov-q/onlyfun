@@ -44,7 +44,7 @@ function EventCard({
   const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
 
   return (
-    <div className="shrink-0 bg-white/[0.12] border border-white/[0.12] rounded-xl overflow-hidden">
+    <div className="snap-start shrink-0 h-full bg-white/[0.12] border border-white/[0.12] rounded-xl overflow-hidden">
       <div className="p-3">
         {/* Title */}
         <div className="mb-1.5">
@@ -241,7 +241,9 @@ export function EventsBox({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      className="flex flex-col gap-2 overflow-y-auto snap-y snap-mandatory h-[170px] hide-scrollbar"
+    >
       {items.map((item) => {
         const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
         const existingRoom = rooms.find((r) => r.topic === topic);
