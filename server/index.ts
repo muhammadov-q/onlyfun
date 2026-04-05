@@ -348,9 +348,11 @@ async function getLockedName(ip: string, deviceId?: string | null): Promise<stri
         return rows[0].name;
       }
     }
-    // Fall back to IP (legacy entries without device_id)
-    const rows = await sql`SELECT name FROM user_names WHERE ip = ${ip} LIMIT 1`;
-    console.log(`[name-lock] lookup ip=${ip} => ${rows[0]?.name ?? "(none)"}`);
+    // Fall back to IP only for legacy rows that have NO device_id.
+    // Rows with a device_id belong to a specific browser and must not
+    // match other devices that happen to share the same IP (same WiFi).
+    const rows = await sql`SELECT name FROM user_names WHERE ip = ${ip} AND device_id IS NULL LIMIT 1`;
+    console.log(`[name-lock] lookup ip=${ip} (legacy only) => ${rows[0]?.name ?? "(none)"}`);
     return rows[0]?.name ?? null;
   } catch (e) {
     console.error("[name-lock] getLockedName error:", e);
@@ -466,7 +468,8 @@ async function isAppClosed(): Promise<boolean> {
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) return false;
     const sql = neon(dbUrl);
-    const rows = await sql`SELECT key, value FROM app_settings WHERE key IN ('night_mode_enabled', 'operating_start_time', 'operating_end_time')`;
+    const rows =
+      await sql`SELECT key, value FROM app_settings WHERE key IN ('night_mode_enabled', 'operating_start_time', 'operating_end_time')`;
     const settings: Record<string, string> = {};
     for (const r of rows) settings[r.key] = r.value;
     if (settings.night_mode_enabled !== "true") return false;
@@ -949,7 +952,7 @@ const server = http.createServer((req, res) => {
       (typeof fwd === "string" ? fwd.split(",")[0].trim() : req.socket.remoteAddress) || "unknown";
     if (ip.startsWith("::ffff:")) ip = ip.slice(7);
 
-    getLockedName(ip)
+    getLockedName(ip, null)
       .then((name) => {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ name: name || null }));
