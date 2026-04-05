@@ -530,30 +530,30 @@ export function PixelCanvas({ name }: { name: string }) {
 
           {/* Mobile-only: sound toggle + more menu */}
           <div className="sm:hidden flex items-center gap-1.5">
-          <button
-            onClick={() => music.toggle()}
-            className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${music.playing ? "bg-white/15 border-white/20 text-white" : "bg-white/5 border-white/10 text-white/40 active:text-white"}`}
-          >
-            {music.playing ? <SpeakerIcon /> : <SpeakerOffIcon />}
-          </button>
-          <button
-            onClick={() => setShowMore(true)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-white/40 border border-white/10 active:text-white transition-all"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
+            <button
+              onClick={() => music.toggle()}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${music.playing ? "bg-white/15 border-white/20 text-white" : "bg-white/5 border-white/10 text-white/40 active:text-white"}`}
             >
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
+              {music.playing ? <SpeakerIcon /> : <SpeakerOffIcon />}
+            </button>
+            <button
+              onClick={() => setShowMore(true)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-white/40 border border-white/10 active:text-white transition-all"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>

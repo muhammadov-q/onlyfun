@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useI18n } from "@/i18n";
 import type { SidebarEventItem } from "@/types/events";
 import type { RoomModeId } from "@/types/room";
@@ -190,6 +190,8 @@ export function EventsBox({
   const [items, setItems] = useState<SidebarEventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef(0);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -210,6 +212,22 @@ export function EventsBox({
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  // Auto-scroll to next card every 10s
+  const count = items.length;
+  useEffect(() => {
+    if (count <= 1) return;
+    const id = setInterval(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      activeRef.current = (activeRef.current + 1) % count;
+      const card = el.children[activeRef.current] as HTMLElement | undefined;
+      if (card) {
+        el.scrollTo({ top: card.offsetTop - el.offsetTop, behavior: "smooth" });
+      }
+    }, 10000);
+    return () => clearInterval(id);
+  }, [count]);
 
   const isRu = locale === "ru";
   const tp = (key: string) => t(key as Parameters<typeof t>[0]);
@@ -241,9 +259,7 @@ export function EventsBox({
   }
 
   return (
-    <div
-      className="flex flex-col gap-2 overflow-y-auto snap-y snap-mandatory h-[170px] hide-scrollbar"
-    >
+    <div ref={scrollRef} className="flex flex-col gap-2 overflow-y-auto snap-y snap-mandatory h-[160px] hide-scrollbar">
       {items.map((item) => {
         const topic = isRu ? item.topicSuggestionRu : item.topicSuggestion;
         const existingRoom = rooms.find((r) => r.topic === topic);
