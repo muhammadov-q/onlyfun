@@ -8,7 +8,8 @@ import type { RoomModeId } from "@/types/room";
 import type { Room } from "@/components/use-party";
 import { ROOM_MODES_MAP } from "@/config/roomModes";
 
-const AUTO_ADVANCE_MS = 6000;
+const AUTO_ADVANCE_MS = 8000;
+const PAUSE_AFTER_INTERACT_MS = 12000;
 
 function ExternalLinkIcon() {
   return (
@@ -205,6 +206,7 @@ export function EventsBox({
   const [error, setError] = useState(false);
   const [active, setActive] = useState(0);
   const dirRef = useRef(1);
+  const pauseUntil = useRef(0);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -228,15 +230,29 @@ export function EventsBox({
 
   const count = items.length;
 
-  // Auto-advance
+  // Auto-advance (pauses after user interaction)
   useEffect(() => {
     if (count <= 1) return;
     const id = setInterval(() => {
+      if (Date.now() < pauseUntil.current) return;
       dirRef.current = 1;
       setActive((i) => (i + 1) % count);
     }, AUTO_ADVANCE_MS);
     return () => clearInterval(id);
   }, [count]);
+
+  function navigate(delta: number) {
+    pauseUntil.current = Date.now() + PAUSE_AFTER_INTERACT_MS;
+    dirRef.current = delta > 0 ? 1 : -1;
+    setActive((i) => (i + delta + count) % count);
+  }
+
+  function handleWheel(e: React.WheelEvent) {
+    if (count <= 1) return;
+    if (Math.abs(e.deltaY) < 5) return;
+    e.stopPropagation();
+    navigate(e.deltaY > 0 ? 1 : -1);
+  }
 
   const isRu = locale === "ru";
   const tp = (key: string) => t(key as Parameters<typeof t>[0]);
@@ -272,7 +288,7 @@ export function EventsBox({
   const existingRoom = rooms.find((r) => r.topic === topic);
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden" onWheel={handleWheel}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={item.id}
