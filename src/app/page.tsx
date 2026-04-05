@@ -19,10 +19,8 @@ export default function Home() {
       setChecking(false);
       return;
     }
-    // Check if IP already has a locked name — use WS server so IP matches
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:1999";
-    const httpUrl = wsUrl.replace(/^ws/, "http") + "/name-check";
-    fetch(httpUrl)
+    // Check if IP already has a locked name
+    fetch("/api/name-check")
       .then((r) => r.json())
       .then((data) => {
         if (data.name) {

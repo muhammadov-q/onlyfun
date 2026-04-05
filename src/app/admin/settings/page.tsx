@@ -25,6 +25,10 @@ export default function AdminSettingsPage() {
       <Separator className="my-6" />
 
       <ApiKeysSection />
+
+      <Separator className="my-6" />
+
+      <AISettingsSection />
     </div>
   );
 }
@@ -323,6 +327,145 @@ function ApiKeyField({
         </button>
       )}
       <Alert msg={message} />
+    </div>
+  );
+}
+
+/* ─── AI Settings ─── */
+
+const AI_MODELS = [
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (fast, cheap)" },
+  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro (smarter, costly)" },
+  { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash (legacy)" },
+];
+
+function AISettingsSection() {
+  const [enabled, setEnabled] = useState(false);
+  const [model, setModel] = useState("gemini-2.5-flash");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<Msg | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.settings?.ai_enabled) {
+          setEnabled(data.settings.ai_enabled.value === "true");
+        }
+        if (data.settings?.ai_model?.value) {
+          setModel(data.settings.ai_model.value);
+        }
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function saveSetting(key: string, value: string) {
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, value }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setMessage({ type: "error", text: data.error || "Failed to save" });
+        return false;
+      }
+      return true;
+    } catch {
+      setMessage({ type: "error", text: "Something went wrong" });
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggle() {
+    const newValue = !enabled;
+    const ok = await saveSetting("ai_enabled", newValue ? "true" : "false");
+    if (ok) {
+      setEnabled(newValue);
+      setMessage({
+        type: "success",
+        text: newValue ? "AI features enabled" : "AI features disabled",
+      });
+    }
+  }
+
+  async function handleModelChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const newModel = e.target.value;
+    const ok = await saveSetting("ai_model", newModel);
+    if (ok) {
+      setModel(newModel);
+      setMessage({ type: "success", text: `Model changed to ${newModel}` });
+    }
+  }
+
+  if (loading) {
+    return <div className="text-sm text-muted-foreground">Loading AI settings...</div>;
+  }
+
+  return (
+    <div>
+      <h3 className="text-base font-medium mb-1">AI Settings</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        Control AI usage across the platform. Disabling AI will use fallback/template-based content
+        instead.
+      </p>
+
+      <div className="space-y-5 max-w-md">
+        <Alert msg={message} />
+
+        {/* Toggle */}
+        <div className="flex items-center justify-between rounded-lg border p-4">
+          <div>
+            <Label className="text-sm font-medium">Enable AI features</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Ice-breakers, topics, news summaries
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            disabled={saving}
+            onClick={handleToggle}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+              enabled ? "bg-primary" : "bg-muted"
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 ease-in-out ${
+                enabled ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Model selector */}
+        <div className="space-y-2">
+          <Label htmlFor="aiModel">AI Model</Label>
+          <select
+            id="aiModel"
+            value={model}
+            onChange={handleModelChange}
+            disabled={saving || !enabled}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {AI_MODELS.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Flash models are faster and cheaper. Pro models produce better quality but cost more.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

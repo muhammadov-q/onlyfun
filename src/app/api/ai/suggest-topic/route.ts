@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { getGeminiClient } from "@/lib/gemini/getClient";
+import { getGeminiModel } from "@/lib/gemini/getClient";
 
 export async function POST(req: Request) {
   try {
     const { lang } = await req.json();
     const isRu = lang === "ru";
 
-    const genAI = await getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = await getGeminiModel();
 
     const prompt = isRu
       ? "Придумай одну короткую, весёлую и интересную тему для голосовой комнаты в приложении для общения. Тема должна быть неформальной, на разговорном русском. Максимум 60 символов. Верни ТОЛЬКО текст темы, без кавычек и пояснений."
@@ -17,7 +16,10 @@ export async function POST(req: Request) {
     const topic = result.response.text().trim();
 
     return NextResponse.json({ topic });
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message === "AI_DISABLED") {
+      return NextResponse.json({ error: "AI features are disabled" }, { status: 503 });
+    }
     return NextResponse.json({ error: "Failed to generate topic" }, { status: 500 });
   }
 }

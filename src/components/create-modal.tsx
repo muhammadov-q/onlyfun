@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/i18n";
 import { ROOM_MODES } from "@/config/roomModes";
 import type { RoomModeId } from "@/types/room";
@@ -37,8 +37,16 @@ export function CreateModal({
   const [topic, setTopic] = useState(initialTopic ?? "");
   const [max, setMax] = useState(4);
   const [suggesting, setSuggesting] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
   const [selectedMode, setSelectedMode] = useState<RoomModeId>(initialMode ?? "chill");
   const { t, locale } = useI18n();
+
+  useEffect(() => {
+    fetch("/api/ai/status")
+      .then((r) => r.json())
+      .then((d) => setAiEnabled(!!d.enabled))
+      .catch(() => {});
+  }, []);
 
   const suggestTopic = async () => {
     setSuggesting(true);
@@ -86,16 +94,18 @@ export function CreateModal({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-white/50 text-xs font-medium">{t("create.topicLabel")}</label>
-              <button
-                type="button"
-                onClick={suggestTopic}
-                disabled={suggesting}
-                style={{ touchAction: "manipulation" }}
-                className="flex items-center gap-1 text-[11px] font-medium text-white/50 hover:text-white active:text-white/70 disabled:opacity-30 transition-colors"
-              >
-                <SparkleIcon className={suggesting ? "animate-spin" : ""} />
-                {suggesting ? t("ai.suggesting") : t("ai.suggestTopic")}
-              </button>
+              {aiEnabled && (
+                <button
+                  type="button"
+                  onClick={suggestTopic}
+                  disabled={suggesting}
+                  style={{ touchAction: "manipulation" }}
+                  className="flex items-center gap-1 text-[11px] font-medium text-white/50 hover:text-white active:text-white/70 disabled:opacity-30 transition-colors"
+                >
+                  <SparkleIcon className={suggesting ? "animate-spin" : ""} />
+                  {suggesting ? t("ai.suggesting") : t("ai.suggestTopic")}
+                </button>
+              )}
             </div>
             <input
               placeholder={t("create.topicPlaceholder")}

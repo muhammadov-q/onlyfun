@@ -354,6 +354,30 @@ async function getGeminiKey(): Promise<string> {
   return ENV_GEMINI_KEY;
 }
 
+async function isAiEnabledServer(): Promise<boolean> {
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      const sql = neon(dbUrl);
+      const rows = await sql`SELECT value FROM app_settings WHERE key = 'ai_enabled' LIMIT 1`;
+      return rows[0]?.value === "true";
+    }
+  } catch {}
+  return false;
+}
+
+async function getAiModelServer(): Promise<string> {
+  try {
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      const sql = neon(dbUrl);
+      const rows = await sql`SELECT value FROM app_settings WHERE key = 'ai_model' LIMIT 1`;
+      if (rows[0]?.value) return rows[0].value;
+    }
+  } catch {}
+  return "gemini-2.5-flash";
+}
+
 const MODE_TONES: Record<string, { en: string; ru: string }> = {
   debate: {
     en: "opinionated, controversial, argumentative — push people to pick a side",
@@ -497,8 +521,9 @@ async function generateIceBreakersForRoom(roomId: string) {
   const room = rooms.get(roomId);
   if (!room) return;
 
+  const aiEnabled = await isAiEnabledServer();
   const geminiKey = await getGeminiKey();
-  if (!geminiKey) {
+  if (!aiEnabled || !geminiKey) {
     room.iceBreakers = getFallbackQuestions(room.topic, room.mode);
     sendToRoom(roomId, {
       type: "ice-breakers",
@@ -542,7 +567,8 @@ Rules:
 Return ONLY valid JSON: {"questions":["q1","q2","q3","q4","q5","q6","q7","q8","q9","q10"]}`;
 
   try {
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
+    const aiModel = await getAiModelServer();
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${geminiKey}`;
     const res = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

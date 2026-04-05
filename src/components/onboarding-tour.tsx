@@ -305,6 +305,7 @@ export function OnboardingTour() {
       }
     }, 100);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step, current, steps.length]);
 
   // Track target element rect

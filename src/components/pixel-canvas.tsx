@@ -302,6 +302,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
   // Pause music when entering a room
   useEffect(() => {
     if (party.currentRoom) music.pause();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [party.currentRoom, music.pause]);
 
   // Duck music volume during preview, restore after
@@ -311,6 +312,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
     } else {
       music.unduck();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preview.previewingRoomId, music.duck, music.unduck]);
 
   // Close weather dropdown on outside click

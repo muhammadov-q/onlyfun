@@ -1,6 +1,6 @@
 import type { RoomModeId } from "@/types/room";
 import { ROOM_MODES_MAP } from "@/config/roomModes";
-import { getGeminiClient } from "./getClient";
+import { getGeminiModel } from "./getClient";
 
 const MODE_TONES: Record<RoomModeId, { en: string; ru: string }> = {
   debate: {
@@ -85,8 +85,7 @@ Rules:
 Return ONLY valid JSON in this format:
 {"questions":["question 1","question 2","question 3","question 4","question 5","question 6","question 7","question 8","question 9","question 10"]}`;
 
-  const genAI = await getGeminiClient();
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = await getGeminiModel();
   const result = await model.generateContent(prompt);
   const text = result.response.text().trim();
 

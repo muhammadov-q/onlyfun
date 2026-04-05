@@ -29,8 +29,23 @@ const ICE_SERVERS: RTCConfiguration = {
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun2.l.google.com:19302" },
+    // TURN relay for users behind symmetric NAT (mobile networks, firewalls).
+    // Without TURN, WebRTC fails for ~15-20% of connections.
+    // Replace with your own TURN server credentials (e.g. Twilio, Cloudflare, coturn).
+    ...(process.env.NEXT_PUBLIC_TURN_URL
+      ? [
+          {
+            urls: process.env.NEXT_PUBLIC_TURN_URL,
+            username: process.env.NEXT_PUBLIC_TURN_USER ?? "",
+            credential: process.env.NEXT_PUBLIC_TURN_PASS ?? "",
+          },
+        ]
+      : []),
   ],
 };
+
+// Max retries for ICE restart before giving up
+const MAX_ICE_RESTARTS = 2;
 
 export function useVoice(party: PartyState) {
   const { myId, sendSignal, sendMicReady, onSignal, onPeerJoin, onPeerLeave, onMicReady } = party;
@@ -45,8 +60,12 @@ export function useVoice(party: PartyState) {
   const peers = useRef<Map<string, RTCPeerConnection>>(new Map());
   const audios = useRef<Map<string, HTMLAudioElement>>(new Map());
   const iceCandidateQueue = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+  const iceRestartCount = useRef<Map<string, number>>(new Map());
   const myIdRef = useRef(myId);
   myIdRef.current = myId;
+
+  // Pending mic-ready messages that arrived before our mic was ready
+  const pendingMicReady = useRef<Set<string>>(new Set());
 
   // Speaking detection
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -147,11 +166,24 @@ export function useVoice(party: PartyState) {
 
       const pc = new RTCPeerConnection(ICE_SERVERS);
       peers.current.set(targetId, pc);
-      iceCandidateQueue.current.set(targetId, []);
+
+      // Preserve any ICE candidates that arrived before this connection was created
+      if (!iceCandidateQueue.current.has(targetId)) {
+        iceCandidateQueue.current.set(targetId, []);
+      }
 
       // Add our audio track
       for (const track of mic.getTracks()) {
         pc.addTrack(track, mic);
+      }
+
+      // If we're currently muted, replace track with null immediately
+      if (mutedRef.current) {
+        for (const sender of pc.getSenders()) {
+          if (sender.track?.kind === "audio") {
+            sender.replaceTrack(null).catch((e) => console.warn("replaceTrack mute:", e));
+          }
+        }
       }
 
       // When we get ICE candidates, send them
@@ -169,7 +201,17 @@ export function useVoice(party: PartyState) {
           audios.current.set(targetId, audio);
         }
         audio.srcObject = e.streams[0];
-        audio.play().catch(() => {});
+        audio.play().catch((err) => {
+          // Autoplay blocked — retry on next user interaction
+          console.warn("Audio autoplay blocked for peer", targetId, err);
+          const resume = () => {
+            audio?.play().catch(() => {});
+            document.removeEventListener("click", resume);
+            document.removeEventListener("touchstart", resume);
+          };
+          document.addEventListener("click", resume, { once: true });
+          document.addEventListener("touchstart", resume, { once: true });
+        });
 
         // Connect remote stream to an analyser for speaking detection
         const ctx = audioCtxRef.current;
@@ -188,8 +230,41 @@ export function useVoice(party: PartyState) {
         const state = pc.iceConnectionState;
         if (state === "connected" || state === "completed") {
           setConnectedPeers((s) => new Set([...s, targetId]));
+          iceRestartCount.current.set(targetId, 0);
         }
-        if (state === "disconnected" || state === "failed" || state === "closed") {
+        if (state === "disconnected") {
+          // Transient — wait for recovery before taking action
+          setConnectedPeers((s) => {
+            const n = new Set(s);
+            n.delete(targetId);
+            return n;
+          });
+        }
+        if (state === "failed") {
+          // Attempt ICE restart before giving up
+          const restarts = iceRestartCount.current.get(targetId) ?? 0;
+          if (restarts < MAX_ICE_RESTARTS) {
+            iceRestartCount.current.set(targetId, restarts + 1);
+            console.warn(`ICE failed for ${targetId}, restarting (attempt ${restarts + 1})`);
+            pc.restartIce();
+            pc.createOffer({ iceRestart: true })
+              .then((offer) => pc.setLocalDescription(offer))
+              .then(() => {
+                if (pc.localDescription) {
+                  sendSignal(targetId, { type: "offer", sdp: pc.localDescription.toJSON() });
+                }
+              })
+              .catch((e) => console.warn("ICE restart failed:", e));
+          } else {
+            console.warn(`ICE failed for ${targetId} after ${MAX_ICE_RESTARTS} restarts`);
+            setConnectedPeers((s) => {
+              const n = new Set(s);
+              n.delete(targetId);
+              return n;
+            });
+          }
+        }
+        if (state === "closed") {
           setConnectedPeers((s) => {
             const n = new Set(s);
             n.delete(targetId);
@@ -219,6 +294,7 @@ export function useVoice(party: PartyState) {
       audios.current.delete(targetId);
     }
     iceCandidateQueue.current.delete(targetId);
+    iceRestartCount.current.delete(targetId);
     peerAnalysers.current.delete(targetId);
     setConnectedPeers((s) => {
       const n = new Set(s);
@@ -235,7 +311,9 @@ export function useVoice(party: PartyState) {
     for (const c of queue) {
       try {
         await pc.addIceCandidate(new RTCIceCandidate(c));
-      } catch {}
+      } catch (e) {
+        console.warn("Failed to add queued ICE candidate:", e);
+      }
     }
     iceCandidateQueue.current.set(targetId, []);
   }, []);
@@ -252,6 +330,21 @@ export function useVoice(party: PartyState) {
       };
 
       if (s.type === "offer") {
+        // If we already have a connection (e.g. ICE restart), handle re-offer
+        const existingPc = peers.current.get(from);
+        if (existingPc) {
+          try {
+            await existingPc.setRemoteDescription(new RTCSessionDescription(s.sdp!));
+            await flushCandidates(from);
+            const answer = await existingPc.createAnswer();
+            await existingPc.setLocalDescription(answer);
+            sendSignal(from, { type: "answer", sdp: existingPc.localDescription!.toJSON() });
+          } catch (e) {
+            console.warn("Re-offer handling failed:", e);
+          }
+          return;
+        }
+
         await connect(from, false);
         const pc = peers.current.get(from);
         if (!pc || !s.sdp) return;
@@ -274,7 +367,9 @@ export function useVoice(party: PartyState) {
         if (pc && pc.remoteDescription) {
           try {
             await pc.addIceCandidate(new RTCIceCandidate(s.candidate!));
-          } catch {}
+          } catch (e) {
+            console.warn("Failed to add ICE candidate:", e);
+          }
         } else {
           const queue = iceCandidateQueue.current.get(from) ?? [];
           queue.push(s.candidate!);
@@ -311,7 +406,14 @@ export function useVoice(party: PartyState) {
   // When a peer announces mic-ready
   useEffect(() => {
     onMicReady.current = (from: string) => {
-      if (!stream.current || !myIdRef.current) return;
+      if (!myIdRef.current) return;
+
+      // If our mic isn't ready yet, buffer this for later
+      if (!stream.current) {
+        pendingMicReady.current.add(from);
+        return;
+      }
+
       if (peers.current.has(from)) return;
       if (myIdRef.current < from) {
         connect(from, true);
@@ -327,20 +429,24 @@ export function useVoice(party: PartyState) {
   // When host force-mutes us
   useEffect(() => {
     party.onForceMuted.current = () => {
+      // Always show the toast, even if already muted
+      setWasForceMuted(true);
+
       if (!muted) {
         setMuted(true);
-        setWasForceMuted(true);
-        for (const [, pc] of peers.current) {
-          for (const sender of pc.getSenders()) {
-            if (sender.track?.kind === "audio" || sender.track === null) {
-              sender.replaceTrack(null).catch(() => {});
-            }
+      }
+
+      // Always replace tracks to ensure we're truly muted
+      for (const [, pc] of peers.current) {
+        for (const sender of pc.getSenders()) {
+          if (sender.track?.kind === "audio" || sender.track === null) {
+            sender.replaceTrack(null).catch((e) => console.warn("Force mute replaceTrack:", e));
           }
         }
-        stream.current?.getAudioTracks().forEach((t) => {
-          t.enabled = false;
-        });
       }
+      stream.current?.getAudioTracks().forEach((t) => {
+        t.enabled = false;
+      });
     };
     return () => {
       party.onForceMuted.current = undefined;
@@ -350,8 +456,23 @@ export function useVoice(party: PartyState) {
   // Start mic and announce ready
   const start = useCallback(async () => {
     const mic = await getMic();
-    if (mic) sendMicReady();
-  }, [getMic, sendMicReady]);
+    if (mic) {
+      sendMicReady();
+
+      // Process any mic-ready messages that arrived before our mic was ready
+      if (pendingMicReady.current.size > 0) {
+        for (const peerId of pendingMicReady.current) {
+          if (peers.current.has(peerId)) continue;
+          if (myIdRef.current && myIdRef.current < peerId) {
+            connect(peerId, true);
+          } else {
+            sendMicReady();
+          }
+        }
+        pendingMicReady.current.clear();
+      }
+    }
+  }, [getMic, sendMicReady, connect]);
 
   // Stop everything
   const stop = useCallback(() => {
@@ -365,6 +486,8 @@ export function useVoice(party: PartyState) {
     audioCtxRef.current = null;
     localAnalyser.current = null;
     peerAnalysers.current.clear();
+    pendingMicReady.current.clear();
+    iceRestartCount.current.clear();
     setMicActive(false);
     setConnectedPeers(new Set());
     setIsSpeaking(false);
@@ -372,30 +495,35 @@ export function useVoice(party: PartyState) {
   }, [disconnect]);
 
   const toggleMute = useCallback(() => {
-    const next = !muted;
-    setMuted(next);
+    setMuted((prev) => {
+      const next = !prev;
 
-    // Stop / resume outgoing audio on every sender
-    for (const [, pc] of peers.current) {
-      for (const sender of pc.getSenders()) {
-        if (sender.track?.kind === "audio" || sender.track === null) {
-          if (next) {
-            // Muting: replace with null so we send nothing (stronger than enabled=false)
-            sender.replaceTrack(null).catch(() => {});
-          } else {
-            // Unmuting: put the real track back
-            const audioTrack = stream.current?.getAudioTracks()[0];
-            if (audioTrack) sender.replaceTrack(audioTrack).catch(() => {});
+      // Stop / resume outgoing audio on every sender
+      for (const [, pc] of peers.current) {
+        for (const sender of pc.getSenders()) {
+          if (sender.track?.kind === "audio" || sender.track === null) {
+            if (next) {
+              sender.replaceTrack(null).catch((e) => console.warn("Mute replaceTrack:", e));
+            } else {
+              const audioTrack = stream.current?.getAudioTracks()[0];
+              if (audioTrack) {
+                sender
+                  .replaceTrack(audioTrack)
+                  .catch((e) => console.warn("Unmute replaceTrack:", e));
+              }
+            }
           }
         }
       }
-    }
 
-    // Also disable the track itself as a fallback (no-peer-yet case)
-    stream.current?.getAudioTracks().forEach((t) => {
-      t.enabled = !next;
+      // Also disable the track itself as a fallback (no-peer-yet case)
+      stream.current?.getAudioTracks().forEach((t) => {
+        t.enabled = !next;
+      });
+
+      return next;
     });
-  }, [muted]);
+  }, []);
 
   return {
     start,

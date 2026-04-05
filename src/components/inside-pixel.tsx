@@ -620,6 +620,7 @@ export function InsideRoom({ party }: { party: PartyState }) {
       setToast(t("room.youWereMuted"));
       voice.clearForceMuted();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voice.wasForceMuted, voice.clearForceMuted, t]);
 
   // Auto-hide toast

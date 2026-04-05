@@ -1,5 +1,5 @@
 import type { RawNewsItem, GeminiNewsSummary } from "@/types/news";
-import { getGeminiClient } from "@/lib/gemini/getClient";
+import { getGeminiModel } from "@/lib/gemini/getClient";
 
 const PROMPT_TEMPLATE = `You are a feed writer for "Bishkek Pulse" — a short city update feed inside an anonymous voice chat app for Bishkek.
 
@@ -35,8 +35,7 @@ export async function summarizeWithGemini(item: RawNewsItem): Promise<GeminiNews
 
   const prompt = PROMPT_TEMPLATE.replace("{TITLE}", item.title).replace("{BODY}", bodyTruncated);
 
-  const genAI = await getGeminiClient();
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = await getGeminiModel();
   const result = await model.generateContent(prompt);
   const text = result.response.text().trim();
 

@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { getGeminiClient } from "@/lib/gemini/getClient";
+import { getGeminiModel } from "@/lib/gemini/getClient";
 
 export async function POST(req: Request) {
   try {
     const { topic, lang } = await req.json();
     const isRu = lang === "ru";
 
-    const genAI = await getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = await getGeminiModel();
 
     const prompt = isRu
       ? `Придумай один короткий, весёлый вопрос-айсбрейкер для голосовой комнаты с темой: "${topic}". Вопрос должен быть на разговорном русском, дружелюбный и провоцирующий обсуждение. Максимум 80 символов. Верни ТОЛЬКО вопрос, без кавычек и пояснений.`
@@ -17,7 +16,10 @@ export async function POST(req: Request) {
     const question = result.response.text().trim();
 
     return NextResponse.json({ question });
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message === "AI_DISABLED") {
+      return NextResponse.json({ error: "AI features are disabled" }, { status: 503 });
+    }
     return NextResponse.json({ error: "Failed to generate ice breaker" }, { status: 500 });
   }
 }
