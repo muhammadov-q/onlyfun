@@ -528,10 +528,17 @@ export function PixelCanvas({ name }: { name: string }) {
             </div>
           </div>
 
-          {/* Mobile-only: more menu button */}
+          {/* Mobile-only: sound toggle + more menu */}
+          <div className="sm:hidden flex items-center gap-1.5">
+          <button
+            onClick={() => music.toggle()}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${music.playing ? "bg-white/15 border-white/20 text-white" : "bg-white/5 border-white/10 text-white/40 active:text-white"}`}
+          >
+            {music.playing ? <SpeakerIcon /> : <SpeakerOffIcon />}
+          </button>
           <button
             onClick={() => setShowMore(true)}
-            className="sm:hidden w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-white/40 border border-white/10 active:text-white transition-all"
+            className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-white/40 border border-white/10 active:text-white transition-all"
           >
             <svg
               width="14"
@@ -547,6 +554,7 @@ export function PixelCanvas({ name }: { name: string }) {
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
+          </div>
         </div>
       </div>
 
@@ -846,16 +854,6 @@ export function PixelCanvas({ name }: { name: string }) {
                 <span className="text-[11px] font-medium">{t("live.button")}</span>
               </button>
               <button
-                onClick={() => music.toggle()}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all shadow-lg ${music.playing ? "bg-white/15 border-white/20 text-white" : "bg-zinc-900/90 border-white/10 text-white/60 hover:text-white"}`}
-                style={{ touchAction: "manipulation" }}
-              >
-                {music.playing ? <SpeakerIcon /> : <SpeakerOffIcon />}
-                <span className="text-[11px] font-medium">
-                  {music.playing ? t("nav.musicOn") : t("nav.musicOff")}
-                </span>
-              </button>
-              <button
                 onClick={() => setShowMobilePulse(true)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900/90 border border-white/10 text-white/60 hover:text-white transition-all shadow-lg"
                 style={{ touchAction: "manipulation" }}
@@ -920,19 +918,9 @@ export function PixelCanvas({ name }: { name: string }) {
             </div>
           )}
 
-          {/* Music, Pulse + Events buttons when live cam is open — mobile only */}
+          {/* Pulse + Events buttons when live cam is open — mobile only */}
           {!placing && liveCamOpen && (
             <div className="absolute z-[400] sm:hidden flex gap-2" style={{ top: 170, left: 12 }}>
-              <button
-                onClick={() => music.toggle()}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all shadow-lg ${music.playing ? "bg-white/15 border-white/20 text-white" : "bg-zinc-900/90 border-white/10 text-white/60 hover:text-white"}`}
-                style={{ touchAction: "manipulation" }}
-              >
-                {music.playing ? <SpeakerIcon /> : <SpeakerOffIcon />}
-                <span className="text-[11px] font-medium">
-                  {music.playing ? t("nav.musicOn") : t("nav.musicOff")}
-                </span>
-              </button>
               <button
                 onClick={() => setShowMobilePulse(true)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-900/90 border border-white/10 text-white/60 hover:text-white transition-all shadow-lg"
