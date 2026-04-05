@@ -143,6 +143,11 @@ export default {
   // Sponsor
   "sponsor.title": "This Week's Sponsor",
 
+  // 404
+  "notFound.title": "404",
+  "notFound.message": "This page doesn't exist",
+  "notFound.goHome": "Go home",
+
   // Onboarding tour
   "tour.retake": "Take the tour",
   "tour.skip": "Skip",

@@ -144,6 +144,11 @@ export default {
   // Sponsor
   "sponsor.title": "Спонсор недели",
 
+  // 404
+  "notFound.title": "404",
+  "notFound.message": "Такой страницы не существует",
+  "notFound.goHome": "На главную",
+
   // Onboarding tour
   "tour.retake": "Обзор",
   "tour.skip": "Пропустить",
