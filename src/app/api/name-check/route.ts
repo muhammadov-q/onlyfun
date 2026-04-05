@@ -3,13 +3,24 @@ import { getDb } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   try {
+    const sql = getDb();
+
+    // 1. Try device token first (per-browser, no shared-network collision)
+    const did = req.cookies.get("onlyfun-did")?.value;
+    if (did) {
+      const rows = await sql`SELECT name FROM user_names WHERE device_id = ${did} LIMIT 1`;
+      if (rows[0]?.name) {
+        return NextResponse.json({ name: rows[0].name });
+      }
+    }
+
+    // 2. Fall back to IP (for users who registered before device tokens)
     let ip =
       req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
       req.headers.get("x-real-ip") ||
       "127.0.0.1";
     if (ip.startsWith("::ffff:")) ip = ip.slice(7);
 
-    const sql = getDb();
     const rows = await sql`SELECT name FROM user_names WHERE ip = ${ip} LIMIT 1`;
     if (rows[0]?.name) {
       return NextResponse.json({ name: rows[0].name });

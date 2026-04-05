@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AdminSidebar } from "./sidebar";
 
@@ -15,8 +15,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isLoginPage = pathname === "/admin/login";
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (isLoginPage) {
@@ -33,6 +39,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       .catch(() => router.push("/admin/login"))
       .finally(() => setLoading(false));
   }, [isLoginPage, router]);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => !prev);
+  }, []);
 
   // Login page — no shell
   if (isLoginPage) {
@@ -54,8 +64,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       className="dark fixed inset-0 bg-background text-foreground"
       style={{ overflow: "hidden", height: "100vh" }}
     >
-      <AdminSidebar user={user} />
-      <main className="ml-56 h-full overflow-y-auto">{children}</main>
+      <AdminSidebar user={user} open={sidebarOpen} onToggle={toggleSidebar} />
+      {/* pt-14 on mobile for the top header bar, md:pt-0 for desktop */}
+      <main className="pt-14 md:pt-0 md:ml-56 h-full overflow-y-auto">{children}</main>
     </div>
   );
 }

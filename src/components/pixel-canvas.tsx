@@ -343,7 +343,6 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
   }, [showProfile]);
 
   const handleLogout = () => {
-    localStorage.removeItem("onlyfun-name");
     sessionStorage.setItem("onlyfun-logout", "1");
     window.location.reload();
   };
@@ -1419,7 +1418,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
             {/* Header with close */}
             <div className="flex items-center justify-between px-5 pb-3">
               <span className="text-xs font-semibold uppercase tracking-widest text-white/30">
-Menu
+                Menu
               </span>
               <button
                 onClick={() => {
@@ -1428,7 +1427,15 @@ Menu
                 }}
                 className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/50 active:bg-white/20 transition-colors"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                >
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
@@ -1491,7 +1498,16 @@ Menu
                     }}
                     className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/40 active:bg-white/20 transition-colors shrink-0"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                     </svg>
                   </button>
@@ -1504,7 +1520,17 @@ Menu
               {/* Lang */}
               <div className="flex items-center justify-between px-3 py-3 rounded-xl active:bg-white/5">
                 <div className="flex items-center gap-2.5">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/40">
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-white/40"
+                  >
                     <circle cx="12" cy="12" r="10" />
                     <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                   </svg>

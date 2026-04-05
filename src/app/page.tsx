@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { PixelCanvas } from "@/components/pixel-canvas";
 import { useI18n } from "@/i18n";
 import { LangSwitcher } from "@/components/lang-switcher";
+import { getDeviceId } from "@/lib/device-id";
 
 export default function Home() {
   const [name, setName] = useState<string | null>(null);
@@ -12,6 +13,9 @@ export default function Home() {
   const [loggedOut, setLoggedOut] = useState(false);
 
   useEffect(() => {
+    // Ensure device token exists (creates cookie + localStorage entry)
+    getDeviceId();
+
     const stored = localStorage.getItem("onlyfun-name");
     const wasLogout = sessionStorage.getItem("onlyfun-logout");
     if (stored && !wasLogout) {
@@ -19,20 +23,21 @@ export default function Home() {
       setChecking(false);
       return;
     }
-    // Check if IP already has a locked name
+    // User logged out but we still have their name in localStorage
+    if (stored && wasLogout) {
+      setLockedName(stored);
+      setLoggedOut(true);
+      setChecking(false);
+      return;
+    }
+    // No localStorage name — check by device token (cookie sent automatically)
     fetch("/api/name-check")
       .then((r) => r.json())
       .then((data) => {
         if (data.name) {
           setLockedName(data.name);
-          if (wasLogout) {
-            // User logged out — show welcome back screen
-            setLoggedOut(true);
-          } else {
-            // Auto-login from different browser
-            localStorage.setItem("onlyfun-name", data.name);
-            setName(data.name);
-          }
+          // Show welcome back screen so user can confirm (don't auto-assign)
+          setLoggedOut(true);
         }
       })
       .catch(() => {})
@@ -49,7 +54,7 @@ export default function Home() {
     );
   }
 
-  // Welcome back screen after logout
+  // Welcome back screen after logout or device-token match
   if (loggedOut && lockedName) {
     return (
       <div

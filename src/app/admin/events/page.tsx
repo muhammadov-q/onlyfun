@@ -118,8 +118,8 @@ export default function AdminEventsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold">Events Feed</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -170,8 +170,8 @@ export default function AdminEventsPage() {
           No events in database yet. Events will appear after the first scrape.
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-card border border-border rounded-2xl overflow-x-auto">
+          <table className="w-full text-sm min-w-[800px]">
             <thead>
               <tr className="border-b border-border text-muted-foreground text-xs text-left">
                 <th className="px-4 py-3 font-medium">

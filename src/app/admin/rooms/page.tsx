@@ -56,7 +56,7 @@ export default function AdminRoomsPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold">Rooms</h2>
@@ -78,8 +78,8 @@ export default function AdminRoomsPage() {
           No real rooms active right now
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-card border border-border rounded-2xl overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="border-b border-border text-muted-foreground text-xs text-left">
                 <th className="px-4 py-3 font-medium w-8"></th>

@@ -245,7 +245,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -263,8 +263,8 @@ export default function AdminUsersPage() {
           No users connected right now
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-card border border-border rounded-2xl overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
             <thead>
               <tr className="border-b border-border text-muted-foreground text-xs text-left">
                 <th className="px-4 py-3 font-medium">Name</th>
@@ -361,8 +361,8 @@ export default function AdminUsersPage() {
         </h3>
 
         {blocked.length > 0 && (
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="bg-card border border-border rounded-2xl overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
               <thead>
                 <tr className="border-b border-border text-muted-foreground text-xs text-left">
                   <th className="px-4 py-3 font-medium">IP</th>
@@ -428,8 +428,8 @@ export default function AdminUsersPage() {
         </p>
 
         {nameLocks.length > 0 && (
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="bg-card border border-border rounded-2xl overflow-x-auto">
+            <table className="w-full text-sm min-w-[500px]">
               <thead>
                 <tr className="border-b border-border text-muted-foreground text-xs text-left">
                   <th className="px-4 py-3 font-medium">IP</th>

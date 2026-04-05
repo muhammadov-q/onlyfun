@@ -55,7 +55,7 @@ export default function AdminSettingsPage() {
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 mb-8 border-b border-border/50">
+      <div className="flex gap-1 mb-8 border-b border-border/50 overflow-x-auto scrollbar-none">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

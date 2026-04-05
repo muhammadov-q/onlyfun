@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { getDeviceId } from "@/lib/device-id";
 
 export type Room = {
   id: string;
@@ -64,7 +65,7 @@ export function useParty(name: string) {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        ws.send(JSON.stringify({ type: "join", name: nameRef.current }));
+        ws.send(JSON.stringify({ type: "join", name: nameRef.current, deviceId: getDeviceId() }));
       };
 
       ws.onmessage = (e) => {

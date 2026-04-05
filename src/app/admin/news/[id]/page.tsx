@@ -128,7 +128,7 @@ export default function EditNewsPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-[400px]">
+      <div className="p-4 md:p-8 flex items-center justify-center min-h-[400px]">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
       </div>
     );
@@ -136,7 +136,7 @@ export default function EditNewsPage() {
 
   if (!item) {
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
           News item not found
         </div>

@@ -211,7 +211,10 @@ function makeSeedRoom(): Room {
 // --- State ---
 const rooms = new Map<string, Room>();
 const seedRoomIds = new Set<string>();
-const users = new Map<string, { ws: WebSocket; name: string; roomId: string | null; ip: string }>();
+const users = new Map<
+  string,
+  { ws: WebSocket; name: string; roomId: string | null; ip: string; deviceId: string | null }
+>();
 const previewers = new Map<string, { roomId: string; timeout: NodeJS.Timeout }>();
 let colorIdx = 0;
 
@@ -289,8 +292,8 @@ async function checkBlocked(ip: string): Promise<{ minutes: number } | null> {
   }
 }
 
-// --- IP → Name lock via DB ---
-async function getLockedName(ip: string): Promise<string | null> {
+// --- Device / IP → Name lock via DB ---
+async function getLockedName(ip: string, deviceId?: string | null): Promise<string | null> {
   try {
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
@@ -298,6 +301,15 @@ async function getLockedName(ip: string): Promise<string | null> {
       return null;
     }
     const sql = neon(dbUrl);
+    // Prefer device_id lookup (per-browser, no shared-network collision)
+    if (deviceId) {
+      const rows = await sql`SELECT name FROM user_names WHERE device_id = ${deviceId} LIMIT 1`;
+      if (rows[0]?.name) {
+        console.log(`[name-lock] lookup did=${deviceId} => ${rows[0].name}`);
+        return rows[0].name;
+      }
+    }
+    // Fall back to IP (legacy entries without device_id)
     const rows = await sql`SELECT name FROM user_names WHERE ip = ${ip} LIMIT 1`;
     console.log(`[name-lock] lookup ip=${ip} => ${rows[0]?.name ?? "(none)"}`);
     return rows[0]?.name ?? null;
@@ -307,7 +319,7 @@ async function getLockedName(ip: string): Promise<string | null> {
   }
 }
 
-async function saveNameLock(ip: string, name: string): Promise<void> {
+async function saveNameLock(ip: string, name: string, deviceId?: string | null): Promise<void> {
   try {
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
@@ -315,12 +327,21 @@ async function saveNameLock(ip: string, name: string): Promise<void> {
       return;
     }
     const sql = neon(dbUrl);
-    await sql`
-      INSERT INTO user_names (ip, name)
-      VALUES (${ip}, ${name})
-      ON CONFLICT (ip) DO NOTHING
-    `;
-    console.log(`[name-lock] saved ip=${ip} => name=${name}`);
+    if (deviceId) {
+      // Use device_id as unique key (one name per browser)
+      await sql`
+        INSERT INTO user_names (ip, name, device_id)
+        VALUES (${ip}, ${name}, ${deviceId})
+        ON CONFLICT (device_id) DO UPDATE SET name = ${name}, ip = ${ip}, updated_at = NOW()
+      `;
+    } else {
+      // Legacy fallback (no device_id): just insert, skip if IP already exists
+      const existing = await sql`SELECT id FROM user_names WHERE ip = ${ip} LIMIT 1`;
+      if (!existing.length) {
+        await sql`INSERT INTO user_names (ip, name) VALUES (${ip}, ${name})`;
+      }
+    }
+    console.log(`[name-lock] saved ip=${ip} did=${deviceId ?? "(none)"} => name=${name}`);
   } catch (e) {
     console.error("[name-lock] saveNameLock error:", e);
   }
@@ -802,14 +823,17 @@ const server = http.createServer((req, res) => {
             }
           }
           user.ws.send(JSON.stringify({ type: "admin-rename", oldName, newName }));
-          // Update name lock in DB
-          if (user.ip) {
+          // Update name lock in DB (prefer device_id, fall back to IP)
+          {
             const dbUrl = process.env.DATABASE_URL;
             if (dbUrl) {
               const sql = neon(dbUrl);
-              sql`UPDATE user_names SET name = ${newName}, updated_at = NOW() WHERE ip = ${user.ip}`.catch(
-                () => {}
-              );
+              const q = user.deviceId
+                ? sql`UPDATE user_names SET name = ${newName}, updated_at = NOW() WHERE device_id = ${user.deviceId}`
+                : user.ip
+                  ? sql`UPDATE user_names SET name = ${newName}, updated_at = NOW() WHERE ip = ${user.ip}`
+                  : Promise.resolve();
+              q.catch(() => {});
             }
           }
         } else if (action === "kick") {
@@ -866,6 +890,22 @@ server.listen(PORT, () => {
   getGeminiKey().then((k) =>
     console.log(`Gemini API key: ${k ? "loaded" : "MISSING (set via admin panel)"}`)
   );
+  // Migrate: add device_id column if missing
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl) {
+    const sql = neon(dbUrl);
+    sql`ALTER TABLE user_names ADD COLUMN IF NOT EXISTS device_id VARCHAR(100)`
+      .then(
+        () =>
+          sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_user_names_device_id ON user_names (device_id) WHERE device_id IS NOT NULL`
+      )
+      .then(() => console.log("[migrate] device_id column ready"))
+      .catch((e) => console.error("[migrate] device_id migration error:", e));
+    // Drop old unique constraint on ip (allow multiple users per IP)
+    sql`ALTER TABLE user_names DROP CONSTRAINT IF EXISTS user_names_ip_key`
+      .then(() => console.log("[migrate] ip unique constraint dropped"))
+      .catch(() => {});
+  }
 });
 
 wss.on("connection", (ws, req) => {
@@ -890,6 +930,7 @@ wss.on("connection", (ws, req) => {
 
     if (msg.type === "join") {
       let name = String(msg.name);
+      const deviceId = typeof msg.deviceId === "string" ? msg.deviceId : null;
       // Check if IP is blocked
       checkBlocked(connIp).then(async (block) => {
         if (block) {
@@ -903,16 +944,16 @@ wss.on("connection", (ws, req) => {
           setTimeout(() => ws.close(), 500);
           return;
         }
-        // Enforce IP → name lock
-        const lockedName = await getLockedName(connIp);
+        // Enforce name lock — prefer device_id, fall back to IP
+        const lockedName = await getLockedName(connIp, deviceId);
         if (lockedName) {
           name = lockedName;
           ws.send(JSON.stringify({ type: "name-locked", name: lockedName }));
         } else {
-          // First time from this IP — save the name
-          await saveNameLock(connIp, name);
+          // First time — save the name with device token
+          await saveNameLock(connIp, name, deviceId);
         }
-        users.set(connId, { ws, name, roomId: null, ip: connIp });
+        users.set(connId, { ws, name, roomId: null, ip: connIp, deviceId });
         ws.send(JSON.stringify({ type: "id", id: connId }));
         broadcastAll({ type: "online", count: users.size + SEED_ONLINE_OFFSET });
       });
@@ -1035,14 +1076,17 @@ wss.on("connection", (ws, req) => {
           broadcastRoomUpsert(room);
         }
       }
-      // Update name lock in DB
-      if (user.ip) {
+      // Update name lock in DB (prefer device_id, fall back to IP)
+      {
         const dbUrl = process.env.DATABASE_URL;
         if (dbUrl) {
           const sql = neon(dbUrl);
-          sql`UPDATE user_names SET name = ${newName}, updated_at = NOW() WHERE ip = ${user.ip}`.catch(
-            () => {}
-          );
+          const q = user.deviceId
+            ? sql`UPDATE user_names SET name = ${newName}, updated_at = NOW() WHERE device_id = ${user.deviceId}`
+            : user.ip
+              ? sql`UPDATE user_names SET name = ${newName}, updated_at = NOW() WHERE ip = ${user.ip}`
+              : Promise.resolve();
+          q.catch(() => {});
         }
       }
       ws.send(JSON.stringify({ type: "name-changed", oldName, newName }));
