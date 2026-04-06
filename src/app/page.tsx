@@ -59,7 +59,13 @@ export default function Home() {
 
   // Show off-hours screen when night mode is active and app is closed
   if (opHours?.isRestricted && !opHours.isOpenNow) {
-    return <OffHoursScreen startTime={opHours.startTime} endTime={opHours.endTime} remainingMs={remainingMs} />;
+    return (
+      <OffHoursScreen
+        startTime={opHours.startTime}
+        endTime={opHours.endTime}
+        remainingMs={remainingMs}
+      />
+    );
   }
 
   // Welcome back screen after logout or device-token match

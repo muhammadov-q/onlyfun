@@ -48,9 +48,7 @@ function toMinutes(hhmm: string): number {
 function msUntil(targetHHMM: string): number {
   const now = new Date();
   // Build a Date for "today at targetHHMM" in Bishkek (UTC+6)
-  const bishkekNow = new Date(
-    now.toLocaleString("en-US", { timeZone: "Asia/Bishkek" })
-  );
+  const bishkekNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Bishkek" }));
   const [h, m] = targetHHMM.split(":").map(Number);
   const target = new Date(bishkekNow);
   target.setHours(h, m, 0, 0);

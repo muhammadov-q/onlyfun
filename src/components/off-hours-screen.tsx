@@ -27,9 +27,7 @@ export function OffHoursScreen({
     [locale]
   );
 
-  const schedule = t("offhours.schedule")
-    .replace("{start}", startTime)
-    .replace("{end}", endTime);
+  const schedule = t("offhours.schedule").replace("{start}", startTime).replace("{end}", endTime);
 
   // Break remaining ms into h / m / s
   const totalSec = Math.max(0, Math.floor(remainingMs / 1000));

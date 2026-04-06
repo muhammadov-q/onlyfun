@@ -23,7 +23,8 @@ export async function GET(req: NextRequest) {
       "127.0.0.1";
     if (ip.startsWith("::ffff:")) ip = ip.slice(7);
 
-    const rows = await sql`SELECT name FROM user_names WHERE ip = ${ip} AND device_id IS NULL LIMIT 1`;
+    const rows =
+      await sql`SELECT name FROM user_names WHERE ip = ${ip} AND device_id IS NULL LIMIT 1`;
     if (rows[0]?.name) {
       return NextResponse.json({ name: rows[0].name });
     }

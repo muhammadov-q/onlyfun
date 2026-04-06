@@ -351,7 +351,8 @@ async function getLockedName(ip: string, deviceId?: string | null): Promise<stri
     // Fall back to IP only for legacy rows that have NO device_id.
     // Rows with a device_id belong to a specific browser and must not
     // match other devices that happen to share the same IP (same WiFi).
-    const rows = await sql`SELECT name FROM user_names WHERE ip = ${ip} AND device_id IS NULL LIMIT 1`;
+    const rows =
+      await sql`SELECT name FROM user_names WHERE ip = ${ip} AND device_id IS NULL LIMIT 1`;
     console.log(`[name-lock] lookup ip=${ip} (legacy only) => ${rows[0]?.name ?? "(none)"}`);
     return rows[0]?.name ?? null;
   } catch (e) {
