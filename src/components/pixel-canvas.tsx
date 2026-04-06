@@ -12,6 +12,7 @@ import { DesktopSidebar } from "./desktop-sidebar";
 import { BishkekPulseFeed } from "./sidebar/BishkekPulseFeed";
 import { EventsBox } from "./sidebar/EventsBox";
 import { SponsorBox } from "./sidebar/SponsorBox";
+import { LiveCamPlayer } from "./live-cam-player";
 import { OnboardingTour, restartTour } from "./onboarding-tour";
 import type { RoomModeId } from "@/types/room";
 
@@ -903,40 +904,14 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
               className="absolute z-[400] transition-all duration-300 sm:hidden"
               style={{ top: 12, left: 12 }}
             >
-              <div className="relative rounded-2xl overflow-hidden border border-white/15 bg-black">
-                <iframe
-                  src="https://www.youtube.com/embed/GQRnp3GLx1U?autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&loop=1&disablekb=1&fs=0&rel=0&showinfo=0&iv_load_policy=3"
-                  allow="autoplay; encrypted-media"
-                  className="w-[260px] h-[146px] sm:w-[320px] sm:h-[180px] block pointer-events-none"
-                  style={{ border: 0 }}
-                />
-                {/* LIVE badge */}
-                <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600/90 text-white text-[10px] font-bold uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                  {t("live.badge")}
-                </div>
-                <button
-                  onClick={() => {
-                    localStorage.setItem("onlyfun-livecam", "closed");
-                    setLiveCamOpen(false);
-                  }}
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 text-white/70 flex items-center justify-center hover:text-white transition-colors"
-                  style={{ touchAction: "manipulation" }}
-                >
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
+              <LiveCamPlayer
+                badgeText={t("live.badge")}
+                variant="mobile"
+                onClose={() => {
+                  localStorage.setItem("onlyfun-livecam", "closed");
+                  setLiveCamOpen(false);
+                }}
+              />
             </div>
           )}
 

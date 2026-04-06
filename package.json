@@ -31,6 +31,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
+    "hls.js": "^1.6.15",
     "jose": "^6.2.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.7.0",

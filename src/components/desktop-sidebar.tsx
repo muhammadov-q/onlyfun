@@ -5,6 +5,7 @@ import { useI18n } from "@/i18n";
 import { BishkekPulseFeed } from "./sidebar/BishkekPulseFeed";
 import { EventsBox } from "./sidebar/EventsBox";
 import { SponsorBox } from "./sidebar/SponsorBox";
+import { LiveCamPlayer } from "./live-cam-player";
 import type { RoomModeId } from "@/types/room";
 import type { Room } from "./use-party";
 
@@ -277,18 +278,7 @@ export function DesktopSidebar({
           </button>
 
           {liveCamOpen && (
-            <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black mt-2">
-              <iframe
-                src="https://www.youtube.com/embed/GQRnp3GLx1U?autoplay=1&mute=1&controls=0&modestbranding=1&playsinline=1&loop=1&disablekb=1&fs=0&rel=0&showinfo=0&iv_load_policy=3"
-                allow="autoplay; encrypted-media"
-                className="w-full aspect-video block pointer-events-none"
-                style={{ border: 0 }}
-              />
-              <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600/90 text-white text-[10px] font-bold uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                {liveBadgeText}
-              </div>
-            </div>
+            <LiveCamPlayer badgeText={liveBadgeText} variant="desktop" className="mt-2" />
           )}
         </div>
       </div>
