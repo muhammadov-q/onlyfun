@@ -131,6 +131,9 @@ export default {
   "events.retry": "Попробовать снова",
   "events.button": "События",
 
+  // Bottom nav
+  "nav.create": "Создать",
+
   // Profile / Edit name
   "profile.editName": "Изменить имя",
   "profile.editNameHint": "Изменить своё имя",

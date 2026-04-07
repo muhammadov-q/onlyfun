@@ -130,6 +130,9 @@ export default {
   "events.retry": "Try again",
   "events.button": "Events",
 
+  // Bottom nav
+  "nav.create": "Create",
+
   // Profile / Edit name
   "profile.editName": "Edit name",
   "profile.editNameHint": "Edit your name",
