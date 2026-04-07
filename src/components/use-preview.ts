@@ -21,36 +21,28 @@ function removeAudioElement(audio: HTMLAudioElement) {
   audio.remove();
 }
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    {
-      urls: "turn:openrelay.metered.ca:80",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-    {
-      urls: "turn:openrelay.metered.ca:443",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-    {
-      urls: "turn:openrelay.metered.ca:443?transport=tcp",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-    ...(process.env.NEXT_PUBLIC_TURN_URL
-      ? [
-          {
-            urls: process.env.NEXT_PUBLIC_TURN_URL,
-            username: process.env.NEXT_PUBLIC_TURN_USER ?? "",
-            credential: process.env.NEXT_PUBLIC_TURN_PASS ?? "",
-          },
-        ]
-      : []),
-  ],
+// Fallback STUN-only config
+const FALLBACK_ICE: RTCConfiguration = {
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }],
 };
+
+// Shared cache with use-voice (same endpoint)
+let cachedIceConfig: RTCConfiguration | null = null;
+let cacheExpiry = 0;
+
+async function getIceServers(): Promise<RTCConfiguration> {
+  if (cachedIceConfig && Date.now() < cacheExpiry) return cachedIceConfig;
+  try {
+    const res = await fetch("/api/turn-credentials");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    cachedIceConfig = { iceServers: data.iceServers };
+    cacheExpiry = Date.now() + 12 * 60 * 60 * 1000;
+    return cachedIceConfig;
+  } catch {
+    return FALLBACK_ICE;
+  }
+}
 
 const PREVIEW_MS = 6000;
 const COOLDOWN_MS = 5 * 60 * 1000;
@@ -125,7 +117,8 @@ export function usePreview(party: PartyState) {
     async (targetId: string, initiator: boolean) => {
       if (peers.current.has(targetId)) return;
 
-      const pc = new RTCPeerConnection(ICE_SERVERS);
+      const iceConfig = await getIceServers();
+      const pc = new RTCPeerConnection(iceConfig);
       peers.current.set(targetId, pc);
       iceQueue.current.set(targetId, []);
 
@@ -211,7 +204,7 @@ export function usePreview(party: PartyState) {
   // ── Start preview ──
 
   const start = useCallback(
-    (roomId: string) => {
+    async (roomId: string) => {
       // Check cooldown
       const remaining = getRemainingMs(roomId);
       if (remaining > 0) {
@@ -236,6 +229,9 @@ export function usePreview(party: PartyState) {
 
       // Stop any existing preview
       if (activeRef.current) stop();
+
+      // Pre-fetch TURN credentials before starting countdown
+      await getIceServers();
 
       activeRef.current = true;
       previewStartTime.current = Date.now();

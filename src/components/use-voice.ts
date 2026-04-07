@@ -24,39 +24,30 @@ function removeAudioElement(audio: HTMLAudioElement) {
   audio.remove();
 }
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    // Open TURN relays for users behind symmetric NAT (mobile networks, Asia, firewalls)
-    {
-      urls: "turn:openrelay.metered.ca:80",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-    {
-      urls: "turn:openrelay.metered.ca:443",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-    {
-      urls: "turn:openrelay.metered.ca:443?transport=tcp",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-    // Custom TURN server (override via env)
-    ...(process.env.NEXT_PUBLIC_TURN_URL
-      ? [
-          {
-            urls: process.env.NEXT_PUBLIC_TURN_URL,
-            username: process.env.NEXT_PUBLIC_TURN_USER ?? "",
-            credential: process.env.NEXT_PUBLIC_TURN_PASS ?? "",
-          },
-        ]
-      : []),
-  ],
-  iceTransportPolicy: process.env.NEXT_PUBLIC_FORCE_RELAY === "true" ? "relay" : "all",
+// Fallback STUN-only config (used if API fails)
+const FALLBACK_ICE: RTCConfiguration = {
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }],
 };
+
+// Cached Cloudflare TURN credentials (refreshed every 12h)
+let cachedIceConfig: RTCConfiguration | null = null;
+let cacheExpiry = 0;
+
+async function getIceServers(): Promise<RTCConfiguration> {
+  if (cachedIceConfig && Date.now() < cacheExpiry) return cachedIceConfig;
+  try {
+    const res = await fetch("/api/turn-credentials");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    cachedIceConfig = { iceServers: data.iceServers };
+    cacheExpiry = Date.now() + 12 * 60 * 60 * 1000; // cache 12h
+    console.log("[voice] TURN credentials loaded:", data.iceServers.length, "servers");
+    return cachedIceConfig;
+  } catch (e) {
+    console.warn("[voice] Failed to fetch TURN credentials, using STUN only:", e);
+    return FALLBACK_ICE;
+  }
+}
 
 // Max retries for ICE restart before giving up
 const MAX_ICE_RESTARTS = 3;
@@ -181,7 +172,8 @@ export function useVoice(party: PartyState) {
       const mic = stream.current;
       if (!mic) return;
 
-      const pc = new RTCPeerConnection(ICE_SERVERS);
+      const iceConfig = await getIceServers();
+      const pc = new RTCPeerConnection(iceConfig);
       peers.current.set(targetId, pc);
 
       // Preserve any ICE candidates that arrived before this connection was created
