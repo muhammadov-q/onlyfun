@@ -15,6 +15,7 @@ import { SponsorBox } from "./sidebar/SponsorBox";
 import { LiveCamPlayer } from "./live-cam-player";
 import { OnboardingTour, restartTour } from "./onboarding-tour";
 import { MobileBottomNav } from "./mobile-bottom-nav";
+import { DraggableSheet } from "./draggable-sheet";
 import type { RoomModeId } from "@/types/room";
 
 function InfoIcon({ className }: { className?: string }) {
@@ -255,6 +256,50 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
   const music = useMusic();
   const preview = usePreview(party);
   const weatherRef = useRef<HTMLDivElement>(null);
+
+  // Swipe gesture for cycling mobile drawers (Live → Pulse → Events)
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const handleSwipeStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    swipeStart.current = { x: t.clientX, y: t.clientY };
+  }, []);
+  const handleSwipeEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (!swipeStart.current || window.innerWidth >= 640) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - swipeStart.current.x;
+      const dy = t.clientY - swipeStart.current.y;
+      swipeStart.current = null;
+      if (Math.abs(dx) < 75 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+      // Drawer order: Live → Pulse → Events
+      const activeIdx = showMobileEvents ? 2 : showMobilePulse ? 1 : liveCamOpen ? 0 : -1;
+      if (dx < 0) {
+        // swipe left → open next drawer
+        const next = activeIdx + 1;
+        setLiveCamOpen(next === 0);
+        setShowMobilePulse(next === 1);
+        setShowMobileEvents(next === 2);
+        if (activeIdx >= 0 && next === 0) {
+          localStorage.removeItem("onlyfun-livecam");
+        }
+      } else {
+        // swipe right → go back
+        const prev = activeIdx - 1;
+        if (activeIdx <= 0) {
+          setLiveCamOpen(false);
+          setShowMobilePulse(false);
+          setShowMobileEvents(false);
+          localStorage.setItem("onlyfun-livecam", "closed");
+        } else {
+          setLiveCamOpen(prev === 0);
+          setShowMobilePulse(prev === 1);
+          setShowMobileEvents(prev === 2);
+          if (prev === 0) localStorage.removeItem("onlyfun-livecam");
+        }
+      }
+    },
+    [liveCamOpen, showMobilePulse, showMobileEvents]
+  );
   const profileRef = useRef<HTMLDivElement>(null);
 
   // Show banned toast
@@ -656,22 +701,48 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
             </button>
             <button
               data-tour="mobile-menu"
-              onClick={() => setShowMore(true)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 text-white/40 border border-white/10 active:text-white transition-all"
+              onClick={() => {
+                if (showMore) {
+                  setShowMore(false);
+                  setEditingName(false);
+                } else {
+                  setShowMore(true);
+                }
+              }}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${
+                showMore
+                  ? "bg-white/15 border-white/20 text-white"
+                  : "bg-white/5 border-white/10 text-white/40 active:text-white"
+              }`}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
+              {showMore ? (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              ) : (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
@@ -702,7 +773,12 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
         />
 
         {/* Map */}
-        <div data-tour="map" className="relative flex-1 overflow-hidden flex flex-col">
+        <div
+          data-tour="map"
+          className="relative flex-1 overflow-hidden flex flex-col"
+          onTouchStart={handleSwipeStart}
+          onTouchEnd={handleSwipeEnd}
+        >
           <CityMap
             rooms={party.rooms}
             onJoin={party.joinRoom}
@@ -998,199 +1074,166 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
 
       {/* Mobile Pulse drawer */}
       {showMobilePulse && (
-        <div
-          className="fixed inset-0 z-[500] flex items-end sm:hidden bg-black/70"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowMobilePulse(false);
-          }}
-        >
-          <div className="w-full bg-black rounded-t-3xl border-t border-white/10 shadow-2xl slide-up max-h-[80dvh] flex flex-col">
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
-            </div>
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 pt-2 pb-3 shrink-0">
-              <div className="flex items-center gap-2">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-purple-400"
-                >
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                </svg>
-                <span className="text-sm font-semibold text-white/80">{tp("pulse.title")}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-400/60 animate-pulse" />
-              </div>
-              <button
-                onClick={() => setShowMobilePulse(false)}
-                className="w-7 h-7 rounded-full bg-white/5 text-white/40 flex items-center justify-center"
+        <DraggableSheet onClose={() => setShowMobilePulse(false)}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 pt-2 pb-3 shrink-0">
+            <div className="flex items-center gap-2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-purple-400"
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              <span className="text-sm font-semibold text-white/80">{tp("pulse.title")}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-400/60 animate-pulse" />
             </div>
-            {/* Feed */}
-            <div className="flex-1 overflow-y-auto px-4 pb-6">
-              <BishkekPulseFeed
-                onTalkAbout={(topic, mode) => {
-                  setShowMobilePulse(false);
-                  setPulseDraft({ topic, mode });
-                  setPlacing(true);
-                }}
-                rooms={party.rooms}
-                onJoinRoom={(roomId) => {
-                  setShowMobilePulse(false);
-                  party.joinRoom(roomId);
-                }}
-              />
-            </div>
+            <button
+              onClick={() => setShowMobilePulse(false)}
+              className="w-7 h-7 rounded-full bg-white/5 text-white/40 flex items-center justify-center"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
-        </div>
+          {/* Feed */}
+          <div className="flex-1 overflow-y-auto px-4 pb-6">
+            <BishkekPulseFeed
+              onTalkAbout={(topic, mode) => {
+                setShowMobilePulse(false);
+                setPulseDraft({ topic, mode });
+                setPlacing(true);
+              }}
+              rooms={party.rooms}
+              onJoinRoom={(roomId) => {
+                setShowMobilePulse(false);
+                party.joinRoom(roomId);
+              }}
+            />
+          </div>
+        </DraggableSheet>
       )}
 
       {/* Mobile Events drawer */}
       {showMobileEvents && (
-        <div
-          className="fixed inset-0 z-[500] flex items-end sm:hidden bg-black/70"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowMobileEvents(false);
-          }}
-        >
-          <div className="w-full bg-black rounded-t-3xl border-t border-white/10 shadow-2xl slide-up max-h-[80dvh] flex flex-col">
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
-            </div>
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 pt-2 pb-3 shrink-0">
-              <div className="flex items-center gap-2">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-purple-400"
-                >
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-                <span className="text-sm font-semibold text-white/80">{tp("events.title")}</span>
-              </div>
-              <button
-                onClick={() => setShowMobileEvents(false)}
-                className="w-7 h-7 rounded-full bg-white/5 text-white/40 flex items-center justify-center"
+        <DraggableSheet onClose={() => setShowMobileEvents(false)}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 pt-2 pb-3 shrink-0">
+            <div className="flex items-center gap-2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-purple-400"
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span className="text-sm font-semibold text-white/80">{tp("events.title")}</span>
             </div>
-            {/* Events Feed */}
-            <div className="flex-1 overflow-y-auto px-4 pb-6">
-              <EventsBox
-                onTalkAbout={(topic, mode) => {
-                  setShowMobileEvents(false);
-                  setPulseDraft({ topic, mode });
-                  setPlacing(true);
-                }}
-                rooms={party.rooms}
-                onJoinRoom={(roomId) => {
-                  setShowMobileEvents(false);
-                  party.joinRoom(roomId);
-                }}
-              />
-            </div>
+            <button
+              onClick={() => setShowMobileEvents(false)}
+              className="w-7 h-7 rounded-full bg-white/5 text-white/40 flex items-center justify-center"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
-        </div>
+          {/* Events Feed */}
+          <div className="flex-1 overflow-y-auto px-4 pb-6">
+            <EventsBox
+              onTalkAbout={(topic, mode) => {
+                setShowMobileEvents(false);
+                setPulseDraft({ topic, mode });
+                setPlacing(true);
+              }}
+              rooms={party.rooms}
+              onJoinRoom={(roomId) => {
+                setShowMobileEvents(false);
+                party.joinRoom(roomId);
+              }}
+            />
+          </div>
+        </DraggableSheet>
       )}
 
       {/* Mobile Sponsor drawer */}
       {showMobileSponsor && (
-        <div
-          className="fixed inset-0 z-[500] flex items-end sm:hidden bg-black/70"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowMobileSponsor(false);
-          }}
-        >
-          <div className="w-full bg-black rounded-t-3xl border-t border-white/10 shadow-2xl slide-up max-h-[80dvh] flex flex-col">
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
-            </div>
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 pt-2 pb-3 shrink-0">
-              <div className="flex items-center gap-2">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-yellow-400"
-                >
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-                <span className="text-sm font-semibold text-white/80">{tp("sponsor.title")}</span>
-              </div>
-              <button
-                onClick={() => setShowMobileSponsor(false)}
-                className="w-7 h-7 rounded-full bg-white/5 text-white/40 flex items-center justify-center"
+        <DraggableSheet onClose={() => setShowMobileSponsor(false)}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 pt-2 pb-3 shrink-0">
+            <div className="flex items-center gap-2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-yellow-400"
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              <span className="text-sm font-semibold text-white/80">{tp("sponsor.title")}</span>
             </div>
-            {/* Sponsor content */}
-            <div className="flex-1 overflow-y-auto px-4 pb-6">
-              <SponsorBox />
-            </div>
+            <button
+              onClick={() => setShowMobileSponsor(false)}
+              className="w-7 h-7 rounded-full bg-white/5 text-white/40 flex items-center justify-center"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
-        </div>
+          {/* Sponsor content */}
+          <div className="flex-1 overflow-y-auto px-4 pb-6">
+            <SponsorBox />
+          </div>
+        </DraggableSheet>
       )}
 
       {showInfo && (
@@ -1236,10 +1279,10 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
         </div>
       )}
 
-      {/* Mobile more sheet */}
+      {/* Mobile dropdown menu */}
       {showMore && (
         <div
-          className="fixed inset-0 z-[500] flex items-start sm:hidden bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[500] sm:hidden"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowMore(false);
@@ -1248,118 +1291,85 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
           }}
         >
           <div
-            className="w-full bg-zinc-950/95 rounded-b-3xl border-b border-white/10 shadow-2xl slide-down"
-            style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+            className="absolute right-3 w-64 bg-zinc-900 rounded-2xl border border-white/10 shadow-2xl animate-in overflow-hidden"
+            style={{ top: "max(52px, env(safe-area-inset-top, 0px) + 44px)" }}
           >
-            {/* Drag handle */}
-            <div className="flex justify-center pt-1 pb-2">
-              <div className="w-10 h-1 rounded-full bg-white/20" />
-            </div>
-
-            {/* Header with close */}
-            <div className="flex items-center justify-between px-5 pb-3">
-              <span className="text-xs font-semibold uppercase tracking-widest text-white/30">
-                Menu
-              </span>
+            {/* User card */}
+            {editingName ? (
+              <form
+                className="px-3 py-3 border-b border-white/5"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (nameInput.trim().length >= 2) {
+                    party.changeName(nameInput.trim());
+                    setEditingName(false);
+                  }
+                }}
+              >
+                <p className="text-[11px] text-white/40 mb-2">{t("profile.editNameHint")}</p>
+                <input
+                  autoFocus
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  maxLength={20}
+                  style={{ fontSize: "16px" }}
+                  className="w-full bg-white/10 text-white px-3 py-2 rounded-xl border border-white/20 focus:outline-none focus:border-white/40 placeholder-white/20 text-sm"
+                  placeholder={t("profile.namePlaceholder")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setEditingName(false);
+                  }}
+                />
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingName(false)}
+                    className="flex-1 text-xs text-white/50 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                  >
+                    {t("profile.cancel")}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={nameInput.trim().length < 2 || nameInput.trim() === name}
+                    className="flex-1 text-xs text-white font-medium py-1.5 rounded-lg bg-white/10 hover:bg-white/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    {t("profile.save")}
+                  </button>
+                </div>
+              </form>
+            ) : (
               <button
                 onClick={() => {
-                  setShowMore(false);
-                  setEditingName(false);
+                  setNameInput(name);
+                  setEditingName(true);
                 }}
-                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/50 active:bg-white/20 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 border-b border-white/5 active:bg-white/5 transition-colors"
               >
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-black uppercase shrink-0">
+                  {name[0]}
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium text-white truncate">{name}</p>
+                  <p className="text-[11px] text-white/30">{t("profile.editName")}</p>
+                </div>
                 <svg
                   width="12"
                   height="12"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="3"
+                  strokeWidth="2"
                   strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-white/20"
                 >
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
+                  <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
-            </div>
+            )}
 
-            <div className="px-4 pb-5 space-y-1">
-              {/* Username row with inline edit */}
-              {editingName ? (
-                <form
-                  className="px-3 py-3 rounded-2xl bg-white/5 border border-white/5"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (nameInput.trim().length >= 2) {
-                      party.changeName(nameInput.trim());
-                      setEditingName(false);
-                    }
-                  }}
-                >
-                  <p className="text-[11px] text-white/40 mb-2">{t("profile.editNameHint")}</p>
-                  <input
-                    autoFocus
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    maxLength={20}
-                    style={{ fontSize: "16px" }}
-                    className="w-full bg-white/10 text-white px-3 py-2.5 rounded-xl border border-white/20 focus:outline-none focus:border-white/40 placeholder-white/20"
-                    placeholder={t("profile.namePlaceholder")}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") setEditingName(false);
-                    }}
-                  />
-                  <div className="flex gap-2 mt-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setEditingName(false)}
-                      className="flex-1 text-sm text-white/50 py-2 rounded-xl hover:bg-white/5 transition-colors"
-                    >
-                      {t("profile.cancel")}
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={nameInput.trim().length < 2 || nameInput.trim() === name}
-                      className="flex-1 text-sm text-white font-medium py-2 rounded-xl bg-white/10 hover:bg-white/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      {t("profile.save")}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="flex items-center gap-3 px-3 py-3 rounded-2xl bg-white/5 border border-white/5">
-                  <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-sm font-bold text-black uppercase shrink-0">
-                    {name[0]}
-                  </div>
-                  <span className="flex-1 text-sm font-medium text-white truncate">{name}</span>
-                  <button
-                    onClick={() => {
-                      setNameInput(name);
-                      setEditingName(true);
-                    }}
-                    className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/40 active:bg-white/20 transition-colors shrink-0"
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              {/* Divider */}
-              <div className="h-px bg-white/5 mx-2 !my-2" />
-
+            <div className="py-1">
               {/* Lang */}
-              <div className="flex items-center justify-between px-3 py-3 rounded-xl active:bg-white/5">
+              <div className="flex items-center justify-between px-4 py-2.5 active:bg-white/5">
                 <div className="flex items-center gap-2.5">
                   <svg
                     width="15"
@@ -1385,7 +1395,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                   setShowMore(false);
                   setShowInfo(true);
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl active:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 active:bg-white/5 transition-colors"
               >
                 <InfoIcon className="text-white/40 w-[15px] h-[15px]" />
                 <span className="text-sm text-white/60">{t("info.title")}</span>
@@ -1396,7 +1406,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                   setShowMore(false);
                   restartTour();
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl active:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 active:bg-white/5 transition-colors"
               >
                 <svg
                   width="15"
@@ -1414,14 +1424,13 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                 </svg>
                 <span className="text-sm text-white/60">{t("tour.retake")}</span>
               </button>
-
               {/* Sponsor */}
               <button
                 onClick={() => {
                   setShowMore(false);
                   setShowMobileSponsor(true);
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl active:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 active:bg-white/5 transition-colors"
               >
                 <svg
                   width="15"
@@ -1438,14 +1447,13 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
                 </svg>
                 <span className="text-sm text-white/60">{tp("sponsor.title")}</span>
               </button>
+            </div>
 
-              {/* Divider */}
-              <div className="h-px bg-white/5 mx-2 !my-2" />
-
-              {/* Logout */}
+            {/* Logout */}
+            <div className="border-t border-white/5">
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2.5 px-3 py-3 rounded-xl active:bg-white/5 transition-colors text-red-400"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 active:bg-white/5 transition-colors text-red-400"
               >
                 <svg
                   width="15"

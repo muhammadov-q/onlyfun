@@ -42,13 +42,34 @@ export function MobileBottomNav({
       }`}
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
+      {/* Floating + button — detached from bar */}
+      <button
+        data-tour="create-fab"
+        onClick={onCreateTap}
+        className="absolute left-1/2 -translate-x-1/2 -top-5 w-[60px] h-[60px] rounded-full bg-white text-black flex items-center justify-center shadow-2xl active:scale-95 transition-transform z-10 ring-4 ring-black"
+        style={{ touchAction: "manipulation" }}
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        >
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+
       <div className="border-t border-white/10">
         <div className="grid grid-cols-5 items-end">
           {/* Live */}
           <button
             data-tour="mobile-livecam"
             onClick={onLiveTap}
-            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5"
+            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 active:scale-90 transition-transform"
             style={{ touchAction: "manipulation" }}
           >
             <div className="relative">
@@ -63,8 +84,11 @@ export function MobileBottomNav({
                 strokeLinejoin="round"
                 className={liveCamOpen ? "text-white" : "text-white/40"}
               >
-                <polygon points="23 7 16 12 23 17 23 7" />
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+                <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
+                <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
+                <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" />
+                <circle cx="12" cy="12" r="2" />
               </svg>
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             </div>
@@ -79,7 +103,7 @@ export function MobileBottomNav({
           <button
             data-tour="mobile-pulse"
             onClick={onPulseTap}
-            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5"
+            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 active:scale-90 transition-transform"
             style={{ touchAction: "manipulation" }}
           >
             <svg
@@ -102,34 +126,14 @@ export function MobileBottomNav({
             </span>
           </button>
 
-          {/* Create (center, raised) */}
-          <div className="flex flex-col items-center justify-end pb-1.5">
-            <button
-              data-tour="create-fab"
-              onClick={onCreateTap}
-              className="w-14 h-14 -mt-5 rounded-full bg-white text-black flex items-center justify-center shadow-2xl active:scale-95 transition-transform ring-4 ring-black/95"
-              style={{ touchAction: "manipulation" }}
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-            <span className="text-[10px] font-medium text-white/40 mt-0.5">{labels.create}</span>
-          </div>
+          {/* Center spacer for floating + button */}
+          <div />
 
           {/* Events */}
           <button
+            data-tour="mobile-events"
             onClick={onEventsTap}
-            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5"
+            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 active:scale-90 transition-transform"
             style={{ touchAction: "manipulation" }}
           >
             <svg
@@ -159,7 +163,7 @@ export function MobileBottomNav({
           <button
             data-tour="all-rooms-mobile"
             onClick={onRoomsTap}
-            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5"
+            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 active:scale-90 transition-transform"
             style={{ touchAction: "manipulation" }}
           >
             <div className="relative">
@@ -174,13 +178,11 @@ export function MobileBottomNav({
                 strokeLinejoin="round"
                 className={roomsOpen ? "text-white" : "text-white/40"}
               >
-                <rect x="3" y="3" width="7" height="7" />
-                <rect x="14" y="3" width="7" height="7" />
-                <rect x="3" y="14" width="7" height="7" />
-                <rect x="14" y="14" width="7" height="7" />
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               {roomCount > 0 && (
-                <span className="absolute -top-1 -right-2 bg-white/15 text-white/80 text-[8px] font-bold px-1 py-0.5 rounded-full min-w-[14px] text-center">
+                <span className="absolute -top-1.5 -right-2.5 bg-zinc-400 text-black text-[8px] font-bold px-1 py-0.5 rounded-full min-w-[14px] text-center">
                   {roomCount}
                 </span>
               )}

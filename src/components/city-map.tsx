@@ -36,10 +36,10 @@ function loadMapsOnce(): Promise<void> {
 }
 
 const BISHKEK_BOUNDS = {
-  north: 42.94,
-  south: 42.82,
-  west: 74.46,
-  east: 74.74,
+  north: 42.91,
+  south: 42.84,
+  west: 74.53,
+  east: 74.67,
 };
 
 function pointInPolygon(lat: number, lng: number, ring: [number, number][]): boolean {

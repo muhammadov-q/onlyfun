@@ -158,6 +158,10 @@ export default {
   "tour.prev": "Back",
   "tour.done": "Got it!",
   "tour.step": "of",
+  "tour.finale.title": "You're all set!",
+  "tour.finale.message":
+    "Now go create a room before someone takes your favorite spot on the map. No pressure... okay, maybe a little.",
+  "tour.finale.go": "Let's gooo!",
 
   // Desktop tour steps
   "tour.desktop.map.title": "The map",
@@ -204,6 +208,8 @@ export default {
   "tour.mobile.pulse.title": "News & events",
   "tour.mobile.pulse.desc":
     "Trending news and upcoming events — tap to start a room about anything.",
+  "tour.mobile.events.title": "Events",
+  "tour.mobile.events.desc": "Upcoming city events — see something cool? Create a room about it.",
   "tour.mobile.profile.title": "Your menu",
   "tour.mobile.profile.desc": "Change your name, switch language, and more.",
   // Off-hours / Night mode

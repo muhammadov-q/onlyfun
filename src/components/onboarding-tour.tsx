@@ -91,27 +91,33 @@ const MOBILE_STEPS: TourStep[] = [
     placement: "top",
   },
   {
-    target: "all-rooms",
-    titleKey: "tour.mobile.allRooms.title",
-    descKey: "tour.mobile.allRooms.desc",
-    placement: "bottom",
-  },
-  {
-    target: "mobile-music",
-    titleKey: "tour.mobile.music.title",
-    descKey: "tour.mobile.music.desc",
-    placement: "bottom",
-  },
-  {
     target: "mobile-livecam",
     titleKey: "tour.mobile.liveCam.title",
     descKey: "tour.mobile.liveCam.desc",
-    placement: "bottom",
+    placement: "top",
   },
   {
     target: "mobile-pulse",
     titleKey: "tour.mobile.pulse.title",
     descKey: "tour.mobile.pulse.desc",
+    placement: "top",
+  },
+  {
+    target: "mobile-events",
+    titleKey: "tour.mobile.events.title",
+    descKey: "tour.mobile.events.desc",
+    placement: "top",
+  },
+  {
+    target: "all-rooms-mobile",
+    titleKey: "tour.mobile.allRooms.title",
+    descKey: "tour.mobile.allRooms.desc",
+    placement: "top",
+  },
+  {
+    target: "mobile-music",
+    titleKey: "tour.mobile.music.title",
+    descKey: "tour.mobile.music.desc",
     placement: "bottom",
   },
   {
@@ -252,6 +258,8 @@ export function OnboardingTour() {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltipSize, setTooltipSize] = useState({ w: 260, h: 160 });
+  const [showFinale, setShowFinale] = useState(false);
+  const fireworkCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const steps = isMobile ? MOBILE_STEPS : DESKTOP_STEPS;
   const current = steps[step];
@@ -358,7 +366,167 @@ export function OnboardingTour() {
   const finish = useCallback(() => {
     localStorage.setItem(STORAGE_KEY, "1");
     setActive(false);
+    setShowFinale(true);
   }, []);
+
+  // Firework animation + celebration sound
+  useEffect(() => {
+    if (!showFinale) return;
+    const canvas = fireworkCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Synthesized celebration jingle using Web Audio API
+    let audioCtx: AudioContext | null = null;
+    try {
+      audioCtx = new AudioContext();
+      const masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.15;
+      masterGain.connect(audioCtx.destination);
+
+      // Ascending chime notes (C5, E5, G5, C6)
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      const now = audioCtx.currentTime;
+
+      notes.forEach((freq, i) => {
+        const osc = audioCtx!.createOscillator();
+        const gain = audioCtx!.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, now + i * 0.15);
+        gain.gain.linearRampToValueAtTime(0.6, now + i * 0.15 + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.5);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(now + i * 0.15);
+        osc.stop(now + i * 0.15 + 0.6);
+      });
+
+      // Sparkle shimmer at the end
+      const shimmer = audioCtx.createOscillator();
+      const shimmerGain = audioCtx.createGain();
+      shimmer.type = "triangle";
+      shimmer.frequency.value = 2093;
+      shimmerGain.gain.setValueAtTime(0, now + 0.6);
+      shimmerGain.gain.linearRampToValueAtTime(0.3, now + 0.7);
+      shimmerGain.gain.exponentialRampToValueAtTime(0.01, now + 1.4);
+      shimmer.connect(shimmerGain);
+      shimmerGain.connect(masterGain);
+      shimmer.start(now + 0.6);
+      shimmer.stop(now + 1.5);
+    } catch {
+      // Audio not available — silently skip
+    }
+
+    type Particle = {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      life: number;
+      maxLife: number;
+      color: string;
+      size: number;
+    };
+
+    const particles: Particle[] = [];
+    const colors = [
+      "#ff6b6b",
+      "#ffd93d",
+      "#6bcb77",
+      "#4d96ff",
+      "#ff6bff",
+      "#ffa06b",
+      "#6bfff2",
+      "#ff4757",
+      "#2ed573",
+      "#ffa502",
+      "#a29bfe",
+      "#fd79a8",
+    ];
+
+    function burst(cx: number, cy: number) {
+      const count = 40 + Math.random() * 30;
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.3;
+        const speed = 2 + Math.random() * 4;
+        const life = 60 + Math.random() * 40;
+        particles.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life,
+          maxLife: life,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          size: 2 + Math.random() * 2,
+        });
+      }
+    }
+
+    // Initial bursts
+    const w = canvas.width;
+    const h = canvas.height;
+    burst(w * 0.3, h * 0.3);
+    burst(w * 0.7, h * 0.25);
+    burst(w * 0.5, h * 0.4);
+
+    // Delayed bursts
+    const t1 = setTimeout(() => {
+      burst(w * 0.2, h * 0.5);
+      burst(w * 0.8, h * 0.35);
+    }, 400);
+    const t2 = setTimeout(() => {
+      burst(w * 0.5, h * 0.2);
+      burst(w * 0.6, h * 0.5);
+    }, 800);
+    const t3 = setTimeout(() => {
+      burst(w * 0.4, h * 0.35);
+      burst(w * 0.7, h * 0.45);
+    }, 1200);
+
+    let raf: number;
+    function animate() {
+      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.04; // gravity
+        p.vx *= 0.99;
+        p.life--;
+        const alpha = Math.max(0, p.life / p.maxLife);
+        ctx!.globalAlpha = alpha;
+        ctx!.fillStyle = p.color;
+        ctx!.beginPath();
+        ctx!.arc(p.x, p.y, Math.max(0, p.size * alpha), 0, Math.PI * 2);
+        ctx!.fill();
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+      ctx!.globalAlpha = 1;
+      if (particles.length > 0 || Date.now() - startTime < 2000) {
+        raf = requestAnimationFrame(animate);
+      }
+    }
+    const startTime = Date.now();
+    raf = requestAnimationFrame(animate);
+
+    // Auto-dismiss after 4s
+    const dismiss = setTimeout(() => setShowFinale(false), 4000);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(dismiss);
+      audioCtx?.close().catch(() => {});
+    };
+  }, [showFinale]);
 
   const next = useCallback(() => {
     skipDirection.current = "fwd";
@@ -382,6 +550,41 @@ export function OnboardingTour() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [active, next, prev, finish]);
+
+  // Finale screen with fireworks
+  if (showFinale) {
+    return (
+      <div
+        className="fixed inset-0 z-[10000] flex items-center justify-center"
+        onClick={() => setShowFinale(false)}
+        style={{ touchAction: "none" }}
+      >
+        <canvas
+          ref={fireworkCanvasRef}
+          className="absolute inset-0 w-full h-full pointer-events-none"
+        />
+        <div className="absolute inset-0 bg-black/60" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative z-10 text-center px-8 py-8 max-w-sm bg-zinc-900/95 backdrop-blur-md rounded-3xl border border-white/10 shadow-2xl"
+        >
+          <div className="text-5xl mb-4">🎉</div>
+          <h2 className="text-2xl font-bold text-white mb-2">{tp("tour.finale.title")}</h2>
+          <p className="text-base text-white/60 mb-6 leading-relaxed">
+            {tp("tour.finale.message")}
+          </p>
+          <button
+            onClick={() => setShowFinale(false)}
+            className="px-6 py-2.5 rounded-full bg-white text-black font-semibold text-sm active:scale-95 transition-transform"
+          >
+            {tp("tour.finale.go")}
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (!active || !current) return null;
 

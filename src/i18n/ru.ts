@@ -159,6 +159,10 @@ export default {
   "tour.prev": "Назад",
   "tour.done": "Понятно!",
   "tour.step": "из",
+  "tour.finale.title": "Всё готово!",
+  "tour.finale.message":
+    "Скорей создай комнату, пока кто-то не занял твоё любимое место на карте. Без давления... ну, может чуть-чуть.",
+  "tour.finale.go": "Поехали!",
 
   // Desktop tour steps
   "tour.desktop.map.title": "Карта",
@@ -204,6 +208,8 @@ export default {
   "tour.mobile.pulse.title": "Новости и события",
   "tour.mobile.pulse.desc":
     "Актуальные новости и события — нажми чтобы создать комнату на любую тему.",
+  "tour.mobile.events.title": "События",
+  "tour.mobile.events.desc": "Ближайшие события города. Видишь что-то интересное? Создай комнату.",
   "tour.mobile.profile.title": "Меню",
   "tour.mobile.profile.desc": "Измени имя, переключи язык и другое.",
   // Off-hours / Night mode
