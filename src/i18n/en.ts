@@ -223,4 +223,20 @@ export default {
   "offhours.hours": "h",
   "offhours.minutes": "m",
   "offhours.seconds": "s",
+
+  // Under construction
+  "construction.title": "We're building something awesome",
+  "construction.message":
+    "OnlyFun is currently under construction. We're working hard to bring you the best experience. Stay tuned!",
+  "construction.status": "Under construction",
+
+  // Launch countdown
+  "countdown.title": "Something big is coming",
+  "countdown.message":
+    "We're preparing to launch OnlyFun. Get ready for voice rooms, live conversations, and a whole new way to connect.",
+  "countdown.launchDate": "Launching {date}",
+  "countdown.days": "days",
+  "countdown.hours": "hours",
+  "countdown.minutes": "min",
+  "countdown.seconds": "sec",
 } as const;

@@ -13,9 +13,9 @@ import {
   WifiOff,
   TrendingUp,
   Radio,
-  Loader2,
 } from "lucide-react";
 import { PageLoader } from "@/components/admin/page-loader";
+import { toast } from "sonner";
 
 /* ─── Types ─── */
 
@@ -79,7 +79,6 @@ export default function AdminDashboard() {
   const [news, setNews] = useState<NewsRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [wsStatus, setWsStatus] = useState<"ok" | "down">("ok");
 
   const fetchAll = useCallback(async () => {
@@ -92,10 +91,8 @@ export default function AdminDashboard() {
     if (results[0].status === "fulfilled") {
       setStats(results[0].value);
       setWsStatus("ok");
-      setError("");
     } else {
       setWsStatus("down");
-      setError("WebSocket server unreachable");
     }
 
     if (results[1].status === "fulfilled") {
@@ -116,7 +113,7 @@ export default function AdminDashboard() {
   }, [fetchAll]);
 
   if (loading) {
-    return <PageLoader text="Loading dashboard..." />;
+    return <PageLoader />;
   }
 
   const activeUsers = stats?.realUsers.filter((u) => u.connected) ?? [];
@@ -176,12 +173,6 @@ export default function AdminDashboard() {
         </div>
         <RefreshButton onRefresh={fetchAll} />
       </div>
-
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">
-          {error}
-        </div>
-      )}
 
       {/* Stat cards row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

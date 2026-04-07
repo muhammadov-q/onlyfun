@@ -6,7 +6,7 @@ import { InsideRoom } from "./inside-pixel";
 import { CreateModal } from "./create-modal";
 import { useI18n } from "@/i18n";
 import { LangSwitcher } from "./lang-switcher";
-import { CityMap } from "./city-map";
+import { CityMapProvider as CityMap } from "./city-map-provider";
 import { usePreview } from "./use-preview";
 import { DesktopSidebar } from "./desktop-sidebar";
 import { BishkekPulseFeed } from "./sidebar/BishkekPulseFeed";

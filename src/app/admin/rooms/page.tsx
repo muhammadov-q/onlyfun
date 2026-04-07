@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Separator } from "@/components/ui/separator";
 import { RefreshButton } from "@/components/admin/refresh-button";
 import { PageLoader } from "@/components/admin/page-loader";
+import { toast } from "sonner";
 
 interface RoomData {
   id: string;
@@ -28,18 +28,16 @@ export default function AdminRoomsPage() {
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [seedCount, setSeedCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   const fetchRooms = useCallback(async () => {
     try {
-      setError("");
       const res = await fetch("/api/admin/stats");
       if (!res.ok) throw new Error();
       const data = await res.json();
       setRooms(data.realRooms);
       setSeedCount(data.seedRoomCount);
     } catch {
-      setError("Could not reach WS server");
+      toast.error("Could not reach WS server");
     } finally {
       setLoading(false);
     }
@@ -52,7 +50,7 @@ export default function AdminRoomsPage() {
   }, [fetchRooms]);
 
   if (loading) {
-    return <PageLoader text="Loading rooms..." />;
+    return <PageLoader />;
   }
 
   return (
@@ -66,12 +64,6 @@ export default function AdminRoomsPage() {
         </div>
         <RefreshButton onRefresh={fetchRooms} />
       </div>
-
-      {error && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 text-destructive text-sm mb-6">
-          {error}
-        </div>
-      )}
 
       {rooms.length === 0 ? (
         <div className="text-muted-foreground text-sm py-12 text-center">
@@ -136,12 +128,9 @@ export default function AdminRoomsPage() {
         </div>
       )}
 
-      <Separator className="my-8" />
-
-      <div className="text-xs text-muted-foreground">
-        Seed rooms ({seedCount}) are simulated and not shown here. Only user-created rooms appear
-        above.
-      </div>
+      <p className="text-xs text-muted-foreground mt-6">
+        Seed rooms ({seedCount}) are simulated and not shown here.
+      </p>
     </div>
   );
 }

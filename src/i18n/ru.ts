@@ -223,4 +223,20 @@ export default {
   "offhours.hours": "ч",
   "offhours.minutes": "м",
   "offhours.seconds": "с",
+
+  // Under construction
+  "construction.title": "Мы строим кое-что крутое",
+  "construction.message":
+    "OnlyFun сейчас на стадии разработки. Мы усердно работаем, чтобы сделать лучший опыт для вас. Следите за обновлениями!",
+  "construction.status": "В разработке",
+
+  // Launch countdown
+  "countdown.title": "Скоро что-то большое",
+  "countdown.message":
+    "Мы готовимся к запуску OnlyFun. Готовьтесь к голосовым комнатам, живым разговорам и совершенно новому способу общения.",
+  "countdown.launchDate": "Запуск {date}",
+  "countdown.days": "дней",
+  "countdown.hours": "часов",
+  "countdown.minutes": "мин",
+  "countdown.seconds": "сек",
 } as const;

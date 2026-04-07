@@ -15,12 +15,17 @@ interface OperatingHoursStatus {
  * When closed, ticks a local countdown every second based on server-provided opensInMs.
  * Re-fetches from server every 60s to stay in sync.
  */
-export function useOperatingHours() {
+export function useOperatingHours(enabled: boolean = true) {
   const [status, setStatus] = useState<OperatingHoursStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const fetchedAt = useRef(0);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
 
     async function check() {
@@ -45,7 +50,7 @@ export function useOperatingHours() {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [enabled]);
 
   // Client-side countdown tick
   const [remainingMs, setRemainingMs] = useState(0);

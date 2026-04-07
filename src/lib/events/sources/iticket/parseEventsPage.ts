@@ -95,8 +95,8 @@ export function isLikelyGarbageEventText(text: string): boolean {
   if (/^\d+$/.test(normalized)) return true;
   if (/^\s*$/.test(normalized)) return true;
 
-  // Single common word that is likely a UI label
-  if (normalized.split(/\s+/).length === 1 && normalized.length < 5) {
+  // Single very short word that is likely a UI label (but allow short artist/event names)
+  if (normalized.split(/\s+/).length === 1 && normalized.length < 3) {
     return true;
   }
 
@@ -284,14 +284,22 @@ function extractFromNuxtPayload(html: string): RawEventItem[] {
     // Build argument map for resolving variable references in IIFE
     const argMap = buildArgMap(payload);
 
-    // Match event_starts_at with both quoted and unquoted keys
-    const eventStartMatches = [...payload.matchAll(/(?:"|)event_starts_at(?:"|)\s*:\s*"([^"]*)"/g)];
+    // Match event_starts_at with both quoted values AND variable references (e.g. event_starts_at:I)
+    const eventStartMatches = [
+      ...payload.matchAll(
+        /(?:"|)event_starts_at(?:"|)\s*:\s*(?:"([^"]*)"|([a-zA-Z_$][a-zA-Z0-9_$]*))/g
+      ),
+    ];
 
-    // Fallback: try poster_url
+    // Fallback: try poster_url (quoted or variable)
     const anchors =
       eventStartMatches.length > 0
         ? eventStartMatches
-        : [...payload.matchAll(/(?:"|)poster_url(?:"|)\s*:\s*"([^"]*)"/g)];
+        : [
+            ...payload.matchAll(
+              /(?:"|)poster_url(?:"|)\s*:\s*(?:"([^"]*)"|([a-zA-Z_$][a-zA-Z0-9_$]*))/g
+            ),
+          ];
 
     const seen = new Set<string>();
 

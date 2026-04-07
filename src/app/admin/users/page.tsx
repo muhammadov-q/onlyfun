@@ -241,7 +241,7 @@ export default function AdminUsersPage() {
   }
 
   if (loading) {
-    return <PageLoader text="Loading users..." />;
+    return <PageLoader />;
   }
 
   return (

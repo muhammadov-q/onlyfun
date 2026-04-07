@@ -2,10 +2,16 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getSetting, setSetting, deleteSetting, maskKey, type SettingKey } from "@/lib/settings";
 
-const VALID_KEYS: SettingKey[] = ["gemini_api_key", "google_maps_key", "ai_enabled", "ai_model"];
+const VALID_KEYS: SettingKey[] = [
+  "gemini_api_key",
+  "google_maps_key",
+  "ai_enabled",
+  "ai_model",
+  "map_provider",
+];
 
 /** Keys that return their full value (not masked) */
-const PLAIN_KEYS: SettingKey[] = ["ai_enabled", "ai_model"];
+const PLAIN_KEYS: SettingKey[] = ["ai_enabled", "ai_model", "map_provider"];
 
 export async function GET() {
   const session = await getSession();

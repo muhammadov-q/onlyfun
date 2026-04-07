@@ -8,7 +8,11 @@ export type SettingKey =
   | "ai_model"
   | "night_mode_enabled"
   | "operating_start_time"
-  | "operating_end_time";
+  | "operating_end_time"
+  | "under_construction"
+  | "launch_countdown_enabled"
+  | "launch_countdown_date"
+  | "map_provider";
 
 /** Keys that are stored as plain text (not encrypted) */
 const PLAIN_KEYS: SettingKey[] = [
@@ -17,6 +21,10 @@ const PLAIN_KEYS: SettingKey[] = [
   "night_mode_enabled",
   "operating_start_time",
   "operating_end_time",
+  "under_construction",
+  "launch_countdown_enabled",
+  "launch_countdown_date",
+  "map_provider",
 ];
 
 export async function getSetting(key: SettingKey): Promise<string | null> {

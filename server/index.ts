@@ -370,17 +370,33 @@ async function saveNameLock(ip: string, name: string, deviceId?: string | null):
     }
     const sql = neon(dbUrl);
     if (deviceId) {
-      // Use device_id as unique key (one name per browser)
-      await sql`
-        INSERT INTO user_names (ip, name, device_id)
-        VALUES (${ip}, ${name}, ${deviceId})
-        ON CONFLICT (device_id) DO UPDATE SET name = ${name}, ip = ${ip}, updated_at = NOW()
-      `;
+      // Check if device already has a row, then insert or update accordingly
+      const existing = await sql`SELECT id FROM user_names WHERE device_id = ${deviceId} LIMIT 1`;
+      if (existing.length) {
+        await sql`UPDATE user_names SET name = ${name}, ip = ${ip}, updated_at = NOW() WHERE device_id = ${deviceId}`;
+      } else {
+        try {
+          await sql`INSERT INTO user_names (ip, name, device_id) VALUES (${ip}, ${name}, ${deviceId})`;
+        } catch (insertErr: any) {
+          // Race condition: another request inserted between SELECT and INSERT — just update
+          if (insertErr?.code === "23505" || insertErr?.code === "42P10") {
+            await sql`UPDATE user_names SET name = ${name}, ip = ${ip}, updated_at = NOW() WHERE device_id = ${deviceId}`;
+          } else {
+            throw insertErr;
+          }
+        }
+      }
     } else {
-      // Legacy fallback (no device_id): just insert, skip if IP already exists
-      const existing = await sql`SELECT id FROM user_names WHERE ip = ${ip} LIMIT 1`;
+      // Legacy fallback (no device_id): insert only if this IP has no legacy row
+      const existing =
+        await sql`SELECT id FROM user_names WHERE ip = ${ip} AND device_id IS NULL LIMIT 1`;
       if (!existing.length) {
-        await sql`INSERT INTO user_names (ip, name) VALUES (${ip}, ${name})`;
+        try {
+          await sql`INSERT INTO user_names (ip, name) VALUES (${ip}, ${name})`;
+        } catch (insertErr: any) {
+          // Ignore duplicate key errors — another connection beat us
+          if (insertErr?.code !== "23505") throw insertErr;
+        }
       }
     }
     console.log(`[name-lock] saved ip=${ip} did=${deviceId ?? "(none)"} => name=${name}`);
@@ -1191,16 +1207,21 @@ wss.on("connection", (ws, req) => {
 
     if (msg.type === "signal") {
       const sender = users.get(connId);
-      const targetUser = users.get(String(msg.to));
-      // Only relay signals between users in the same room (or preview)
-      if (
-        targetUser &&
-        targetUser.ws.readyState === WebSocket.OPEN &&
-        sender &&
-        (sender.roomId === targetUser.roomId ||
-          sender.roomId?.startsWith("preview:") ||
-          targetUser.roomId?.startsWith("preview:"))
-      ) {
+      const targetId = String(msg.to);
+      const targetUser = users.get(targetId);
+      if (!targetUser || targetUser.ws.readyState !== WebSocket.OPEN || !sender) return;
+
+      // Allow signals between users in the same room
+      const sameRoom = sender.roomId && sender.roomId === targetUser.roomId;
+
+      // Allow signals involving a previewer and a member of the previewed room
+      const senderPreview = previewers.get(connId);
+      const targetPreview = previewers.get(targetId);
+      const previewLink =
+        (senderPreview && targetUser.roomId === senderPreview.roomId) ||
+        (targetPreview && sender.roomId === targetPreview.roomId);
+
+      if (sameRoom || previewLink) {
         targetUser.ws.send(JSON.stringify({ type: "signal", from: connId, signal: msg.signal }));
       }
     }
@@ -1209,6 +1230,16 @@ wss.on("connection", (ws, req) => {
       const user = users.get(connId);
       if (!user?.roomId) return;
       sendToRoom(user.roomId, { type: "mic-ready", from: connId }, connId);
+
+      // Also relay mic-ready to any previewers listening to this room
+      for (const [previewerId, preview] of previewers) {
+        if (preview.roomId === user.roomId) {
+          const previewerUser = users.get(previewerId);
+          if (previewerUser && previewerUser.ws.readyState === WebSocket.OPEN) {
+            previewerUser.ws.send(JSON.stringify({ type: "mic-ready", from: connId }));
+          }
+        }
+      }
     }
 
     if (msg.type === "kick") {

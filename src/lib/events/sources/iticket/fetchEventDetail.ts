@@ -12,7 +12,7 @@ export async function fetchITicketEventDetail(path: string): Promise<string> {
       "User-Agent": "Mozilla/5.0 (compatible; OnlyFun/1.0; Bishkek city feed aggregator)",
       Accept: "text/html",
     },
-    next: { revalidate: 0 },
+    cache: "no-store",
   });
 
   if (!res.ok) {

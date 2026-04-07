@@ -7,13 +7,19 @@ import { LangSwitcher } from "@/components/lang-switcher";
 import { getDeviceId } from "@/lib/device-id";
 import { useOperatingHours } from "@/hooks/useOperatingHours";
 import { OffHoursScreen } from "@/components/off-hours-screen";
+import { useSiteStatus } from "@/hooks/useSiteStatus";
+import { UnderConstructionScreen } from "@/components/under-construction-screen";
+import { LaunchCountdownScreen } from "@/components/launch-countdown-screen";
 
 export default function Home() {
   const [name, setName] = useState<string | null>(null);
   const [lockedName, setLockedName] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
   const [loggedOut, setLoggedOut] = useState(false);
-  const { status: opHours, loading: opLoading, remainingMs } = useOperatingHours();
+  const { status: siteStatus, loading: siteLoading } = useSiteStatus();
+  const siteBlocked =
+    siteStatus?.underConstruction || (siteStatus?.launchCountdown && siteStatus.launchDate);
+  const { status: opHours, loading: opLoading, remainingMs } = useOperatingHours(!siteBlocked);
 
   useEffect(() => {
     // Ensure device token exists (creates cookie + localStorage entry)
@@ -49,12 +55,22 @@ export default function Home() {
   const [input, setInput] = useState("");
   const { t } = useI18n();
 
-  if (checking || opLoading) {
+  if (siteLoading || (!siteBlocked && (checking || opLoading))) {
     return (
       <div className="flex items-center justify-center bg-black" style={{ height: "100dvh" }}>
         <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
       </div>
     );
+  }
+
+  // Show under construction screen
+  if (siteStatus?.underConstruction) {
+    return <UnderConstructionScreen />;
+  }
+
+  // Show launch countdown screen
+  if (siteStatus?.launchCountdown && siteStatus.launchDate) {
+    return <LaunchCountdownScreen launchDate={siteStatus.launchDate} />;
   }
 
   // Show off-hours screen when night mode is active and app is closed

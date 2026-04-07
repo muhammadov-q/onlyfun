@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Trash2, ExternalLink, Pencil, Zap } from "lucide-react";
 import { RefreshButton } from "@/components/admin/refresh-button";
@@ -32,20 +33,18 @@ export default function AdminNewsPage() {
   const router = useRouter();
   const [items, setItems] = useState<NewsRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [scraping, setScraping] = useState(false);
 
   const fetchItems = useCallback(async () => {
     try {
-      setError("");
       const res = await fetch("/api/admin/news");
       if (!res.ok) throw new Error();
       const data = await res.json();
       setItems(data.items ?? []);
     } catch {
-      setError("Failed to load news items");
+      toast.error("Failed to load news items");
     } finally {
       setLoading(false);
     }
@@ -113,7 +112,7 @@ export default function AdminNewsPage() {
   }
 
   if (loading) {
-    return <PageLoader text="Loading news..." />;
+    return <PageLoader />;
   }
 
   return (
@@ -139,13 +138,13 @@ export default function AdminNewsPage() {
             disabled={scraping}
             onClick={async () => {
               setScraping(true);
-              setError("");
               try {
                 const res = await fetch("/api/admin/news", { method: "POST" });
                 if (!res.ok) throw new Error();
                 await fetchItems();
+                toast.success("Scrape completed");
               } catch {
-                setError("Scrape failed");
+                toast.error("Scrape failed");
               } finally {
                 setScraping(false);
               }
@@ -157,12 +156,6 @@ export default function AdminNewsPage() {
           <RefreshButton onRefresh={fetchItems} />
         </div>
       </div>
-
-      {error && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3 text-destructive text-sm mb-6">
-          {error}
-        </div>
-      )}
 
       {items.length === 0 ? (
         <div className="text-muted-foreground text-sm py-12 text-center">

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AdminSidebar } from "./sidebar";
+import { Toaster } from "sonner";
 
 interface AdminUser {
   id: number;
@@ -46,13 +47,23 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   // Login page — no shell
   if (isLoginPage) {
-    return <div className="dark">{children}</div>;
+    return (
+      <div className="dark">
+        {children}
+        <Toaster theme="dark" position="top-right" richColors closeButton />
+      </div>
+    );
   }
 
   if (loading) {
     return (
       <div className="dark min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground text-sm">Loading...</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative">
+            <div className="size-8 rounded-full border-2 border-muted" />
+            <div className="absolute inset-0 size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -65,8 +76,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       style={{ overflow: "hidden", height: "100vh" }}
     >
       <AdminSidebar user={user} open={sidebarOpen} onToggle={toggleSidebar} />
-      {/* pt-14 on mobile for the top header bar, md:pt-0 for desktop */}
       <main className="pt-14 md:pt-0 md:ml-56 h-full overflow-y-auto">{children}</main>
+      <Toaster theme="dark" position="top-right" richColors closeButton />
     </div>
   );
 }
