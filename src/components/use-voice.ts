@@ -28,10 +28,23 @@ const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-    // TURN relay for users behind symmetric NAT (mobile networks, firewalls).
-    // Without TURN, WebRTC fails for ~15-20% of connections.
-    // Replace with your own TURN server credentials (e.g. Twilio, Cloudflare, coturn).
+    // Open TURN relays for users behind symmetric NAT (mobile networks, Asia, firewalls)
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443?transport=tcp",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+    // Custom TURN server (override via env)
     ...(process.env.NEXT_PUBLIC_TURN_URL
       ? [
           {
@@ -42,10 +55,11 @@ const ICE_SERVERS: RTCConfiguration = {
         ]
       : []),
   ],
+  iceTransportPolicy: process.env.NEXT_PUBLIC_FORCE_RELAY === "true" ? "relay" : "all",
 };
 
 // Max retries for ICE restart before giving up
-const MAX_ICE_RESTARTS = 2;
+const MAX_ICE_RESTARTS = 3;
 
 export function useVoice(party: PartyState) {
   const { myId, sendSignal, sendMicReady, onSignal, onPeerJoin, onPeerLeave, onMicReady } = party;
@@ -231,7 +245,21 @@ export function useVoice(party: PartyState) {
 
       pc.oniceconnectionstatechange = () => {
         const state = pc.iceConnectionState;
+        console.log(`[voice] ICE ${targetId}: ${state}`);
         if (state === "connected" || state === "completed") {
+          // Log the selected candidate pair for debugging connectivity
+          pc.getStats().then((stats) => {
+            stats.forEach((report) => {
+              if (report.type === "candidate-pair" && report.state === "succeeded") {
+                const local = stats.get(report.localCandidateId);
+                const remote = stats.get(report.remoteCandidateId);
+                console.log(
+                  `[voice] Connected via ${local?.candidateType ?? "?"} → ${remote?.candidateType ?? "?"}`,
+                  local?.protocol ?? ""
+                );
+              }
+            });
+          });
           setConnectedPeers((s) => new Set([...s, targetId]));
           iceRestartCount.current.set(targetId, 0);
         }
@@ -248,7 +276,9 @@ export function useVoice(party: PartyState) {
           const restarts = iceRestartCount.current.get(targetId) ?? 0;
           if (restarts < MAX_ICE_RESTARTS) {
             iceRestartCount.current.set(targetId, restarts + 1);
-            console.warn(`ICE failed for ${targetId}, restarting (attempt ${restarts + 1})`);
+            console.warn(
+              `[voice] ICE failed for ${targetId}, restarting (attempt ${restarts + 1}/${MAX_ICE_RESTARTS})`
+            );
             pc.restartIce();
             pc.createOffer({ iceRestart: true })
               .then((offer) => pc.setLocalDescription(offer))
@@ -257,9 +287,11 @@ export function useVoice(party: PartyState) {
                   sendSignal(targetId, { type: "offer", sdp: pc.localDescription.toJSON() });
                 }
               })
-              .catch((e) => console.warn("ICE restart failed:", e));
+              .catch((e) => console.warn("[voice] ICE restart failed:", e));
           } else {
-            console.warn(`ICE failed for ${targetId} after ${MAX_ICE_RESTARTS} restarts`);
+            console.warn(
+              `[voice] ICE failed for ${targetId} after ${MAX_ICE_RESTARTS} restarts, giving up`
+            );
             setConnectedPeers((s) => {
               const n = new Set(s);
               n.delete(targetId);
@@ -273,6 +305,14 @@ export function useVoice(party: PartyState) {
             n.delete(targetId);
             return n;
           });
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        console.log(`[voice] Connection ${targetId}: ${pc.connectionState}`);
+        if (pc.connectionState === "failed") {
+          // DTLS failure — full reconnect needed
+          console.warn(`[voice] DTLS failed for ${targetId}`);
         }
       };
 

@@ -559,11 +559,11 @@ export function OnboardingTour() {
         onClick={() => setShowFinale(false)}
         style={{ touchAction: "none" }}
       >
+        <div className="absolute inset-0 bg-black/60" />
         <canvas
           ref={fireworkCanvasRef}
-          className="absolute inset-0 w-full h-full pointer-events-none"
+          className="absolute inset-0 w-full h-full pointer-events-none z-20"
         />
-        <div className="absolute inset-0 bg-black/60" />
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}

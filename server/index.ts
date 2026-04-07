@@ -1190,8 +1190,17 @@ wss.on("connection", (ws, req) => {
     }
 
     if (msg.type === "signal") {
+      const sender = users.get(connId);
       const targetUser = users.get(String(msg.to));
-      if (targetUser && targetUser.ws.readyState === WebSocket.OPEN) {
+      // Only relay signals between users in the same room (or preview)
+      if (
+        targetUser &&
+        targetUser.ws.readyState === WebSocket.OPEN &&
+        sender &&
+        (sender.roomId === targetUser.roomId ||
+          sender.roomId?.startsWith("preview:") ||
+          targetUser.roomId?.startsWith("preview:"))
+      ) {
         targetUser.ws.send(JSON.stringify({ type: "signal", from: connId, signal: msg.signal }));
       }
     }

@@ -36,10 +36,10 @@ function loadMapsOnce(): Promise<void> {
 }
 
 const BISHKEK_BOUNDS = {
-  north: 42.91,
-  south: 42.84,
-  west: 74.53,
-  east: 74.67,
+  north: 42.94,
+  south: 42.82,
+  west: 74.46,
+  east: 74.74,
 };
 
 function pointInPolygon(lat: number, lng: number, ring: [number, number][]): boolean {
@@ -269,7 +269,7 @@ export function CityMap({
 
       const map = new google.maps.Map(containerRef.current, {
         center: { lat: 42.8746, lng: 74.5953 },
-        zoom: 12,
+        zoom: window.innerWidth < 640 ? 13 : 12,
         minZoom: 3,
         maxZoom: 18,
         gestureHandling: "greedy",
@@ -280,7 +280,12 @@ export function CityMap({
         styles: [{ featureType: "transit", elementType: "all", stylers: [{ visibility: "off" }] }],
       });
 
-      google.maps.event.addListenerOnce(map, "idle", () => map.fitBounds(BISHKEK_BOUNDS));
+      if (window.innerWidth >= 640) {
+        const listener = map.addListener("idle", () => {
+          map.fitBounds(BISHKEK_BOUNDS);
+          listener.remove();
+        });
+      }
 
       // Bishkek border
       fetch(
