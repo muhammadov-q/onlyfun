@@ -37,7 +37,7 @@ export function MobileBottomNav({
 }: MobileBottomNavProps) {
   return (
     <nav
-      className={`fixed bottom-0 left-0 right-0 z-[450] sm:hidden transition-transform duration-300 bg-black/95 backdrop-blur-xl ${
+      className={`fixed bottom-0 left-0 right-0 z-[700] sm:hidden transition-transform duration-300 bg-black/95 backdrop-blur-xl ${
         hidden ? "translate-y-full" : "translate-y-0"
       }`}
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}

@@ -678,7 +678,7 @@ const API_KEY_CONFIG = [
 function ApiKeysSection() {
   const [keys, setKeys] = useState<Record<string, KeyState & { value?: string }>>({});
   const [loading, setLoading] = useState(true);
-  const [mapProvider, setMapProvider] = useState<"google" | "leaflet">("google");
+  const [mapProvider, setMapProvider] = useState<"google" | "leaflet" | "maplibre">("google");
   const [savingProvider, setSavingProvider] = useState(false);
 
   const fetchKeys = useCallback(async () => {
@@ -688,7 +688,7 @@ function ApiKeysSection() {
       const data = await res.json();
       setKeys(data.settings);
       if (data.settings?.map_provider?.value) {
-        setMapProvider(data.settings.map_provider.value as "google" | "leaflet");
+        setMapProvider(data.settings.map_provider.value as "google" | "leaflet" | "maplibre");
       }
     } finally {
       setLoading(false);
@@ -699,7 +699,7 @@ function ApiKeysSection() {
     fetchKeys();
   }, [fetchKeys]);
 
-  async function handleProviderChange(provider: "google" | "leaflet") {
+  async function handleProviderChange(provider: "google" | "leaflet" | "maplibre") {
     setSavingProvider(true);
     try {
       const res = await fetch("/api/admin/settings", {
@@ -712,9 +712,8 @@ function ApiKeysSection() {
         return;
       }
       setMapProvider(provider);
-      toast.success(
-        `Map provider set to ${provider === "leaflet" ? "OpenStreetMap" : "Google Maps"}`
-      );
+      const names = { google: "Google Maps", leaflet: "OpenStreetMap", maplibre: "MapLibre" };
+      toast.success(`Map provider set to ${names[provider]}`);
     } catch {
       toast.error("Something went wrong");
     } finally {
@@ -743,41 +742,51 @@ function ApiKeysSection() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
-            <button
-              onClick={() => handleProviderChange("google")}
-              disabled={savingProvider}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all disabled:opacity-50 ${
-                mapProvider === "google"
-                  ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                  : "border-border/50 bg-muted/30 text-muted-foreground hover:border-border hover:bg-muted/50"
-              }`}
-            >
-              <CircleDot className="size-4" />
-              Google Maps
-            </button>
-            <button
-              onClick={() => handleProviderChange("leaflet")}
-              disabled={savingProvider}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all disabled:opacity-50 ${
-                mapProvider === "leaflet"
-                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
-                  : "border-border/50 bg-muted/30 text-muted-foreground hover:border-border hover:bg-muted/50"
-              }`}
-            >
-              <Globe className="size-4" />
-              OpenStreetMap
-            </button>
+            {[
+              { id: "google" as const, label: "Google Maps", icon: CircleDot, color: "blue" },
+              { id: "leaflet" as const, label: "OpenStreetMap", icon: Globe, color: "emerald" },
+              { id: "maplibre" as const, label: "MapLibre", icon: MapPin, color: "violet" },
+            ].map((opt) => {
+              const active = mapProvider === opt.id;
+              const Icon = opt.icon;
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => handleProviderChange(opt.id)}
+                  disabled={savingProvider}
+                  className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-3 py-3 rounded-xl text-xs font-medium border-2 transition-all disabled:opacity-50 ${
+                    active
+                      ? `border-${opt.color}-500 bg-${opt.color}-500/10 text-${opt.color}-400`
+                      : "border-border/50 bg-muted/30 text-muted-foreground hover:border-border hover:bg-muted/50"
+                  }`}
+                  style={
+                    active
+                      ? {
+                          borderColor: `var(--color-${opt.color}-500, ${opt.color === "blue" ? "#3b82f6" : opt.color === "emerald" ? "#10b981" : "#8b5cf6"})`,
+                          backgroundColor: `${opt.color === "blue" ? "#3b82f620" : opt.color === "emerald" ? "#10b98120" : "#8b5cf620"}`,
+                          color:
+                            opt.color === "blue"
+                              ? "#60a5fa"
+                              : opt.color === "emerald"
+                                ? "#34d399"
+                                : "#a78bfa",
+                        }
+                      : undefined
+                  }
+                >
+                  <Icon className="size-4" />
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
-          {mapProvider === "leaflet" && (
-            <p className="text-xs text-emerald-400/70 mt-2">
-              Using free CartoDB Dark Matter tiles. No API key required.
-            </p>
-          )}
-          {mapProvider === "google" && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Requires a valid Google Maps API key below.
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground mt-2">
+            {mapProvider === "google" && "Requires a valid Google Maps API key below."}
+            {mapProvider === "leaflet" &&
+              "Free CartoDB Dark Matter raster tiles. No API key required."}
+            {mapProvider === "maplibre" &&
+              "Free vector tiles with building names & customizable styles. No API key required."}
+          </p>
         </CardContent>
       </Card>
 
@@ -1080,8 +1089,18 @@ function SiteStatusSection() {
   const [launchDate, setLaunchDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [dotColorMode, setDotColorMode] = useState<"random" | "uniform">("random");
+  const [dotUniformColor, setDotUniformColor] = useState("#6366f1");
+  const [savingDotColor, setSavingDotColor] = useState(false);
 
   useEffect(() => {
+    fetch("/api/config/dot-color")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.mode) setDotColorMode(data.mode);
+        if (data.color) setDotUniformColor(data.color);
+      })
+      .catch(() => {});
     fetch("/api/admin/settings/site-status")
       .then((r) => r.json())
       .then((data) => {
@@ -1199,6 +1218,149 @@ function SiteStatusSection() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dot Color Customization */}
+      <Card className="mt-4">
+        <CardHeader>
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl shrink-0 bg-violet-500/10 text-violet-400">
+              <CircleDot className="size-4" />
+            </div>
+            <div className="space-y-1">
+              <CardTitle className="text-sm font-semibold">Room Dot Colors</CardTitle>
+              <CardDescription className="text-xs">
+                Choose how room dots are colored on the map.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={async () => {
+                setSavingDotColor(true);
+                try {
+                  await fetch("/api/admin/settings", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ key: "dot_color_mode", value: "random" }),
+                  });
+                  setDotColorMode("random");
+                  toast.success("Dot colors set to random");
+                } catch {
+                  toast.error("Something went wrong");
+                } finally {
+                  setSavingDotColor(false);
+                }
+              }}
+              disabled={savingDotColor}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all disabled:opacity-50 ${
+                dotColorMode === "random"
+                  ? "border-violet-500 bg-violet-500/10 text-violet-400"
+                  : "border-border/50 bg-muted/30 text-muted-foreground hover:border-border hover:bg-muted/50"
+              }`}
+              style={
+                dotColorMode === "random"
+                  ? { borderColor: "#8b5cf6", backgroundColor: "#8b5cf620", color: "#a78bfa" }
+                  : undefined
+              }
+            >
+              <div className="flex gap-0.5">
+                {["#6366f1", "#ec4899", "#22c55e", "#f97316"].map((c) => (
+                  <div key={c} className="w-2 h-2 rounded-full" style={{ backgroundColor: c }} />
+                ))}
+              </div>
+              Random
+            </button>
+            <button
+              onClick={async () => {
+                setSavingDotColor(true);
+                try {
+                  await fetch("/api/admin/settings", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ key: "dot_color_mode", value: "uniform" }),
+                  });
+                  setDotColorMode("uniform");
+                  toast.success("Dot colors set to uniform");
+                } catch {
+                  toast.error("Something went wrong");
+                } finally {
+                  setSavingDotColor(false);
+                }
+              }}
+              disabled={savingDotColor}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all disabled:opacity-50 ${
+                dotColorMode === "uniform"
+                  ? "border-violet-500 bg-violet-500/10 text-violet-400"
+                  : "border-border/50 bg-muted/30 text-muted-foreground hover:border-border hover:bg-muted/50"
+              }`}
+              style={
+                dotColorMode === "uniform"
+                  ? { borderColor: "#8b5cf6", backgroundColor: "#8b5cf620", color: "#a78bfa" }
+                  : undefined
+              }
+            >
+              <div
+                className="w-3 h-3 rounded-full border-2 border-white/50"
+                style={{ backgroundColor: dotUniformColor }}
+              />
+              Uniform
+            </button>
+          </div>
+          {dotColorMode === "uniform" && (
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/30">
+              <label className="text-xs text-muted-foreground">Color:</label>
+              <input
+                type="color"
+                value={dotUniformColor}
+                onChange={async (e) => {
+                  const color = e.target.value;
+                  setDotUniformColor(color);
+                  try {
+                    await fetch("/api/admin/settings", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ key: "dot_uniform_color", value: color }),
+                    });
+                  } catch {}
+                }}
+                className="w-8 h-8 rounded-lg border border-border/50 cursor-pointer bg-transparent"
+              />
+              <span className="text-xs font-mono text-muted-foreground">{dotUniformColor}</span>
+              <div className="flex-1" />
+              <div className="flex gap-1">
+                {[
+                  "#6366f1",
+                  "#8b5cf6",
+                  "#ec4899",
+                  "#ef4444",
+                  "#f97316",
+                  "#22c55e",
+                  "#06b6d4",
+                  "#3b82f6",
+                ].map((c) => (
+                  <button
+                    key={c}
+                    onClick={async () => {
+                      setDotUniformColor(c);
+                      try {
+                        await fetch("/api/admin/settings", {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ key: "dot_uniform_color", value: c }),
+                        });
+                      } catch {}
+                    }}
+                    className={`w-5 h-5 rounded-full transition-all ${dotUniformColor === c ? "ring-2 ring-white/50 ring-offset-1 ring-offset-background scale-110" : "hover:scale-110"}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="mt-5 flex justify-end">
         <Button onClick={handleSave} disabled={saving}>

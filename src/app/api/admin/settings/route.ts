@@ -8,10 +8,18 @@ const VALID_KEYS: SettingKey[] = [
   "ai_enabled",
   "ai_model",
   "map_provider",
+  "dot_color_mode",
+  "dot_uniform_color",
 ];
 
 /** Keys that return their full value (not masked) */
-const PLAIN_KEYS: SettingKey[] = ["ai_enabled", "ai_model", "map_provider"];
+const PLAIN_KEYS: SettingKey[] = [
+  "ai_enabled",
+  "ai_model",
+  "map_provider",
+  "dot_color_mode",
+  "dot_uniform_color",
+];
 
 export async function GET() {
   const session = await getSession();

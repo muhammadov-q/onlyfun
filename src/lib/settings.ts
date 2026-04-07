@@ -12,7 +12,9 @@ export type SettingKey =
   | "under_construction"
   | "launch_countdown_enabled"
   | "launch_countdown_date"
-  | "map_provider";
+  | "map_provider"
+  | "dot_color_mode"
+  | "dot_uniform_color";
 
 /** Keys that are stored as plain text (not encrypted) */
 const PLAIN_KEYS: SettingKey[] = [
@@ -25,6 +27,8 @@ const PLAIN_KEYS: SettingKey[] = [
   "launch_countdown_enabled",
   "launch_countdown_date",
   "map_provider",
+  "dot_color_mode",
+  "dot_uniform_color",
 ];
 
 export async function getSetting(key: SettingKey): Promise<string | null> {
