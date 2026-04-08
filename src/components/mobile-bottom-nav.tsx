@@ -37,17 +37,15 @@ export function MobileBottomNav({
 }: MobileBottomNavProps) {
   return (
     <nav
-      className={`fixed bottom-0 left-0 right-0 z-[700] sm:hidden transition-transform duration-300 bg-black/95 backdrop-blur-xl ${
+      className={`fixed bottom-0 left-0 right-0 z-[700] sm:hidden transition-transform duration-300 ${
         hidden ? "translate-y-full" : "translate-y-0"
       }`}
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       {/* Floating + button — detached from bar */}
       <button
         data-tour="create-fab"
         onClick={onCreateTap}
         className="absolute left-1/2 -translate-x-1/2 -top-5 w-[60px] h-[60px] rounded-full bg-white text-black flex items-center justify-center shadow-2xl active:scale-95 transition-transform z-10 ring-4 ring-black"
-        style={{ touchAction: "manipulation" }}
       >
         <svg
           width="24"
@@ -63,14 +61,16 @@ export function MobileBottomNav({
         </svg>
       </button>
 
-      <div className="border-t border-white/10">
+      <div
+        className="border-t border-white/10 bg-black backdrop-blur-xl"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
         <div className="grid grid-cols-5 items-end">
           {/* Live */}
           <button
             data-tour="mobile-livecam"
             onClick={onLiveTap}
-            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 active:scale-90 transition-transform"
-            style={{ touchAction: "manipulation" }}
+            className={`flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 transition-transform ${liveCamOpen ? "text-white" : "text-white/60"}`}
           >
             <div className="relative">
               <svg
@@ -82,7 +82,6 @@ export function MobileBottomNav({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={liveCamOpen ? "text-white" : "text-white/40"}
               >
                 <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
                 <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
@@ -92,19 +91,14 @@ export function MobileBottomNav({
               </svg>
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             </div>
-            <span
-              className={`text-[10px] font-medium ${liveCamOpen ? "text-white" : "text-white/40"}`}
-            >
-              {labels.live}
-            </span>
+            <span className="text-[10px] font-medium">{labels.live}</span>
           </button>
 
           {/* Pulse */}
           <button
             data-tour="mobile-pulse"
             onClick={onPulseTap}
-            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 active:scale-90 transition-transform"
-            style={{ touchAction: "manipulation" }}
+            className={`flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 transition-transform ${pulseOpen ? "text-white" : "text-white/60"}`}
           >
             <svg
               width="22"
@@ -115,15 +109,10 @@ export function MobileBottomNav({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={pulseOpen ? "text-white" : "text-white/40"}
             >
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
             </svg>
-            <span
-              className={`text-[10px] font-medium ${pulseOpen ? "text-white" : "text-white/40"}`}
-            >
-              {labels.pulse}
-            </span>
+            <span className="text-[10px] font-medium">{labels.pulse}</span>
           </button>
 
           {/* Center spacer for floating + button */}
@@ -133,8 +122,7 @@ export function MobileBottomNav({
           <button
             data-tour="mobile-events"
             onClick={onEventsTap}
-            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 active:scale-90 transition-transform"
-            style={{ touchAction: "manipulation" }}
+            className={`flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 transition-transform ${eventsOpen ? "text-white" : "text-white/60"}`}
           >
             <svg
               width="22"
@@ -145,26 +133,20 @@ export function MobileBottomNav({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={eventsOpen ? "text-white" : "text-white/40"}
             >
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
               <line x1="16" y1="2" x2="16" y2="6" />
               <line x1="8" y1="2" x2="8" y2="6" />
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
-            <span
-              className={`text-[10px] font-medium ${eventsOpen ? "text-white" : "text-white/40"}`}
-            >
-              {labels.events}
-            </span>
+            <span className="text-[10px] font-medium">{labels.events}</span>
           </button>
 
           {/* Rooms */}
           <button
             data-tour="all-rooms-mobile"
             onClick={onRoomsTap}
-            className="flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 active:scale-90 transition-transform"
-            style={{ touchAction: "manipulation" }}
+            className={`flex flex-col items-center justify-center pt-2 pb-1.5 gap-0.5 transition-transform ${roomsOpen ? "text-white" : "text-white/60"}`}
           >
             <div className="relative">
               <svg
@@ -176,7 +158,6 @@ export function MobileBottomNav({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={roomsOpen ? "text-white" : "text-white/40"}
               >
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -187,11 +168,7 @@ export function MobileBottomNav({
                 </span>
               )}
             </div>
-            <span
-              className={`text-[10px] font-medium ${roomsOpen ? "text-white" : "text-white/40"}`}
-            >
-              {labels.rooms}
-            </span>
+            <span className="text-[10px] font-medium">{labels.rooms}</span>
           </button>
         </div>
       </div>

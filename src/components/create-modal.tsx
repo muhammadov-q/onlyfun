@@ -88,7 +88,7 @@ export function CreateModal({
             if (topic.trim().length >= 2) onCreate(topic.trim(), max, selectedMode);
           }}
           className="px-5 pt-2 space-y-4 overflow-y-auto flex-1"
-          style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+          style={{ paddingBottom: "max(calc(72px + env(safe-area-inset-bottom, 0px)), 1.5rem)" }}
         >
           {/* Topic input */}
           <div>

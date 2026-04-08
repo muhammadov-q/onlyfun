@@ -231,7 +231,7 @@ export function CityMap({
 
     const map = L.map(containerRef.current, {
       center: [42.8746, 74.5953],
-      zoom: window.innerWidth < 640 ? 13 : 12,
+      zoom: 12,
       minZoom: 3,
       maxZoom: 18,
       zoomControl: false,
@@ -266,13 +266,12 @@ export function CityMap({
       )
       .addTo(map);
 
-    if (window.innerWidth >= 640) {
-      map.once("load", () => map.fitBounds(BISHKEK_BOUNDS));
-      // Also try immediately in case load already fired
-      setTimeout(() => {
-        if (mounted) map.fitBounds(BISHKEK_BOUNDS);
-      }, 100);
-    }
+    const boundsOpts = window.innerWidth < 640 ? { padding: [20, 20] as [number, number] } : {};
+    map.once("load", () => map.fitBounds(BISHKEK_BOUNDS, boundsOpts));
+    // Also try immediately in case load already fired
+    setTimeout(() => {
+      if (mounted) map.fitBounds(BISHKEK_BOUNDS, boundsOpts);
+    }, 100);
 
     // Bishkek border GeoJSON
     fetch(
@@ -463,7 +462,7 @@ export function CityMap({
               display: "flex",
               gap: 12,
               padding: "12px 20px",
-              paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px) + 12px)",
+              paddingBottom: "max(80px, env(safe-area-inset-bottom, 0px) + 72px)",
               background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)",
             }}
           >
@@ -528,7 +527,7 @@ export function CityMap({
             }}
           />
           <div
-            className={`fixed sm:absolute left-0 right-0 sm:left-auto sm:right-4 sm:w-[300px] sm:max-h-[calc(100%-32px)] sm:bottom-4 bg-zinc-950 border border-white/10 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out ${
+            className={`fixed sm:absolute left-0 right-0 sm:left-auto sm:right-4 sm:w-[300px] sm:max-h-[calc(100%-32px)] sm:bottom-4 bg-zinc-950 border border-white/10 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out pb-[72px] sm:pb-0 ${
               searchFocused
                 ? "top-0 bottom-0 rounded-none sm:rounded-2xl"
                 : "bottom-0 max-h-[70vh] rounded-t-2xl sm:rounded-2xl"

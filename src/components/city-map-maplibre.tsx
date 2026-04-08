@@ -253,7 +253,7 @@ export function CityMap({
       container: containerRef.current,
       style: DARK_STYLE,
       center: [74.5953, 42.8746], // MapLibre uses [lng, lat]
-      zoom: window.innerWidth < 640 ? 13 : 12,
+      zoom: 12,
       minZoom: 10, // Don't allow zooming out beyond city level
       maxZoom: 18,
       doubleClickZoom: false,
@@ -446,18 +446,16 @@ export function CityMap({
       }
     });
 
-    // Fit to Bishkek on desktop
-    if (window.innerWidth >= 640) {
-      map.once("load", () => {
-        map.fitBounds(
-          [
-            [74.46, 42.82],
-            [74.74, 42.94],
-          ], // [sw, ne] as [lng, lat]
-          { padding: 20, duration: 0 }
-        );
-      });
-    }
+    // Fit to Bishkek bounds on load
+    map.once("load", () => {
+      map.fitBounds(
+        [
+          [74.46, 42.82],
+          [74.74, 42.94],
+        ], // [sw, ne] as [lng, lat]
+        { padding: window.innerWidth < 640 ? 20 : 40, duration: 0 }
+      );
+    });
 
     // Bishkek border GeoJSON
     fetch(
@@ -629,7 +627,7 @@ export function CityMap({
               display: "flex",
               gap: 12,
               padding: "12px 20px",
-              paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px) + 12px)",
+              paddingBottom: "max(80px, env(safe-area-inset-bottom, 0px) + 72px)",
               background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)",
             }}
           >
@@ -694,7 +692,7 @@ export function CityMap({
             }}
           />
           <div
-            className={`fixed sm:absolute left-0 right-0 sm:left-auto sm:right-4 sm:w-[300px] sm:max-h-[calc(100%-32px)] sm:bottom-4 bg-zinc-950 border border-white/10 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out ${
+            className={`fixed sm:absolute left-0 right-0 sm:left-auto sm:right-4 sm:w-[300px] sm:max-h-[calc(100%-32px)] sm:bottom-4 bg-zinc-950 border border-white/10 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out pb-[72px] sm:pb-0 ${
               searchFocused
                 ? "top-0 bottom-0 rounded-none sm:rounded-2xl"
                 : "bottom-0 max-h-[70vh] rounded-t-2xl sm:rounded-2xl"

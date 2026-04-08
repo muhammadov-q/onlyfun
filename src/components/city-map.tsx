@@ -269,7 +269,7 @@ export function CityMap({
 
       const map = new google.maps.Map(containerRef.current, {
         center: { lat: 42.8746, lng: 74.5953 },
-        zoom: window.innerWidth < 640 ? 13 : 12,
+        zoom: 12,
         minZoom: 3,
         maxZoom: 18,
         gestureHandling: "greedy",
@@ -280,12 +280,10 @@ export function CityMap({
         styles: [{ featureType: "transit", elementType: "all", stylers: [{ visibility: "off" }] }],
       });
 
-      if (window.innerWidth >= 640) {
-        const listener = map.addListener("idle", () => {
-          map.fitBounds(BISHKEK_BOUNDS);
-          listener.remove();
-        });
-      }
+      const listener = map.addListener("idle", () => {
+        map.fitBounds(BISHKEK_BOUNDS, window.innerWidth < 640 ? 20 : 0);
+        listener.remove();
+      });
 
       // Bishkek border
       fetch(
@@ -451,7 +449,7 @@ export function CityMap({
               display: "flex",
               gap: 12,
               padding: "12px 20px",
-              paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px) + 12px)",
+              paddingBottom: "max(80px, env(safe-area-inset-bottom, 0px) + 72px)",
               background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)",
             }}
           >
@@ -518,7 +516,7 @@ export function CityMap({
             }}
           />
           <div
-            className={`fixed sm:absolute left-0 right-0 sm:left-auto sm:right-4 sm:w-[300px] sm:max-h-[calc(100%-32px)] sm:bottom-4 bg-zinc-950 border border-white/10 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out ${
+            className={`fixed sm:absolute left-0 right-0 sm:left-auto sm:right-4 sm:w-[300px] sm:max-h-[calc(100%-32px)] sm:bottom-4 bg-zinc-950 border border-white/10 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ease-out pb-[72px] sm:pb-0 ${
               searchFocused
                 ? "top-0 bottom-0 rounded-none sm:rounded-2xl"
                 : "bottom-0 max-h-[70vh] rounded-t-2xl sm:rounded-2xl"

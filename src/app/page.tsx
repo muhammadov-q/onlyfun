@@ -56,11 +56,7 @@ export default function Home() {
   const { t } = useI18n();
 
   if (siteLoading || (!siteBlocked && (checking || opLoading))) {
-    return (
-      <div className="flex items-center justify-center bg-black" style={{ height: "100dvh" }}>
-        <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
-      </div>
-    );
+    return <div className="bg-black" style={{ height: "100dvh" }} />;
   }
 
   // Show under construction screen

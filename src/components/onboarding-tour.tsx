@@ -28,7 +28,7 @@ const DESKTOP_STEPS: TourStep[] = [
     placement: "left",
   },
   {
-    target: "create-fab",
+    target: "create-fab-desktop",
     titleKey: "tour.desktop.create.title",
     descKey: "tour.desktop.create.desc",
     placement: "left",

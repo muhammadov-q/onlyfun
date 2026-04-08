@@ -257,49 +257,6 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
   const preview = usePreview(party);
   const weatherRef = useRef<HTMLDivElement>(null);
 
-  // Swipe gesture for cycling mobile drawers (Live → Pulse → Events)
-  const swipeStart = useRef<{ x: number; y: number } | null>(null);
-  const handleSwipeStart = useCallback((e: React.TouchEvent) => {
-    const t = e.touches[0];
-    swipeStart.current = { x: t.clientX, y: t.clientY };
-  }, []);
-  const handleSwipeEnd = useCallback(
-    (e: React.TouchEvent) => {
-      if (!swipeStart.current || window.innerWidth >= 640) return;
-      const t = e.changedTouches[0];
-      const dx = t.clientX - swipeStart.current.x;
-      const dy = t.clientY - swipeStart.current.y;
-      swipeStart.current = null;
-      if (Math.abs(dx) < 75 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
-      // Drawer order: Live → Pulse → Events
-      const activeIdx = showMobileEvents ? 2 : showMobilePulse ? 1 : liveCamOpen ? 0 : -1;
-      if (dx < 0) {
-        // swipe left → open next drawer
-        const next = activeIdx + 1;
-        setLiveCamOpen(next === 0);
-        setShowMobilePulse(next === 1);
-        setShowMobileEvents(next === 2);
-        if (activeIdx >= 0 && next === 0) {
-          localStorage.removeItem("onlyfun-livecam");
-        }
-      } else {
-        // swipe right → go back
-        const prev = activeIdx - 1;
-        if (activeIdx <= 0) {
-          setLiveCamOpen(false);
-          setShowMobilePulse(false);
-          setShowMobileEvents(false);
-          localStorage.setItem("onlyfun-livecam", "closed");
-        } else {
-          setLiveCamOpen(prev === 0);
-          setShowMobilePulse(prev === 1);
-          setShowMobileEvents(prev === 2);
-          if (prev === 0) localStorage.removeItem("onlyfun-livecam");
-        }
-      }
-    },
-    [liveCamOpen, showMobilePulse, showMobileEvents]
-  );
   const profileRef = useRef<HTMLDivElement>(null);
 
   // Show banned toast
@@ -773,12 +730,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
         />
 
         {/* Map */}
-        <div
-          data-tour="map"
-          className="relative flex-1 overflow-hidden flex flex-col"
-          onTouchStart={handleSwipeStart}
-          onTouchEnd={handleSwipeEnd}
-        >
+        <div data-tour="map" className="relative flex-1 overflow-hidden flex flex-col">
           <CityMap
             rooms={party.rooms}
             onJoin={party.joinRoom}
@@ -798,7 +750,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
               className="flex items-center gap-2 px-4 py-2.5 rounded-full animate-in"
               style={{
                 position: "absolute",
-                bottom: "max(90px, env(safe-area-inset-bottom, 0px) + 80px)",
+                bottom: "max(140px, env(safe-area-inset-bottom, 0px) + 130px)",
                 left: "50%",
                 transform: "translateX(-50%)",
                 zIndex: 500,
