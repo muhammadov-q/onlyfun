@@ -449,7 +449,7 @@ export function CityMap({
               display: "flex",
               gap: 12,
               padding: "12px 20px",
-              paddingBottom: "max(80px, env(safe-area-inset-bottom, 0px) + 72px)",
+              paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px) + 12px)",
               background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)",
             }}
           >

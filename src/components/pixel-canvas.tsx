@@ -979,6 +979,9 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
       {/* Mobile bottom navigation */}
       <MobileBottomNav
         onLiveTap={() => {
+          setShowMobilePulse(false);
+          setShowMobileEvents(false);
+          setShowPanel(false);
           if (liveCamOpen) {
             localStorage.setItem("onlyfun-livecam", "closed");
             setLiveCamOpen(false);
@@ -987,10 +990,28 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
             setLiveCamOpen(true);
           }
         }}
-        onPulseTap={() => setShowMobilePulse((v) => !v)}
+        onPulseTap={() => {
+          setLiveCamOpen(false);
+          localStorage.setItem("onlyfun-livecam", "closed");
+          setShowMobileEvents(false);
+          setShowPanel(false);
+          setShowMobilePulse((v) => !v);
+        }}
         onCreateTap={() => setPlacing(true)}
-        onEventsTap={() => setShowMobileEvents((v) => !v)}
-        onRoomsTap={() => setShowPanel((v) => !v)}
+        onEventsTap={() => {
+          setLiveCamOpen(false);
+          localStorage.setItem("onlyfun-livecam", "closed");
+          setShowMobilePulse(false);
+          setShowPanel(false);
+          setShowMobileEvents((v) => !v);
+        }}
+        onRoomsTap={() => {
+          setLiveCamOpen(false);
+          localStorage.setItem("onlyfun-livecam", "closed");
+          setShowMobilePulse(false);
+          setShowMobileEvents(false);
+          setShowPanel((v) => !v);
+        }}
         liveCamOpen={liveCamOpen}
         pulseOpen={showMobilePulse}
         eventsOpen={showMobileEvents}

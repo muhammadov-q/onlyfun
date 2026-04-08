@@ -50,7 +50,7 @@ export function DraggableSheet({ onClose, children }: DraggableSheetProps) {
     >
       <div
         ref={sheetRef}
-        className="w-full bg-black rounded-t-3xl border-t border-white/10 shadow-2xl slide-up max-h-[80dvh] flex flex-col pb-[72px]"
+        className="w-full bg-black rounded-t-3xl border-t border-white/10 shadow-2xl slide-up max-h-[80dvh] flex flex-col"
         style={{
           transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
           transition: dragY > 0 ? "none" : "transform 0.3s ease-out",
