@@ -75,6 +75,8 @@ export default {
   "room.kickAction": "Кик",
   "room.peerMuted": "Замьючен",
   "room.peerKicked": "Кикнут",
+  "room.minimize": "Свернуть",
+  "room.backToRoom": "Вернуться",
 
   // Room card
   "room.join": "Войти",

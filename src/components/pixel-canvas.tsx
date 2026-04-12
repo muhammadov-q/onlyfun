@@ -223,6 +223,99 @@ function useMusic() {
   return { playing, toggle, pause, duck, unduck };
 }
 
+function MinimizedRoomPill({
+  room,
+  onExpand,
+  onLeave,
+}: {
+  room: { topic: string; color: string; people: { id: string; name: string }[]; maxPeople: number };
+  onExpand: () => void;
+  onLeave: () => void;
+}) {
+  return (
+    <div
+      className="fixed z-[600] flex items-center gap-2 animate-in"
+      style={{
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
+        left: "50%",
+        transform: "translateX(-50%)",
+      }}
+    >
+      <button
+        onClick={onExpand}
+        className="flex items-center gap-2.5 pl-3 pr-4 py-2.5 active:scale-[0.97] transition-all duration-200"
+        style={{
+          borderRadius: 20,
+          background: "rgba(28,28,30,0.92)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+        }}
+      >
+        {/* Pulsing dot */}
+        <div
+          className="relative flex items-center justify-center"
+          style={{ width: 10, height: 10 }}
+        >
+          <div
+            className="absolute inset-0 rounded-full animate-ping"
+            style={{ backgroundColor: room.color, opacity: 0.4, animationDuration: "2s" }}
+          />
+          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: room.color }} />
+        </div>
+        {/* Topic */}
+        <span className="text-white text-xs font-medium truncate" style={{ maxWidth: 160 }}>
+          {room.topic}
+        </span>
+        {/* People count */}
+        <span className="text-white/40 text-[10px] font-mono tabular-nums">
+          {room.people.length}/{room.maxPeople}
+        </span>
+        {/* Expand icon */}
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-white/40"
+        >
+          <polyline points="15 3 21 3 21 9" />
+          <polyline points="9 21 3 21 3 15" />
+          <line x1="21" y1="3" x2="14" y2="10" />
+          <line x1="3" y1="21" x2="10" y2="14" />
+        </svg>
+      </button>
+      {/* Leave button */}
+      <button
+        onClick={onLeave}
+        className="flex items-center justify-center active:scale-95 transition-all duration-200"
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 14,
+          background: "linear-gradient(160deg, #ff4b4b 0%, #d93025 100%)",
+          color: "#fff",
+          boxShadow: "0 4px 16px rgba(239,68,68,0.35)",
+        }}
+        title="Leave"
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          style={{ transform: "rotate(135deg)" }}
+        >
+          <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 export function PixelCanvas({ name: initialName }: { name: string }) {
   const { t, locale } = useI18n();
   const party = useParty(initialName);
@@ -241,6 +334,9 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
   const [blockOverlay, setBlockOverlay] = useState<{ minutes: number; message: string } | null>(
     null
   );
+  const [minimized, setMinimized] = useState(false);
+  const pendingJoinRef = useRef<string | null>(null);
+  const insideRoomVoiceRef = useRef<{ stop: () => void } | null>(null);
   const [liveCamOpen, setLiveCamOpen] = useState(() => {
     if (typeof window === "undefined") return true;
     // Default to closed on mobile so onboarding tour is not blocked
@@ -346,13 +442,53 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
     return () => document.removeEventListener("mousedown", handler);
   }, [showProfile]);
 
+  // Reset minimized when room is left (e.g. kicked, host closed)
+  useEffect(() => {
+    if (!party.currentRoom) {
+      setMinimized(false);
+    }
+  }, [party.currentRoom]);
+
+  // Auto-join pending room after leaving the current one
+  useEffect(() => {
+    if (!party.currentRoomId && pendingJoinRef.current) {
+      const roomId = pendingJoinRef.current;
+      pendingJoinRef.current = null;
+      // Small delay to let cleanup finish
+      setTimeout(() => party.joinRoom(roomId), 100);
+    }
+  }, [party.currentRoomId, party.joinRoom]);
+
+  const handleJoinRoom = useCallback(
+    (roomId: string) => {
+      if (party.currentRoomId) {
+        // Currently in a room — leave first, then join the new one
+        pendingJoinRef.current = roomId;
+        insideRoomVoiceRef.current?.stop();
+        party.leaveRoom();
+        setMinimized(false);
+      } else {
+        party.joinRoom(roomId);
+      }
+    },
+    [party]
+  );
+
+  const handleMinimize = useCallback(() => {
+    setMinimized(true);
+  }, []);
+
+  const handleExpand = useCallback(() => {
+    setMinimized(false);
+  }, []);
+
   const handleLogout = () => {
     sessionStorage.setItem("onlyfun-logout", "1");
     window.location.reload();
   };
 
-  if (party.currentRoom) {
-    return <InsideRoom party={party} />;
+  if (party.currentRoom && !minimized) {
+    return <InsideRoom party={party} onMinimize={handleMinimize} voiceRef={insideRoomVoiceRef} />;
   }
 
   // Cast t for dynamic keys
@@ -726,14 +862,14 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
             setPlacing(true);
           }}
           rooms={party.rooms}
-          onJoinRoom={party.joinRoom}
+          onJoinRoom={handleJoinRoom}
         />
 
         {/* Map */}
         <div data-tour="map" className="relative flex-1 overflow-hidden flex flex-col">
           <CityMap
             rooms={party.rooms}
-            onJoin={party.joinRoom}
+            onJoin={handleJoinRoom}
             t={t}
             placing={placing}
             setPlacing={setPlacing}
@@ -1096,7 +1232,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
               rooms={party.rooms}
               onJoinRoom={(roomId) => {
                 setShowMobilePulse(false);
-                party.joinRoom(roomId);
+                handleJoinRoom(roomId);
               }}
             />
           </div>
@@ -1156,7 +1292,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
               rooms={party.rooms}
               onJoinRoom={(roomId) => {
                 setShowMobileEvents(false);
-                party.joinRoom(roomId);
+                handleJoinRoom(roomId);
               }}
             />
           </div>
@@ -1253,6 +1389,23 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
       )}
 
       {/* Mobile dropdown menu */}
+      {/* Minimized room: hidden InsideRoom (keeps WebRTC alive) + floating pill */}
+      {party.currentRoom && minimized && (
+        <>
+          <div className="fixed inset-0" style={{ visibility: "hidden", pointerEvents: "none" }}>
+            <InsideRoom party={party} voiceRef={insideRoomVoiceRef} />
+          </div>
+          <MinimizedRoomPill
+            room={party.currentRoom}
+            onExpand={handleExpand}
+            onLeave={() => {
+              insideRoomVoiceRef.current?.stop();
+              party.leaveRoom();
+            }}
+          />
+        </>
+      )}
+
       {showMore && (
         <div
           className="fixed inset-0 z-[500] sm:hidden"

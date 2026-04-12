@@ -600,7 +600,15 @@ function IceBreakerCard({
 
 // ─── InsideRoom ───────────────────────────────────────────────────────────────
 
-export function InsideRoom({ party }: { party: PartyState }) {
+export function InsideRoom({
+  party,
+  onMinimize,
+  voiceRef,
+}: {
+  party: PartyState;
+  onMinimize?: () => void;
+  voiceRef?: React.MutableRefObject<{ stop: () => void } | null>;
+}) {
   const room = party.currentRoom!;
   const voice = useVoice(party);
   const { t, locale } = useI18n();
@@ -613,6 +621,15 @@ export function InsideRoom({ party }: { party: PartyState }) {
     return () => voice.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Expose voice.stop to parent via ref (for room switching)
+  useEffect(() => {
+    if (voiceRef) voiceRef.current = { stop: voice.stop };
+    return () => {
+      if (voiceRef) voiceRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceRef, voice.stop]);
 
   // Show toast when force-muted by host
   useEffect(() => {
@@ -783,7 +800,7 @@ export function InsideRoom({ party }: { party: PartyState }) {
               <div
                 className="absolute left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3 py-2 rounded-2xl animate-in"
                 style={{
-                  bottom: "calc(env(safe-area-inset-bottom) + 120px)",
+                  bottom: "calc(env(safe-area-inset-bottom) + 130px)",
                   background: "rgba(28,28,30,0.95)",
                   border: "1px solid rgba(255,255,255,0.1)",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
@@ -843,9 +860,9 @@ export function InsideRoom({ party }: { party: PartyState }) {
       >
         {/* Pill container */}
         <div
-          className="flex items-center gap-1 px-2 pointer-events-auto"
+          className="flex items-center gap-1.5 px-2 pointer-events-auto"
           style={{
-            height: 72,
+            height: 68,
             borderRadius: 22,
             background: "rgba(28,28,30,0.85)",
             border: "1px solid rgba(255,255,255,0.10)",
@@ -858,7 +875,7 @@ export function InsideRoom({ party }: { party: PartyState }) {
             className="relative flex items-center justify-center transition-all duration-200"
             style={{
               touchAction: "manipulation",
-              width: 72,
+              width: 56,
               height: 56,
               borderRadius: 18,
               ...(voice.muted
@@ -875,7 +892,7 @@ export function InsideRoom({ party }: { party: PartyState }) {
                 className="absolute inset-0 animate-ping opacity-15"
                 style={{
                   borderRadius: 18,
-                  width: 72,
+                  width: 56,
                   height: 56,
                   backgroundColor: GREEN,
                   animationDuration: "2.5s",
@@ -883,12 +900,12 @@ export function InsideRoom({ party }: { party: PartyState }) {
               />
             )}
             <span className="relative z-10">
-              {voice.muted ? <MicOffIcon size={24} /> : <MicIcon size={24} />}
+              {voice.muted ? <MicOffIcon size={22} /> : <MicIcon size={22} />}
             </span>
           </button>
 
           {/* Speaking indicator in the middle */}
-          <div className="flex flex-col items-center justify-center" style={{ width: 80, gap: 4 }}>
+          <div className="flex flex-col items-center justify-center" style={{ width: 72, gap: 4 }}>
             {activeSpeaker ? (
               <>
                 <SoundWave
@@ -896,7 +913,7 @@ export function InsideRoom({ party }: { party: PartyState }) {
                 />
                 <span
                   className="text-white font-semibold truncate"
-                  style={{ fontSize: 10, maxWidth: 76 }}
+                  style={{ fontSize: 10, maxWidth: 68 }}
                 >
                   {activeSpeaker}
                 </span>
@@ -908,6 +925,39 @@ export function InsideRoom({ party }: { party: PartyState }) {
             )}
           </div>
 
+          {/* Minimize button */}
+          {onMinimize && (
+            <button
+              onClick={onMinimize}
+              className="flex items-center justify-center transition-all duration-200 active:scale-95"
+              style={{
+                touchAction: "manipulation",
+                width: 56,
+                height: 56,
+                borderRadius: 18,
+                background: "rgba(255,255,255,0.08)",
+                color: "rgba(255,255,255,0.5)",
+              }}
+              title={t("room.minimize")}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="4 14 10 14 10 20" />
+                <polyline points="20 10 14 10 14 4" />
+                <line x1="14" y1="10" x2="21" y2="3" />
+                <line x1="3" y1="21" x2="10" y2="14" />
+              </svg>
+            </button>
+          )}
+
           {/* Leave button — red rounded rect like iOS */}
           <button
             onClick={() => {
@@ -917,15 +967,15 @@ export function InsideRoom({ party }: { party: PartyState }) {
             className="flex items-center justify-center transition-all duration-200"
             style={{
               touchAction: "manipulation",
-              width: 72,
+              width: 56,
               height: 56,
-              borderRadius: 20,
+              borderRadius: 18,
               background: "linear-gradient(160deg, #ff4b4b 0%, #d93025 100%)",
               color: "#fff",
               boxShadow: "0 4px 16px rgba(239,68,68,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
             }}
           >
-            <PhoneDeclineIcon size={26} />
+            <PhoneDeclineIcon size={22} />
           </button>
         </div>
       </div>
