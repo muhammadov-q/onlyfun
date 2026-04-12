@@ -1,9 +1,34 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 
+async function ensureTable() {
+  const sql = getDb();
+  await sql`
+    CREATE TABLE IF NOT EXISTS podcast_messages (
+      id         SERIAL PRIMARY KEY,
+      name       TEXT NOT NULL,
+      message    TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_podcast_created_at ON podcast_messages (created_at DESC)
+  `;
+}
+
+let tableReady = false;
+
+async function ready() {
+  if (!tableReady) {
+    await ensureTable();
+    tableReady = true;
+  }
+}
+
 // GET — public feed (last 50 messages from the past 7 days)
 export async function GET() {
   try {
+    await ready();
     const sql = getDb();
     const rows = await sql`
       SELECT id, name, message, created_at
@@ -22,6 +47,7 @@ export async function GET() {
 // POST — anyone can post (rate-limited by name, 1 per minute)
 export async function POST(req: Request) {
   try {
+    await ready();
     const body = await req.json();
     const name = String(body.name ?? "")
       .trim()
