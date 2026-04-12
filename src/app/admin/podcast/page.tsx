@@ -3,7 +3,16 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Trash2, MessageSquare, Pencil, Check, X, Search } from "lucide-react";
+import {
+  Trash2,
+  MessageSquare,
+  Pencil,
+  Check,
+  X,
+  Search,
+  ShieldBan,
+  ShieldCheck,
+} from "lucide-react";
 import { RefreshButton } from "@/components/admin/refresh-button";
 import { PageLoader } from "@/components/admin/page-loader";
 
@@ -11,6 +20,7 @@ interface MessageRow {
   id: number;
   name: string;
   message: string;
+  censored: boolean;
   created_at: string;
 }
 
@@ -166,6 +176,21 @@ export default function AdminPodcastPage() {
     }
   }
 
+  async function toggleCensor(id: number, censored: boolean) {
+    try {
+      const res = await fetch("/api/admin/podcast", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, censored }),
+      });
+      if (!res.ok) throw new Error();
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, censored } : i)));
+      toast.success(censored ? "Message censored" : "Censor removed");
+    } catch {
+      toast.error("Failed to update");
+    }
+  }
+
   if (loading) return <PageLoader />;
 
   return (
@@ -231,6 +256,7 @@ export default function AdminPodcastPage() {
                     className="rounded border-border"
                   />
                 </th>
+                <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Message</th>
                 <th className="px-4 py-3 font-medium">Posted</th>
@@ -243,7 +269,7 @@ export default function AdminPodcastPage() {
                   key={item.id}
                   className={`border-b border-border last:border-0 hover:bg-accent/30 transition-colors ${
                     selected.has(item.id) ? "bg-accent/20" : ""
-                  }`}
+                  } ${item.censored ? "opacity-60" : ""}`}
                 >
                   <td className="px-4 py-3 align-top">
                     <input
@@ -252,6 +278,19 @@ export default function AdminPodcastPage() {
                       onChange={() => toggleSelect(item.id)}
                       className="rounded border-border"
                     />
+                  </td>
+                  <td className="px-4 py-3 align-top">
+                    {item.censored ? (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                        <ShieldBan className="h-3 w-3" />
+                        Censored
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <ShieldCheck className="h-3 w-3" />
+                        Visible
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 align-top">
                     {editing === item.id ? (
@@ -330,6 +369,23 @@ export default function AdminPodcastPage() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-1 justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleCensor(item.id, !item.censored)}
+                          className={`h-7 w-7 p-0 ${
+                            item.censored
+                              ? "text-red-400 hover:text-emerald-400"
+                              : "text-muted-foreground hover:text-red-400"
+                          }`}
+                          title={item.censored ? "Remove censor" : "Censor message"}
+                        >
+                          {item.censored ? (
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                          ) : (
+                            <ShieldBan className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"

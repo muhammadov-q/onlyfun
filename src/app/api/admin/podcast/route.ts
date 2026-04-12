@@ -9,7 +9,7 @@ export async function GET() {
 
   const sql = getDb();
   const rows = await sql`
-    SELECT id, name, message, created_at
+    SELECT id, name, message, censored, created_at
     FROM podcast_messages
     ORDER BY created_at DESC
     LIMIT 200
@@ -41,9 +41,12 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
     await sql`UPDATE podcast_messages SET name = ${name} WHERE id = ${id}`;
   }
+  if (typeof body.censored === "boolean") {
+    await sql`UPDATE podcast_messages SET censored = ${body.censored} WHERE id = ${id}`;
+  }
 
   const rows =
-    await sql`SELECT id, name, message, created_at FROM podcast_messages WHERE id = ${id} LIMIT 1`;
+    await sql`SELECT id, name, message, censored, created_at FROM podcast_messages WHERE id = ${id} LIMIT 1`;
   return NextResponse.json({ ok: true, item: rows[0] ?? null });
 }
 

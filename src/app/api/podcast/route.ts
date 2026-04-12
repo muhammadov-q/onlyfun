@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { containsProfanity } from "@/lib/profanity";
 
 async function ensureTable() {
   const sql = getDb();
@@ -8,11 +9,16 @@ async function ensureTable() {
       id         SERIAL PRIMARY KEY,
       name       TEXT NOT NULL,
       message    TEXT NOT NULL,
+      censored   BOOLEAN NOT NULL DEFAULT FALSE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
   await sql`
     CREATE INDEX IF NOT EXISTS idx_podcast_created_at ON podcast_messages (created_at DESC)
+  `;
+  // Add censored column if table already exists without it
+  await sql`
+    ALTER TABLE podcast_messages ADD COLUMN IF NOT EXISTS censored BOOLEAN NOT NULL DEFAULT FALSE
   `;
 }
 
@@ -31,7 +37,7 @@ export async function GET() {
     await ready();
     const sql = getDb();
     const rows = await sql`
-      SELECT id, name, message, created_at
+      SELECT id, name, message, censored, created_at
       FROM podcast_messages
       WHERE created_at > NOW() - INTERVAL '7 days'
       ORDER BY created_at DESC
@@ -75,13 +81,16 @@ export async function POST(req: Request) {
       );
     }
 
+    // Auto-censor if profanity detected
+    const flagged = containsProfanity(message) || containsProfanity(name);
+
     const rows = await sql`
-      INSERT INTO podcast_messages (name, message)
-      VALUES (${name}, ${message})
-      RETURNING id, name, message, created_at
+      INSERT INTO podcast_messages (name, message, censored)
+      VALUES (${name}, ${message}, ${flagged})
+      RETURNING id, name, message, censored, created_at
     `;
 
-    return NextResponse.json({ ok: true, message: rows[0] });
+    return NextResponse.json({ ok: true, message: rows[0], flagged });
   } catch (e) {
     console.error("podcast POST error:", e);
     return NextResponse.json({ error: "Failed to post" }, { status: 500 });

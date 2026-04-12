@@ -1197,7 +1197,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
           )}
 
           {/* Live Bishkek cam — embed overlay (mobile only, desktop uses side panel) */}
-          {!placing && liveCamOpen && (
+          {!placing && liveCamOpen && !party.currentRoom && (
             <div
               className="absolute z-[400] transition-all duration-300 sm:hidden"
               style={{ top: 12, left: 12 }}
@@ -1213,8 +1213,8 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
             </div>
           )}
 
-          {/* + FAB — desktop only, hidden while placing */}
-          {!placing && (
+          {/* + FAB — desktop only, hidden while placing or in room */}
+          {!placing && !party.currentRoom && (
             <button
               data-tour="create-fab-desktop"
               onClick={() => setPlacing(true)}
@@ -1285,7 +1285,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
         pulseOpen={showMobilePulse}
         eventsOpen={showMobileEvents}
         roomsOpen={showPanel}
-        hidden={placing}
+        hidden={placing || (!!party.currentRoom && !minimized)}
         roomCount={party.rooms.length}
         labels={{
           live: t("live.button"),

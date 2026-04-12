@@ -114,6 +114,9 @@ export default {
   "podcast.placeholder": "Что у тебя на уме?",
   "podcast.send": "Отправить",
   "podcast.empty": "Пока нет сообщений. Будь первым!",
+  "podcast.inappropriate": "Неприемлемое содержание",
+  "podcast.showAnyway": "Нажмите, чтобы показать",
+  "podcast.flagged": "Ваше сообщение было скрыто за неприемлемое содержание",
 
   // Map / placing
   "map.placingInstruction": "Передвинь карту, чтобы разместить пин",

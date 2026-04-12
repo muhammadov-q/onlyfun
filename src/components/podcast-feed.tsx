@@ -6,6 +6,7 @@ type PodcastMessage = {
   id: number;
   name: string;
   message: string;
+  censored: boolean;
   created_at: string;
 };
 
@@ -41,6 +42,7 @@ function PodcastContent({ userName, t }: { userName: string; t: (key: string) =>
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const listRef = useRef<HTMLDivElement>(null);
 
   const fetchMessages = useCallback(async () => {
@@ -79,6 +81,7 @@ function PodcastContent({ userName, t }: { userName: string; t: (key: string) =>
       }
       setText("");
       if (data.message) setMessages((prev) => [data.message, ...prev]);
+      if (data.flagged) setError(t("podcast.flagged"));
       listRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
       setError("Failed to post");
@@ -172,25 +175,66 @@ function PodcastContent({ userName, t }: { userName: string; t: (key: string) =>
           </div>
         ) : (
           <div className="flex flex-col gap-2.5">
-            {messages.map((msg) => (
-              <div key={msg.id} className="flex gap-2">
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase shrink-0 mt-0.5"
-                  style={{ background: avatarColor(msg.name) }}
-                >
-                  {msg.name[0]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-white/80 text-[11px] font-semibold">{msg.name}</span>
-                    <span className="text-white/25 text-[9px]">{timeAgo(msg.created_at)}</span>
+            {messages.map((msg) => {
+              const isCensored = msg.censored && !revealed.has(msg.id);
+              return (
+                <div key={msg.id} className="flex gap-2">
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white uppercase shrink-0 mt-0.5"
+                    style={{ background: avatarColor(msg.name) }}
+                  >
+                    {msg.name[0]}
                   </div>
-                  <p className="text-white/70 text-xs mt-0.5 leading-relaxed break-words">
-                    {msg.message}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-white text-[11px] font-semibold">{msg.name}</span>
+                      <span className="text-white/25 text-[9px]">{timeAgo(msg.created_at)}</span>
+                    </div>
+                    {isCensored ? (
+                      <button
+                        onClick={() => setRevealed((prev) => new Set([...prev, msg.id]))}
+                        className="relative w-full mt-1 rounded-xl overflow-hidden text-left active:scale-[0.98] transition-transform"
+                        style={{
+                          touchAction: "manipulation",
+                          minHeight: 52,
+                          background: "rgba(255,255,255,0.03)",
+                          border: "1px solid rgba(255,255,255,0.06)",
+                        }}
+                      >
+                        <div className="flex flex-col items-center justify-center gap-0.5 py-3 px-4">
+                          <div className="flex items-center gap-1.5">
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="text-white/30"
+                            >
+                              <path d="M12 9v4M12 17h.01" />
+                              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            </svg>
+                            <span className="text-white/40 text-[11px] font-medium">
+                              {t("podcast.inappropriate")}
+                            </span>
+                          </div>
+                          <span className="text-white/20 text-[10px]">
+                            {t("podcast.showAnyway")}
+                          </span>
+                        </div>
+                      </button>
+                    ) : (
+                      <p className="text-white text-xs mt-0.5 leading-relaxed break-words">
+                        {msg.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

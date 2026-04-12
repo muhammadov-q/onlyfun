@@ -113,6 +113,9 @@ export default {
   "podcast.placeholder": "What's on your mind?",
   "podcast.send": "Post",
   "podcast.empty": "No messages yet. Be the first to post!",
+  "podcast.inappropriate": "Inappropriate content",
+  "podcast.showAnyway": "Tap to show anyway",
+  "podcast.flagged": "Your message was flagged and hidden for inappropriate content",
 
   // Map / placing
   "map.placingInstruction": "Move the map to position the pin",
