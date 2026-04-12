@@ -21,6 +21,24 @@ export type Room = {
 
 export type ChatMsg = { from: string; name: string; text: string };
 
+export type MarbleRaceState = {
+  game: "marble-race";
+  players: { id: string; name: string }[];
+  finishOrder: string[];
+  seed: number;
+};
+
+export type TicTacToeState = {
+  game: "tic-tac-toe";
+  playerX: { id: string; name: string };
+  playerO: { id: string; name: string };
+  board: (string | null)[];
+  turn: "X" | "O";
+  winner: "X" | "O" | "draw" | null;
+};
+
+export type GameState = MarbleRaceState | TicTacToeState | null;
+
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:1999";
 
 export function useParty(name: string) {
@@ -30,6 +48,7 @@ export function useParty(name: string) {
   const [onlineCount, setOnlineCount] = useState(0);
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [effectiveName, setEffectiveName] = useState(name);
+  const [gameState, setGameState] = useState<GameState>(null);
 
   const onSignal = useRef<((from: string, signal: unknown) => void) | undefined>(undefined);
   const onPeerJoin = useRef<((id: string, name: string) => void) | undefined>(undefined);
@@ -96,6 +115,7 @@ export function useParty(name: string) {
         if (msg.type === "left" || msg.type === "room-closed" || msg.type === "kicked") {
           setCurrentRoomId(null);
           setChatMessages([]);
+          setGameState(null);
         }
 
         if (msg.type === "ice-breakers") {
@@ -111,6 +131,32 @@ export function useParty(name: string) {
               r.id === msg.roomId ? { ...r, currentQuestion: msg.index as number } : r
             )
           );
+        }
+
+        if (msg.type === "game-start") {
+          if (msg.game === "marble-race") {
+            setGameState({
+              game: "marble-race",
+              players: msg.players,
+              finishOrder: msg.finishOrder,
+              seed: msg.seed,
+            });
+          } else if (msg.game === "tic-tac-toe") {
+            setGameState({
+              game: "tic-tac-toe",
+              playerX: msg.playerX,
+              playerO: msg.playerO,
+              board: msg.board,
+              turn: msg.turn,
+              winner: null,
+            });
+          }
+        }
+        if (msg.type === "game-update") {
+          setGameState((prev) => {
+            if (!prev || prev.game !== "tic-tac-toe") return prev;
+            return { ...prev, board: msg.board, turn: msg.turn, winner: msg.winner };
+          });
         }
 
         if (msg.type === "signal") onSignal.current?.(msg.from, msg.signal);
@@ -196,6 +242,12 @@ export function useParty(name: string) {
   const stopPreview = useCallback(() => send({ type: "preview-stop" }), [send]);
   const kickPeer = useCallback((targetId: string) => send({ type: "kick", targetId }), [send]);
   const mutePeer = useCallback((targetId: string) => send({ type: "mute-peer", targetId }), [send]);
+  const startGame = useCallback(
+    (game: "marble-race" | "tic-tac-toe") => send({ type: "start-game", game }),
+    [send]
+  );
+  const sendGameMove = useCallback((cell: number) => send({ type: "game-move", cell }), [send]);
+  const clearGame = useCallback(() => setGameState(null), []);
 
   const currentRoom = rooms.find((r) => r.id === currentRoomId) ?? null;
 
@@ -219,6 +271,10 @@ export function useParty(name: string) {
     stopPreview,
     kickPeer,
     mutePeer,
+    startGame,
+    sendGameMove,
+    clearGame,
+    gameState,
     onSignal,
     onPeerJoin,
     onPeerLeave,

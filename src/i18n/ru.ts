@@ -93,6 +93,20 @@ export default {
   "room.banned": "Тебе запрещён вход в эту комнату",
   "room.count": "Комнат",
 
+  // Game
+  "game.start": "Начать игру",
+  "game.play": "Играть",
+  "game.marbleRace": "Гонка шариков",
+  "game.marbleRaceDesc": "Смотри как шарики мчатся через препятствия",
+  "game.ticTacToe": "Крестики-нолики",
+  "game.ticTacToeDesc": "Классика на двоих, остальные смотрят",
+  "game.groupGames": "Групповые",
+  "game.soloGames": "Соло",
+  "game.emojiMatch": "Найди пару",
+  "game.emojiMatchDesc": "Переворачивай карты, ищи пары",
+  "game.paddleBall": "Мячик",
+  "game.paddleBallDesc": "Отбивай мяч, он ускоряется!",
+
   // Map / placing
   "map.placingInstruction": "Передвинь карту, чтобы разместить пин",
   "map.cancel": "Отмена",

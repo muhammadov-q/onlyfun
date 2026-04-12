@@ -92,6 +92,20 @@ export default {
   "room.banned": "You're banned from this room",
   "room.count": "Rooms",
 
+  // Game
+  "game.start": "Start a game",
+  "game.play": "Play",
+  "game.marbleRace": "Marble Race",
+  "game.marbleRaceDesc": "Watch marbles race through obstacles",
+  "game.ticTacToe": "Tic Tac Toe",
+  "game.ticTacToeDesc": "Classic 2-player, others spectate",
+  "game.groupGames": "Group",
+  "game.soloGames": "Solo",
+  "game.emojiMatch": "Emoji Match",
+  "game.emojiMatchDesc": "Flip cards, find matching pairs",
+  "game.paddleBall": "Paddle Ball",
+  "game.paddleBallDesc": "Keep the ball alive, it gets faster!",
+
   // Map / placing
   "map.placingInstruction": "Move the map to position the pin",
   "map.cancel": "Cancel",

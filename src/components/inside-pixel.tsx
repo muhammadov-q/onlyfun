@@ -5,6 +5,10 @@ import type { PartyState } from "./use-party";
 import { useVoice } from "./use-voice";
 import { useI18n } from "@/i18n";
 import { ROOM_MODES_MAP } from "@/config/roomModes";
+import { MarbleRace } from "./marble-race";
+import { TicTacToe } from "./tic-tac-toe";
+import { EmojiMatch } from "./emoji-match";
+import { PaddleBall } from "./paddle-ball";
 
 // ─── Sound effects ────────────────────────────────────────────────────────────
 
@@ -614,6 +618,8 @@ export function InsideRoom({
   const { t, locale } = useI18n();
   const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showGameMenu, setShowGameMenu] = useState(false);
+  const [soloGame, setSoloGame] = useState<"emoji-match" | "paddle-ball" | null>(null);
   const isHost = party.myId === room.hostId;
 
   useEffect(() => {
@@ -694,6 +700,130 @@ export function InsideRoom({
           </div>
           <p className="text-white text-sm font-semibold truncate leading-tight">{room.topic}</p>
         </div>
+
+        {/* Game button — visible to everyone */}
+        {!party.gameState && !soloGame && (
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setShowGameMenu((v) => !v)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-purple-500/20 bg-purple-500/10 active:bg-purple-500/20 transition-colors"
+              style={{ touchAction: "manipulation" }}
+              title={t("game.start")}
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-purple-400"
+              >
+                <line x1="6" y1="11" x2="10" y2="11" />
+                <line x1="8" y1="9" x2="8" y2="13" />
+                <line x1="15" y1="12" x2="15.01" y2="12" />
+                <line x1="18" y1="10" x2="18.01" y2="10" />
+                <path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" />
+              </svg>
+              <span className="text-purple-400 text-[10px] font-semibold">{t("game.play")}</span>
+            </button>
+
+            {/* Game picker dropdown */}
+            {showGameMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowGameMenu(false)} />
+                <div
+                  className="absolute right-0 top-full mt-2 z-50 w-52 rounded-xl animate-in overflow-hidden"
+                  style={{
+                    background: "rgba(28,28,30,0.97)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                  }}
+                >
+                  {/* Group games — host only */}
+                  {isHost && room.people.length >= 2 && (
+                    <>
+                      <div className="px-3.5 pt-2.5 pb-1">
+                        <span className="text-[9px] font-semibold uppercase tracking-wider text-white/25">
+                          {t("game.groupGames")}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowGameMenu(false);
+                          party.startGame("marble-race");
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 active:bg-white/5 transition-colors"
+                        style={{ touchAction: "manipulation" }}
+                      >
+                        <span className="text-base">🏁</span>
+                        <div className="flex-1 text-left">
+                          <p className="text-white/80 text-xs font-medium">
+                            {t("game.marbleRace")}
+                          </p>
+                          <p className="text-white/30 text-[10px]">{t("game.marbleRaceDesc")}</p>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowGameMenu(false);
+                          party.startGame("tic-tac-toe");
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 active:bg-white/5 transition-colors"
+                        style={{ touchAction: "manipulation" }}
+                      >
+                        <span className="text-base">#</span>
+                        <div className="flex-1 text-left">
+                          <p className="text-white/80 text-xs font-medium">{t("game.ticTacToe")}</p>
+                          <p className="text-white/30 text-[10px]">{t("game.ticTacToeDesc")}</p>
+                        </div>
+                      </button>
+                      <div className="mx-3 my-1 border-t border-white/5" />
+                    </>
+                  )}
+
+                  {/* Solo games — everyone */}
+                  <div className="px-3.5 pt-2 pb-1">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider text-white/25">
+                      {t("game.soloGames")}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowGameMenu(false);
+                      setSoloGame("emoji-match");
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 active:bg-white/5 transition-colors"
+                    style={{ touchAction: "manipulation" }}
+                  >
+                    <span className="text-base">🧠</span>
+                    <div className="flex-1 text-left">
+                      <p className="text-white/80 text-xs font-medium">{t("game.emojiMatch")}</p>
+                      <p className="text-white/30 text-[10px]">{t("game.emojiMatchDesc")}</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGameMenu(false);
+                      setSoloGame("paddle-ball");
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 active:bg-white/5 transition-colors"
+                    style={{ touchAction: "manipulation" }}
+                  >
+                    <span className="text-base">🏓</span>
+                    <div className="flex-1 text-left">
+                      <p className="text-white/80 text-xs font-medium">{t("game.paddleBall")}</p>
+                      <p className="text-white/30 text-[10px]">{t("game.paddleBallDesc")}</p>
+                    </div>
+                  </button>
+                  <div className="h-1" />
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-white/12 bg-white/5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -979,6 +1109,37 @@ export function InsideRoom({
           </button>
         </div>
       </div>
+
+      {/* Marble Race game overlay */}
+      {party.gameState && party.gameState.game === "marble-race" && (
+        <MarbleRace
+          players={party.gameState.players}
+          finishOrder={party.gameState.finishOrder}
+          seed={party.gameState.seed}
+          myId={party.myId}
+          onClose={party.clearGame}
+        />
+      )}
+
+      {/* Tic Tac Toe game overlay */}
+      {party.gameState && party.gameState.game === "tic-tac-toe" && (
+        <TicTacToe
+          playerX={party.gameState.playerX}
+          playerO={party.gameState.playerO}
+          board={party.gameState.board}
+          turn={party.gameState.turn}
+          winner={party.gameState.winner}
+          myId={party.myId}
+          onMove={party.sendGameMove}
+          onClose={party.clearGame}
+        />
+      )}
+
+      {/* Solo: Emoji Match */}
+      {soloGame === "emoji-match" && <EmojiMatch onClose={() => setSoloGame(null)} />}
+
+      {/* Solo: Paddle Ball */}
+      {soloGame === "paddle-ball" && <PaddleBall onClose={() => setSoloGame(null)} />}
     </div>
   );
 }

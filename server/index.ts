@@ -16,6 +16,14 @@ if (fs.existsSync(envPath)) {
   }
 }
 
+type TicTacToeGame = {
+  game: "tic-tac-toe";
+  playerX: string; // user id
+  playerO: string; // user id
+  board: (string | null)[]; // "X" | "O" | null
+  turn: "X" | "O";
+};
+
 type Room = {
   id: string;
   hostId: string;
@@ -32,6 +40,7 @@ type Room = {
   lang: string;
   iceBreakers: string[];
   currentQuestion: number;
+  activeGame: TicTacToeGame | null;
 };
 
 const COLORS = [
@@ -205,6 +214,7 @@ function makeSeedRoom(): Room {
     lang: "en",
     iceBreakers: [],
     currentQuestion: 0,
+    activeGame: null,
   };
 }
 
@@ -718,6 +728,23 @@ Return ONLY valid JSON: {"questions":["q1","q2","q3","q4","q5","q6","q7","q8","q
   }
 }
 
+function checkTicTacToeWinner(board: (string | null)[]): string | null {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8], // rows
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8], // cols
+    [0, 4, 8],
+    [2, 4, 6], // diagonals
+  ];
+  for (const [a, b, c] of lines) {
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
+  }
+  return null;
+}
+
 function sendToRoom(roomId: string, msg: object, excludeId?: string) {
   const room = rooms.get(roomId);
   if (!room) return;
@@ -1092,6 +1119,7 @@ wss.on("connection", (ws, req) => {
         banned: new Map(),
         iceBreakers: [],
         currentQuestion: 0,
+        activeGame: null,
       };
       rooms.set(room.id, room);
       user.roomId = room.id;
@@ -1303,6 +1331,94 @@ wss.on("connection", (ws, req) => {
           index: room.currentQuestion,
         })
       );
+    }
+
+    if (msg.type === "start-game") {
+      const user = users.get(connId);
+      if (!user?.roomId) return;
+      const room = rooms.get(user.roomId);
+      if (!room || room.hostId !== connId) return; // only host
+      if (room.people.length < 2) return; // need at least 2 players
+
+      const gameName = msg.game || "marble-race";
+
+      if (gameName === "marble-race") {
+        const players = room.people.map((p) => ({ id: p.id, name: p.name }));
+        const finishOrder = [...players].sort(() => Math.random() - 0.5).map((p) => p.id);
+        const seed = Math.floor(Math.random() * 2147483647);
+        room.activeGame = null;
+
+        const payload = JSON.stringify({
+          type: "game-start",
+          game: "marble-race",
+          players,
+          finishOrder,
+          seed,
+        });
+        for (const p of room.people) {
+          const u = users.get(p.id);
+          if (u && u.ws.readyState === WebSocket.OPEN) u.ws.send(payload);
+        }
+      }
+
+      if (gameName === "tic-tac-toe") {
+        // Pick 2 random players
+        const shuffled = [...room.people].sort(() => Math.random() - 0.5);
+        const pX = shuffled[0];
+        const pO = shuffled[1];
+        const board = Array(9).fill(null);
+        room.activeGame = { game: "tic-tac-toe", playerX: pX.id, playerO: pO.id, board, turn: "X" };
+
+        const payload = JSON.stringify({
+          type: "game-start",
+          game: "tic-tac-toe",
+          playerX: { id: pX.id, name: pX.name },
+          playerO: { id: pO.id, name: pO.name },
+          board,
+          turn: "X",
+        });
+        for (const p of room.people) {
+          const u = users.get(p.id);
+          if (u && u.ws.readyState === WebSocket.OPEN) u.ws.send(payload);
+        }
+      }
+    }
+
+    if (msg.type === "game-move") {
+      const user = users.get(connId);
+      if (!user?.roomId) return;
+      const room = rooms.get(user.roomId);
+      if (!room || !room.activeGame || room.activeGame.game !== "tic-tac-toe") return;
+
+      const g = room.activeGame;
+      const cell = Number(msg.cell);
+      if (cell < 0 || cell > 8 || g.board[cell] !== null) return; // invalid move
+
+      // Check it's this player's turn
+      const isX = connId === g.playerX;
+      const isO = connId === g.playerO;
+      if ((g.turn === "X" && !isX) || (g.turn === "O" && !isO)) return;
+
+      g.board[cell] = g.turn;
+      const winner = checkTicTacToeWinner(g.board);
+      const isDraw = !winner && g.board.every((c) => c !== null);
+      g.turn = g.turn === "X" ? "O" : "X";
+
+      const payload = JSON.stringify({
+        type: "game-update",
+        board: g.board,
+        turn: g.turn,
+        winner: winner ?? (isDraw ? "draw" : null),
+      });
+
+      for (const p of room.people) {
+        const u = users.get(p.id);
+        if (u && u.ws.readyState === WebSocket.OPEN) u.ws.send(payload);
+      }
+
+      if (winner || isDraw) {
+        room.activeGame = null;
+      }
     }
 
     if (msg.type === "chat") {
