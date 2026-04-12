@@ -182,10 +182,10 @@ function PodcastContent({ userName, t }: { userName: string; t: (key: string) =>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-white/60 text-[11px] font-semibold">{msg.name}</span>
-                    <span className="text-white/15 text-[9px]">{timeAgo(msg.created_at)}</span>
+                    <span className="text-white/80 text-[11px] font-semibold">{msg.name}</span>
+                    <span className="text-white/25 text-[9px]">{timeAgo(msg.created_at)}</span>
                   </div>
-                  <p className="text-white/40 text-[11px] mt-0.5 leading-relaxed break-words">
+                  <p className="text-white/70 text-xs mt-0.5 leading-relaxed break-words">
                     {msg.message}
                   </p>
                 </div>

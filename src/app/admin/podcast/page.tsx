@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Trash2, MessageSquare, Pencil, Check, X } from "lucide-react";
+import { Trash2, MessageSquare, Pencil, Check, X, Search } from "lucide-react";
 import { RefreshButton } from "@/components/admin/refresh-button";
 import { PageLoader } from "@/components/admin/page-loader";
 
@@ -41,6 +41,7 @@ export default function AdminPodcastPage() {
   const [editName, setEditName] = useState("");
   const [editMessage, setEditMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
 
   const fetchItems = useCallback(async () => {
     try {
@@ -59,10 +60,17 @@ export default function AdminPodcastPage() {
     fetchItems();
   }, [fetchItems]);
 
-  const allSelected = items.length > 0 && selected.size === items.length;
+  const filtered = search.trim()
+    ? items.filter((i) => {
+        const q = search.toLowerCase();
+        return i.name.toLowerCase().includes(q) || i.message.toLowerCase().includes(q);
+      })
+    : items;
+
+  const allSelected = filtered.length > 0 && filtered.every((i) => selected.has(i.id));
 
   function toggleSelectAll() {
-    setSelected(allSelected ? new Set() : new Set(items.map((i) => i.id)));
+    setSelected(allSelected ? new Set() : new Set(filtered.map((i) => i.id)));
   }
 
   function toggleSelect(id: number) {
@@ -166,8 +174,10 @@ export default function AdminPodcastPage() {
         <div>
           <h2 className="text-xl font-semibold">Podcast Messages</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {items.length} message{items.length !== 1 ? "s" : ""} &middot; Auto-deletes after 7 days
+            {items.length} message{items.length !== 1 ? "s" : ""}
+            {search && ` · ${filtered.length} matching`}
             {selected.size > 0 && ` · ${selected.size} selected`}
+            {" "}&middot; Auto-deletes after 7 days
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -181,10 +191,30 @@ export default function AdminPodcastPage() {
         </div>
       </div>
 
-      {items.length === 0 ? (
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+        <input
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setSelected(new Set()); }}
+          placeholder="Search by name or message..."
+          className="w-full sm:max-w-sm bg-card border border-border rounded-xl pl-9 pr-3 py-2 text-sm outline-none focus:border-ring placeholder:text-muted-foreground/40"
+        />
+      </div>
+
+      {filtered.length === 0 ? (
         <div className="text-muted-foreground text-sm py-12 text-center">
-          <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-30" />
-          No podcast messages yet. Messages from users will appear here.
+          {search ? (
+            <>
+              <Search className="w-8 h-8 mx-auto mb-3 opacity-30" />
+              No messages matching &ldquo;{search}&rdquo;
+            </>
+          ) : (
+            <>
+              <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-30" />
+              No podcast messages yet. Messages from users will appear here.
+            </>
+          )}
         </div>
       ) : (
         <div className="bg-card border border-border rounded-2xl overflow-x-auto">
@@ -206,7 +236,7 @@ export default function AdminPodcastPage() {
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {filtered.map((item) => (
                 <tr
                   key={item.id}
                   className={`border-b border-border last:border-0 hover:bg-accent/30 transition-colors ${
