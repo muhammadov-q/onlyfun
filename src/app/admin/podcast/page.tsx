@@ -176,8 +176,7 @@ export default function AdminPodcastPage() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {items.length} message{items.length !== 1 ? "s" : ""}
             {search && ` · ${filtered.length} matching`}
-            {selected.size > 0 && ` · ${selected.size} selected`}
-            {" "}&middot; Auto-deletes after 7 days
+            {selected.size > 0 && ` · ${selected.size} selected`} &middot; Auto-deletes after 7 days
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -196,7 +195,10 @@ export default function AdminPodcastPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
         <input
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setSelected(new Set()); }}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setSelected(new Set());
+          }}
           placeholder="Search by name or message..."
           className="w-full sm:max-w-sm bg-card border border-border rounded-xl pl-9 pr-3 py-2 text-sm outline-none focus:border-ring placeholder:text-muted-foreground/40"
         />
