@@ -176,7 +176,7 @@ function PodcastContent({ userName, t }: { userName: string; t: (key: string) =>
         ) : (
           <div className="flex flex-col gap-2.5">
             {messages.map((msg) => {
-              const isCensored = msg.censored && !revealed.has(msg.id);
+              const isCensored = !!msg.censored && !revealed.has(msg.id);
               return (
                 <div key={msg.id} className="flex gap-2">
                   <div
@@ -191,17 +191,25 @@ function PodcastContent({ userName, t }: { userName: string; t: (key: string) =>
                       <span className="text-white/25 text-[9px]">{timeAgo(msg.created_at)}</span>
                     </div>
                     {isCensored ? (
-                      <button
-                        onClick={() => setRevealed((prev) => new Set([...prev, msg.id]))}
-                        className="relative w-full mt-1 rounded-xl overflow-hidden text-left active:scale-[0.98] transition-transform"
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRevealed((prev) => new Set([...prev, msg.id]));
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") setRevealed((prev) => new Set([...prev, msg.id]));
+                        }}
+                        className="w-full mt-1 rounded-xl cursor-pointer select-none active:opacity-70 transition-opacity"
                         style={{
                           touchAction: "manipulation",
-                          minHeight: 52,
+                          WebkitTapHighlightColor: "transparent",
                           background: "rgba(255,255,255,0.03)",
-                          border: "1px solid rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.08)",
                         }}
                       >
-                        <div className="flex flex-col items-center justify-center gap-0.5 py-3 px-4">
+                        <div className="flex flex-col items-center justify-center gap-0.5 py-3.5 px-4">
                           <div className="flex items-center gap-1.5">
                             <svg
                               width="12"
@@ -225,7 +233,7 @@ function PodcastContent({ userName, t }: { userName: string; t: (key: string) =>
                             {t("podcast.showAnyway")}
                           </span>
                         </div>
-                      </button>
+                      </div>
                     ) : (
                       <p className="text-white text-xs mt-0.5 leading-relaxed break-words">
                         {msg.message}
