@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useParty } from "./use-party";
-import { InsideRoom } from "./inside-pixel";
+import { InsideRoom, type VoiceHandle } from "./inside-pixel";
 import { CreateModal } from "./create-modal";
 import { useI18n } from "@/i18n";
 import { LangSwitcher } from "./lang-switcher";
@@ -227,91 +227,159 @@ function MinimizedRoomPill({
   room,
   onExpand,
   onLeave,
+  voiceHandle,
 }: {
   room: { topic: string; color: string; people: { id: string; name: string }[]; maxPeople: number };
   onExpand: () => void;
   onLeave: () => void;
+  voiceHandle: VoiceHandle | null;
 }) {
+  const muted = voiceHandle?.muted ?? true;
+  const isSpeaking = voiceHandle?.isSpeaking ?? false;
+  const hasSpeakers = (voiceHandle?.speakingPeers?.size ?? 0) > 0;
+
   return (
     <div
-      className="fixed z-[600] flex items-center gap-2 animate-in"
+      className="fixed z-[600] animate-in"
       style={{
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
         left: "50%",
         transform: "translateX(-50%)",
       }}
     >
-      <button
-        onClick={onExpand}
-        className="flex items-center gap-2.5 pl-3 pr-4 py-2.5 active:scale-[0.97] transition-all duration-200"
+      <div
+        className="flex items-center gap-1.5 px-1.5"
         style={{
-          borderRadius: 20,
+          height: 52,
+          borderRadius: 18,
           background: "rgba(28,28,30,0.92)",
-          border: "1px solid rgba(255,255,255,0.12)",
+          border: "1px solid rgba(255,255,255,0.10)",
           boxShadow: "0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
         }}
       >
-        {/* Pulsing dot */}
-        <div
-          className="relative flex items-center justify-center"
-          style={{ width: 10, height: 10 }}
+        {/* Mic toggle */}
+        <button
+          onClick={() => voiceHandle?.toggleMute()}
+          className="relative flex items-center justify-center transition-all duration-200"
+          style={{
+            touchAction: "manipulation",
+            width: 40,
+            height: 40,
+            borderRadius: 13,
+            ...(muted
+              ? { background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)" }
+              : {
+                  background: "rgba(34,197,94,0.18)",
+                  color: "#22c55e",
+                  boxShadow: "0 0 10px rgba(34,197,94,0.25)",
+                }),
+          }}
         >
+          {muted ? (
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="1" y1="1" x2="23" y2="23" />
+              <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+              <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .41-.04.81-.1 1.2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          ) : (
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          )}
+        </button>
+
+        {/* Room info — tap to expand */}
+        <button
+          onClick={onExpand}
+          className="flex items-center gap-2 px-2.5 py-1 active:opacity-70 transition-opacity"
+          style={{ touchAction: "manipulation" }}
+        >
+          {/* Activity indicator */}
           <div
-            className="absolute inset-0 rounded-full animate-ping"
-            style={{ backgroundColor: room.color, opacity: 0.4, animationDuration: "2s" }}
-          />
-          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: room.color }} />
-        </div>
-        {/* Topic */}
-        <span className="text-white text-xs font-medium truncate" style={{ maxWidth: 160 }}>
-          {room.topic}
-        </span>
-        {/* People count */}
-        <span className="text-white/40 text-[10px] font-mono tabular-nums">
-          {room.people.length}/{room.maxPeople}
-        </span>
-        {/* Expand icon */}
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-white/40"
+            className="relative flex items-center justify-center"
+            style={{ width: 8, height: 8 }}
+          >
+            {(isSpeaking || hasSpeakers) && (
+              <div
+                className="absolute inset-0 rounded-full animate-ping"
+                style={{ backgroundColor: "#22c55e", opacity: 0.5, animationDuration: "1.5s" }}
+              />
+            )}
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: isSpeaking || hasSpeakers ? "#22c55e" : room.color }}
+            />
+          </div>
+          <span className="text-white text-[11px] font-medium truncate" style={{ maxWidth: 120 }}>
+            {room.topic}
+          </span>
+          <span className="text-white/30 text-[10px] font-mono tabular-nums">
+            {room.people.length}
+          </span>
+          {/* Expand chevron */}
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-white/30"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+
+        {/* Leave button */}
+        <button
+          onClick={onLeave}
+          className="flex items-center justify-center active:scale-95 transition-all duration-200"
+          style={{
+            touchAction: "manipulation",
+            width: 40,
+            height: 40,
+            borderRadius: 13,
+            background: "linear-gradient(160deg, #ff4b4b 0%, #d93025 100%)",
+            color: "#fff",
+            boxShadow: "0 4px 12px rgba(239,68,68,0.3)",
+          }}
         >
-          <polyline points="15 3 21 3 21 9" />
-          <polyline points="9 21 3 21 3 15" />
-          <line x1="21" y1="3" x2="14" y2="10" />
-          <line x1="3" y1="21" x2="10" y2="14" />
-        </svg>
-      </button>
-      {/* Leave button */}
-      <button
-        onClick={onLeave}
-        className="flex items-center justify-center active:scale-95 transition-all duration-200"
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 14,
-          background: "linear-gradient(160deg, #ff4b4b 0%, #d93025 100%)",
-          color: "#fff",
-          boxShadow: "0 4px 16px rgba(239,68,68,0.35)",
-        }}
-        title="Leave"
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          style={{ transform: "rotate(135deg)" }}
-        >
-          <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
-        </svg>
-      </button>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            style={{ transform: "rotate(135deg)" }}
+          >
+            <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
@@ -336,7 +404,9 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
   );
   const [minimized, setMinimized] = useState(false);
   const pendingJoinRef = useRef<string | null>(null);
-  const insideRoomVoiceRef = useRef<{ stop: () => void } | null>(null);
+  const insideRoomVoiceRef = useRef<VoiceHandle | null>(null);
+  // Force re-render for pill voice state (muted/speaking changes)
+  const [, forceUpdate] = useState(0);
   const [liveCamOpen, setLiveCamOpen] = useState(() => {
     if (typeof window === "undefined") return true;
     // Default to closed on mobile so onboarding tour is not blocked
@@ -449,6 +519,13 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
     }
   }, [party.currentRoom]);
 
+  // Refresh pill UI when minimized (voice state changes: muted, speaking)
+  useEffect(() => {
+    if (!minimized) return;
+    const id = setInterval(() => forceUpdate((n) => n + 1), 250);
+    return () => clearInterval(id);
+  }, [minimized]);
+
   // Auto-join pending room after leaving the current one
   useEffect(() => {
     if (!party.currentRoomId && pendingJoinRef.current) {
@@ -487,9 +564,9 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
     window.location.reload();
   };
 
-  if (party.currentRoom && !minimized) {
-    return <InsideRoom party={party} onMinimize={handleMinimize} voiceRef={insideRoomVoiceRef} />;
-  }
+  // When in room and NOT minimized, render InsideRoom as the full screen
+  // (the map JSX below still renders but InsideRoom is on top)
+  // When minimized, InsideRoom is pushed off-screen but stays mounted
 
   // Cast t for dynamic keys
   const tw = (key: string) => t(key as Parameters<typeof t>[0]);
@@ -497,6 +574,27 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-black">
+      {/* InsideRoom — always mounted when in a room, visibility toggled */}
+      {party.currentRoom && (
+        <div
+          className="fixed inset-0 z-[500]"
+          style={
+            minimized
+              ? {
+                  position: "fixed",
+                  left: -9999,
+                  top: -9999,
+                  width: 1,
+                  height: 1,
+                  overflow: "hidden",
+                }
+              : undefined
+          }
+          aria-hidden={minimized}
+        >
+          <InsideRoom party={party} onMinimize={handleMinimize} voiceRef={insideRoomVoiceRef} />
+        </div>
+      )}
       {/* Header */}
       <div
         className="flex items-center justify-between px-3 sm:px-5 border-b border-white/10 shrink-0 z-[450] bg-black"
@@ -1388,23 +1486,20 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
         </div>
       )}
 
-      {/* Mobile dropdown menu */}
-      {/* Minimized room: hidden InsideRoom (keeps WebRTC alive) + floating pill */}
+      {/* Minimized room floating pill */}
       {party.currentRoom && minimized && (
-        <>
-          <div className="fixed inset-0" style={{ visibility: "hidden", pointerEvents: "none" }}>
-            <InsideRoom party={party} voiceRef={insideRoomVoiceRef} />
-          </div>
-          <MinimizedRoomPill
-            room={party.currentRoom}
-            onExpand={handleExpand}
-            onLeave={() => {
-              insideRoomVoiceRef.current?.stop();
-              party.leaveRoom();
-            }}
-          />
-        </>
+        <MinimizedRoomPill
+          room={party.currentRoom}
+          onExpand={handleExpand}
+          onLeave={() => {
+            insideRoomVoiceRef.current?.stop();
+            party.leaveRoom();
+          }}
+          voiceHandle={insideRoomVoiceRef.current}
+        />
       )}
+
+      {/* Mobile dropdown menu */}
 
       {showMore && (
         <div

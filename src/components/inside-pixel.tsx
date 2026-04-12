@@ -10,6 +10,14 @@ import { TicTacToe } from "./tic-tac-toe";
 import { EmojiMatch } from "./emoji-match";
 import { PaddleBall } from "./paddle-ball";
 
+export type VoiceHandle = {
+  stop: () => void;
+  toggleMute: () => void;
+  muted: boolean;
+  isSpeaking: boolean;
+  speakingPeers: Set<string>;
+};
+
 // ─── Sound effects ────────────────────────────────────────────────────────────
 
 function playTone(
@@ -611,7 +619,7 @@ export function InsideRoom({
 }: {
   party: PartyState;
   onMinimize?: () => void;
-  voiceRef?: React.MutableRefObject<{ stop: () => void } | null>;
+  voiceRef?: React.MutableRefObject<VoiceHandle | null>;
 }) {
   const room = party.currentRoom!;
   const voice = useVoice(party);
@@ -628,14 +636,19 @@ export function InsideRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Expose voice.stop to parent via ref (for room switching)
+  // Expose voice state to parent via ref (for minimized pill + room switching)
   useEffect(() => {
-    if (voiceRef) voiceRef.current = { stop: voice.stop };
-    return () => {
-      if (voiceRef) voiceRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceRef, voice.stop]);
+    if (voiceRef) {
+      voiceRef.current = {
+        stop: voice.stop,
+        toggleMute: voice.toggleMute,
+        muted: voice.muted,
+        isSpeaking: voice.isSpeaking,
+        speakingPeers: voice.speakingPeers,
+      };
+    }
+    // Intentionally update every render so muted/speaking stay current
+  });
 
   // Show toast when force-muted by host
   useEffect(() => {
