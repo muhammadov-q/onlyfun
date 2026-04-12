@@ -40,6 +40,12 @@ const DESKTOP_STEPS: TourStep[] = [
     placement: "bottom",
   },
   {
+    target: "podcast",
+    titleKey: "tour.desktop.podcast.title",
+    descKey: "tour.desktop.podcast.desc",
+    placement: "bottom",
+  },
+  {
     target: "music-toggle",
     titleKey: "tour.desktop.music.title",
     descKey: "tour.desktop.music.desc",
@@ -89,6 +95,12 @@ const MOBILE_STEPS: TourStep[] = [
     titleKey: "tour.mobile.create.title",
     descKey: "tour.mobile.create.desc",
     placement: "top",
+  },
+  {
+    target: "podcast",
+    titleKey: "tour.mobile.podcast.title",
+    descKey: "tour.mobile.podcast.desc",
+    placement: "bottom",
   },
   {
     target: "mobile-livecam",

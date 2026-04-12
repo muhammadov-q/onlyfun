@@ -106,6 +106,14 @@ export default {
   "game.paddleBall": "Paddle Ball",
   "game.paddleBallDesc": "Keep the ball alive, it gets faster!",
 
+  // Podcast
+  "podcast.button": "Podcast",
+  "podcast.title": "City Podcast",
+  "podcast.subtitle": "Write a message to the city. Everyone reads it.",
+  "podcast.placeholder": "What's on your mind?",
+  "podcast.send": "Post",
+  "podcast.empty": "No messages yet. Be the first to post!",
+
   // Map / placing
   "map.placingInstruction": "Move the map to position the pin",
   "map.cancel": "Cancel",
@@ -192,6 +200,9 @@ export default {
   "tour.desktop.allRooms.title": "Browse rooms",
   "tour.desktop.allRooms.desc":
     "See all active rooms in one list. Search, filter, and tap any room to zoom right to it on the map.",
+  "tour.desktop.podcast.title": "City Podcast",
+  "tour.desktop.podcast.desc":
+    "Post a message for the whole city to see. Share thoughts, shoutouts, or anything on your mind. Messages stay for a week.",
   "tour.desktop.music.title": "Vibe music",
   "tour.desktop.music.desc": "Turn on background music while you browse. A new track every week.",
   "tour.desktop.liveCam.title": "Live cam",
@@ -214,6 +225,9 @@ export default {
     'Each card is a live room. Tap "Join" to talk, or "Sneak in" to quietly listen without anyone knowing.',
   "tour.mobile.create.title": "Create a room",
   "tour.mobile.create.desc": "Tap the + button to create your own room and place it on the map.",
+  "tour.mobile.podcast.title": "City Podcast",
+  "tour.mobile.podcast.desc":
+    "Post a message for the whole city. Share thoughts or shoutouts — everyone reads it!",
   "tour.mobile.allRooms.title": "Browse rooms",
   "tour.mobile.allRooms.desc":
     "All active rooms in one list — search and tap any to zoom to it on the map.",

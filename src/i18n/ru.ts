@@ -107,6 +107,14 @@ export default {
   "game.paddleBall": "Мячик",
   "game.paddleBallDesc": "Отбивай мяч, он ускоряется!",
 
+  // Podcast
+  "podcast.button": "Подкаст",
+  "podcast.title": "Подкаст города",
+  "podcast.subtitle": "Напиши сообщение городу. Все прочитают.",
+  "podcast.placeholder": "Что у тебя на уме?",
+  "podcast.send": "Отправить",
+  "podcast.empty": "Пока нет сообщений. Будь первым!",
+
   // Map / placing
   "map.placingInstruction": "Передвинь карту, чтобы разместить пин",
   "map.cancel": "Отмена",
@@ -193,6 +201,9 @@ export default {
   "tour.desktop.allRooms.title": "Все комнаты",
   "tour.desktop.allRooms.desc":
     "Все активные комнаты в одном списке. Ищи, фильтруй и нажми на любую чтобы увидеть на карте.",
+  "tour.desktop.podcast.title": "Подкаст города",
+  "tour.desktop.podcast.desc":
+    "Напиши сообщение всему городу. Делись мыслями или просто скажи привет. Сообщения хранятся неделю.",
   "tour.desktop.music.title": "Музыка",
   "tour.desktop.music.desc": "Включи фоновую музыку пока листаешь. Новый трек каждую неделю.",
   "tour.desktop.liveCam.title": "Камера",
@@ -214,6 +225,8 @@ export default {
     "Каждая карточка — живая комната. Нажми «Войти» чтобы говорить, или «Слушок» чтобы тихо послушать — никто не узнает.",
   "tour.mobile.create.title": "Создай комнату",
   "tour.mobile.create.desc": "Нажми кнопку + чтобы создать свою комнату и разместить на карте.",
+  "tour.mobile.podcast.title": "Подкаст города",
+  "tour.mobile.podcast.desc": "Напиши сообщение всему городу. Делись мыслями — все прочитают!",
   "tour.mobile.allRooms.title": "Все комнаты",
   "tour.mobile.allRooms.desc":
     "Все активные комнаты в одном списке — ищи и нажми чтобы увидеть на карте.",

@@ -16,6 +16,7 @@ import { LiveCamPlayer } from "./live-cam-player";
 import { OnboardingTour, restartTour } from "./onboarding-tour";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { DraggableSheet } from "./draggable-sheet";
+import { PodcastPanel, PodcastSheet } from "./podcast-feed";
 import type { RoomModeId } from "@/types/room";
 
 function InfoIcon({ className }: { className?: string }) {
@@ -417,6 +418,7 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
   const [showMobilePulse, setShowMobilePulse] = useState(false);
   const [showMobileEvents, setShowMobileEvents] = useState(false);
   const [showMobileSponsor, setShowMobileSponsor] = useState(false);
+  const [showPodcast, setShowPodcast] = useState(false);
   const weather = useWeather();
   const bishkekTime = useBishkekTime();
   const music = useMusic();
@@ -644,6 +646,32 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
             <span className="bg-white/15 text-white/80 text-[9px] font-bold px-1 py-0.5 rounded-full">
               {party.rooms.length}
             </span>
+          </button>
+
+          {/* Podcast */}
+          <button
+            data-tour="podcast"
+            onClick={() => setShowPodcast((v) => !v)}
+            className={`flex items-center gap-1 h-8 px-2 sm:px-2.5 rounded-lg text-xs font-medium border transition-all ${
+              showPodcast
+                ? "bg-amber-500/20 text-amber-300 border-amber-400/30"
+                : "bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/15"
+            }`}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            <span className="hidden sm:inline">{t("podcast.button")}</span>
           </button>
 
           {/* Weather — always visible */}
@@ -977,6 +1005,13 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
             onPreview={preview.startPreview}
             previewingRoomId={preview.previewingRoomId}
           />
+
+          {/* Desktop podcast side panel */}
+          {showPodcast && (
+            <div className="hidden sm:block">
+              <PodcastPanel userName={name} onClose={() => setShowPodcast(false)} t={tw} />
+            </div>
+          )}
 
           {/* Preview listening indicator */}
           {preview.previewingRoomId && (
@@ -1441,6 +1476,13 @@ export function PixelCanvas({ name: initialName }: { name: string }) {
             <SponsorBox />
           </div>
         </DraggableSheet>
+      )}
+
+      {/* Podcast — mobile bottom sheet */}
+      {showPodcast && (
+        <div className="sm:hidden">
+          <PodcastSheet userName={name} onClose={() => setShowPodcast(false)} t={tw} />
+        </div>
       )}
 
       {showInfo && (

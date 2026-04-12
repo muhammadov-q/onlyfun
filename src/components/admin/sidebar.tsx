@@ -21,6 +21,7 @@ import {
   LogOut,
   Newspaper,
   CalendarDays,
+  PenLine,
   Menu,
   X,
 } from "lucide-react";
@@ -37,6 +38,7 @@ const NAV_ITEMS = [
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "News", href: "/admin/news", icon: Newspaper },
   { label: "Events", href: "/admin/events", icon: CalendarDays },
+  { label: "Podcast", href: "/admin/podcast", icon: PenLine },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
