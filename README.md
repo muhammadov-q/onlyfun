@@ -560,3 +560,12 @@ The app supports two languages:
 | Russian  | `src/i18n/ru.ts` | `ru` |
 
 Language is auto-detected from the browser and can be switched via the dropdown menu. All UI strings, tour steps, error messages, and room mode labels are translated.
+
+---
+
+## Contributors
+
+| Name                | GitHub                                           |
+| ------------------- | ------------------------------------------------ |
+| Kobiljon Muhammadov | [@muhammadov-q](https://github.com/muhammadov-q) |
+| Shohjahon Hakimov   | [@hakimovhere](https://github.com/hakimovhere)   |
